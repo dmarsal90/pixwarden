@@ -100,6 +100,35 @@ describe("scanImage structural core", () => {
     expect(yielded).toBe(2);
   });
 
+  it("aborts a stream blocked in next and requests iterator cleanup", async () => {
+    let closed = false;
+    const source: AsyncIterable<Uint8Array> = {
+      [Symbol.asyncIterator]() {
+        return {
+          next: () => new Promise<IteratorResult<Uint8Array>>(() => undefined),
+          return: async () => {
+            closed = true;
+            return { done: true, value: undefined };
+          }
+        };
+      }
+    };
+    const controller = new AbortController();
+    const pending = scanImageStream(source, { signal: controller.signal });
+    controller.abort();
+    await expect(pending).rejects.toMatchObject({ code: "CANCELLED" });
+    expect(closed).toBe(true);
+  });
+
+  it("normalizes stream read failures without exposing source error details", async () => {
+    const source: AsyncIterable<Uint8Array> = {
+      [Symbol.asyncIterator]() {
+        return { next: () => Promise.reject(new Error("private stream detail")) };
+      }
+    };
+    await expect(scanImageStream(source)).rejects.toMatchObject({ code: "IO_FAILURE", message: "Input stream failed while reading." });
+  });
+
   it("inspects SVG through the XML profile and reports active markup", async () => {
     const svg = new TextEncoder().encode('<svg xmlns="http://www.w3.org/2000/svg"><script>marker</script><rect width="8" onclick="marker"/></svg>');
     const result = await scanImage(svg);

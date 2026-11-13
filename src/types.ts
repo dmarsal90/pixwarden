@@ -88,7 +88,7 @@ export interface ScanResult {
 }
 
 export class PixwardenError extends Error {
-  readonly code: "INVALID_OPTIONS" | "INPUT_TOO_LARGE" | "LIMIT_EXCEEDED" | "CANCELLED" | "MALFORMED_INPUT" | "SANITIZATION_FAILURE";
+  readonly code: "INVALID_OPTIONS" | "INPUT_TOO_LARGE" | "LIMIT_EXCEEDED" | "CANCELLED" | "MALFORMED_INPUT" | "SANITIZATION_FAILURE" | "IO_FAILURE";
 
   constructor(code: PixwardenError["code"], message: string) {
     super(message);
