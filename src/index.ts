@@ -1,9 +1,12 @@
 import { randomUUID } from "node:crypto";
 import { inspectBinaryIndicators, inspectStructure } from "./inspectors.js";
+import { sanitizeSvg } from "./svg-guard.js";
 import { PixwardenError, type CapabilityReport, type ControlResult, type Finding, type ImageFormat, type ResourceLimits, type ScanOptions, type ScanResult, type Verdict } from "./types.js";
 
 export { PixwardenError } from "./types.js";
 export type { CapabilityReport, ControlResult, Evidence, Finding, ImageFormat, ResourceLimits, ScanOptions, ScanResult, Verdict } from "./types.js";
+export type { SvgSanitizationResult } from "./svg-guard.js";
+export { sanitizeSvg } from "./svg-guard.js";
 
 export const ENGINE_VERSION = "0.1.0";
 export const SPEC_VERSION = "0.1.0";
@@ -22,7 +25,7 @@ const formats: CapabilityReport["formats"] = Object.freeze({
   png: { inspect: true, decode: false, sanitize: false, reason: "Chunk bounds/order/CRC and dimensions are inspected; image data is not decompressed." },
   gif: { inspect: true, decode: false, sanitize: false, reason: "Block, sub-block and frame structure is inspected; LZW data is not decoded." },
   webp: { inspect: true, decode: false, sanitize: false, reason: "RIFF chunk bounds and selected dimensions/frame metadata are inspected; bitstreams are not decoded." },
-  svg: { inspect: false, decode: false, sanitize: false, reason: "Secure XML parser and allowlist sanitizer have not been selected; SVG is reported unsupported." },
+  svg: { inspect: true, decode: false, sanitize: true, reason: "Saxes-backed XML profile and static allowlist sanitizer; unsupported active features are removed or reported." },
   unknown: { inspect: false, decode: false, sanitize: false, reason: "No structural profile is available." }
 });
 
