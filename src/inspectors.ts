@@ -310,6 +310,90 @@ export function inspectStructure(data: Uint8Array, limits: ResourceLimits): Stru
 
 export function inspectBinaryIndicators(data: Uint8Array): Finding[] {
   const findings: Finding[] = [];
+  const regions: Array<{ start: number; end: number }> = [];
+  // Only inspect ancillary/container regions whose boundaries are explicit in the
+  // format. Compressed image streams are deliberately excluded to avoid matches
+  // caused by ordinary pixel data.
+  if (isPng(data)) {
+    let cursor = 8;
+    while (cursor + 12 <= data.length) {
+      const size = readU32BE(data, cursor);
+      if (size > data.length - cursor - 12) break;
+      const typeAt = cursor + 4;
+      const type = String.fromCharCode(...data.subarray(typeAt, typeAt + 4));
+      const payload = cursor + 8;
+      const end = payload + size;
+      if (type[0] === type[0]?.toLowerCase() && type !== "IDAT") regions.push({ start: payload, end });
+      cursor = end + 4;
+      if (type === "IEND") { if (cursor < data.length) regions.push({ start: cursor, end: data.length }); break; }
+    }
+  } else if (data.length >= 3 && data[0] === 0xff && data[1] === 0xd8 && data[2] === 0xff) {
+    let cursor = 2;
+    let inScan = false;
+    while (cursor < data.length) {
+      if (inScan) {
+        while (cursor < data.length && data[cursor] !== 0xff) cursor++;
+        while (cursor < data.length && data[cursor] === 0xff) cursor++;
+        if (cursor >= data.length) break;
+        const marker = data[cursor]!;
+        if (marker === 0 || (marker >= 0xd0 && marker <= 0xd7)) { cursor++; continue; }
+        inScan = false;
+        // Rewind to the last marker-prefix byte so the segment parser below
+        // processes this marker and can continue through EOI and the trailer.
+        cursor--;
+      }
+      if (data[cursor] !== 0xff) break;
+      while (cursor < data.length && data[cursor] === 0xff) cursor++;
+      if (cursor >= data.length) break;
+      const marker = data[cursor++]!;
+      if (marker === 0xd9) { if (cursor < data.length) regions.push({ start: cursor, end: data.length }); break; }
+      if (marker === 0xd8 || marker === 0x01 || (marker >= 0xd0 && marker <= 0xd7)) continue;
+      if (cursor + 2 > data.length) break;
+      const length = (data[cursor]! << 8) | data[cursor + 1]!;
+      if (length < 2 || length > data.length - cursor) break;
+      const payloadStart = cursor + 2;
+      const payloadEnd = cursor + length;
+      if ((marker >= 0xe0 && marker <= 0xef) || marker === 0xfe) regions.push({ start: payloadStart, end: payloadEnd });
+      cursor = payloadEnd;
+      if (marker === 0xda) inScan = true;
+    }
+  } else if (eqAscii(data, 0, "GIF87a") || eqAscii(data, 0, "GIF89a")) {
+    if (data.length >= 13) {
+      const packed = data[10]!;
+      let cursor = 13 + ((packed & 0x80) ? 3 * (1 << ((packed & 7) + 1)) : 0);
+      while (cursor < data.length) {
+        const marker = data[cursor++]!;
+        if (marker === 0x3b) { if (cursor < data.length) regions.push({ start: cursor, end: data.length }); break; }
+        if (marker === 0x2c) {
+          if (cursor + 9 > data.length) break;
+          const flags = data[cursor + 8]!;
+          cursor += 9;
+          if (flags & 0x80) cursor += 3 * (1 << ((flags & 7) + 1));
+          if (cursor >= data.length) break;
+          cursor++; // LZW minimum code size
+          while (cursor < data.length) { const n = data[cursor++]!; if (!n) break; if (n > data.length - cursor) { cursor = data.length; break; } cursor += n; }
+        } else if (marker === 0x21) {
+          if (cursor >= data.length) break;
+          const label = data[cursor++]!;
+          if (label === 0xf9) { if (cursor + 6 > data.length) break; regions.push({ start: cursor + 1, end: cursor + 5 }); cursor += 6; }
+          else while (cursor < data.length) { const n = data[cursor++]!; if (!n) break; if (n > data.length - cursor) { cursor = data.length; break; } regions.push({ start: cursor, end: cursor + n }); cursor += n; }
+        } else break;
+      }
+    }
+  } else if (eqAscii(data, 0, "RIFF") && eqAscii(data, 8, "WEBP") && data.length >= 12) {
+    const limit = Math.min(data.length, readU32LE(data, 4) + 8);
+    let cursor = 12;
+    while (cursor + 8 <= limit) {
+      const kind = String.fromCharCode(...data.subarray(cursor, cursor + 4));
+      const size = readU32LE(data, cursor + 4);
+      const start = cursor + 8;
+      const end = start + size;
+      if (end > limit) break;
+      if (["EXIF", "XMP ", "ICCP"].includes(kind)) regions.push({ start, end });
+      cursor = end + (size & 1);
+    }
+    if (limit < data.length) regions.push({ start: limit, end: data.length });
+  }
   const patterns: ReadonlyArray<{ readonly name: string; readonly bytes: readonly number[] }> = [
     { name: "ZIP local-file header", bytes: [0x50, 0x4b, 0x03, 0x04] },
     { name: "DOS/Windows executable signature", bytes: [0x4d, 0x5a] },
@@ -317,7 +401,7 @@ export function inspectBinaryIndicators(data: Uint8Array): Finding[] {
     { name: "PDF header", bytes: [0x25, 0x50, 0x44, 0x46, 0x2d] }
   ];
   for (const pattern of patterns) {
-    for (let offset = 0; offset <= data.length - pattern.bytes.length; offset++) {
+    for (const region of regions) for (let offset = region.start; offset <= region.end - pattern.bytes.length; offset++) {
       if (pattern.bytes.every((byte, index) => data[offset + index] === byte)) {
         findings.push({
           id: "BIN-009", severity: "medium", stage: "binary", title: "Embedded format signature",
