@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { scanImage, scanImageStream } from "../src/index.js";
+import { sanitizeSvg, scanImage, scanImageStream } from "../src/index.js";
 
 function pngChunk(type: string, payload: number[]): number[] {
   const bytes = [...type].map((char) => char.charCodeAt(0)).concat(payload);
@@ -98,5 +98,37 @@ describe("scanImage structural core", () => {
     })();
     await expect(scanImageStream(source, { limits: { maxBytes: 8 } })).rejects.toMatchObject({ code: "INPUT_TOO_LARGE" });
     expect(yielded).toBe(2);
+  });
+
+  it("inspects SVG through the XML profile and reports active markup", async () => {
+    const svg = new TextEncoder().encode('<svg xmlns="http://www.w3.org/2000/svg"><script>marker</script><rect width="8" onclick="marker"/></svg>');
+    const result = await scanImage(svg);
+    expect(result.format).toBe("svg");
+    expect(result.validity).toBe("valid");
+    expect(result.findings.map((finding) => finding.id)).toContain("SVG-001");
+    expect(result.findings.map((finding) => finding.id)).toContain("SVG-002");
+    expect(result.verdict).toBe("reject");
+  });
+
+  it("sanitizes SVG to a re-checked static allowlist output", () => {
+    const svg = new TextEncoder().encode('<svg xmlns="http://www.w3.org/2000/svg"><rect width="8" fill="red" onclick="marker"/><script>marker</script></svg>');
+    const result = sanitizeSvg(svg);
+    const output = new TextDecoder().decode(result.bytes);
+    expect(output).toContain("<rect width=\"8\" fill=\"red\">");
+    expect(output).not.toContain("onclick");
+    expect(output).not.toContain("script");
+    expect(result.postCheckStatus).toBe("passed");
+    expect(result.removedAttributes).toBe(1);
+  });
+
+  it("rejects SVG DTDs before accepting a sanitized result", () => {
+    const svg = new TextEncoder().encode('<!DOCTYPE svg SYSTEM "file:///not-read"><svg xmlns="http://www.w3.org/2000/svg"/>');
+    let caught: unknown;
+    try {
+      sanitizeSvg(svg);
+    } catch (error) {
+      caught = error;
+    }
+    expect(caught).toMatchObject({ code: "MALFORMED_INPUT" });
   });
 });
