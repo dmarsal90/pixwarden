@@ -27,6 +27,8 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
           package-manager-cache: false
+      - name: Pin npm for lockfile consistency
+        run: npm install --global npm@10.9.2
       - run: npm ci --ignore-scripts
       - run: npm run typecheck
       - run: npm test

@@ -30,7 +30,7 @@ describe("scanImage structural core", () => {
   });
 
   it("rejects a PNG chunk whose declared size exceeds the input", async () => {
-    const malformed = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 50, 73, 72, 68, 82]);
+    const malformed = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 50, 73, 72, 68, 82, 0, 0, 0, 0]);
     const result = await scanImage(malformed);
     expect(result.validity).toBe("invalid");
     expect(result.verdict).toBe("reject");
