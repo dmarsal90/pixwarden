@@ -19,6 +19,19 @@ const validPng = new Uint8Array([
   ...pngChunk("IDAT", [0]),
   ...pngChunk("IEND", [])
 ]);
+const signatureInPixelsPng = new Uint8Array([
+  137, 80, 78, 71, 13, 10, 26, 10,
+  ...pngChunk("IHDR", [0, 0, 0, 1, 0, 0, 0, 1, 8, 6, 0, 0, 0]),
+  ...pngChunk("IDAT", [0x4d, 0x5a, 0x50, 0x4b, 0x03, 0x04]),
+  ...pngChunk("IEND", [])
+]);
+const signatureInAncillaryPng = new Uint8Array([
+  137, 80, 78, 71, 13, 10, 26, 10,
+  ...pngChunk("IHDR", [0, 0, 0, 1, 0, 0, 0, 1, 8, 6, 0, 0, 0]),
+  ...pngChunk("tEXt", [0x4d, 0x5a]),
+  ...pngChunk("IDAT", [0]),
+  ...pngChunk("IEND", [])
+]);
 
 describe("scanImage structural core", () => {
   it("identifies and validates a structurally complete PNG without decoding it", async () => {
@@ -27,6 +40,16 @@ describe("scanImage structural core", () => {
     expect(result.validity).toBe("valid");
     expect(result.decodability).toBe("not_attempted");
     expect(result.verdict).toBe("allow");
+  });
+
+  it("does not treat signatures in compressed PNG image data as embedded payloads", async () => {
+    const result = await scanImage(signatureInPixelsPng);
+    expect(result.findings.some((item) => item.id === "BIN-009")).toBe(false);
+  });
+
+  it("checks PNG ancillary metadata regions for embedded format signatures", async () => {
+    const result = await scanImage(signatureInAncillaryPng);
+    expect(result.findings.some((item) => item.id === "BIN-009")).toBe(true);
   });
 
   it("rejects a PNG chunk whose declared size exceeds the input", async () => {
