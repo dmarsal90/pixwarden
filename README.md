@@ -12,12 +12,15 @@ This package is an early implementation. Structural checks cover selected contai
 import { scanImage } from "pixwarden-js";
 
 const result = await scanImage(imageBytes, {
+  hints: { filename: "upload.png", mediaType: "image/png" },
   limits: { maxBytes: 10 * 1024 * 1024, maxPixels: 40_000_000 },
   binaryInspection: true
 });
 
 console.log(result.verdict, result.findings, result.controls);
 ```
+
+Hints are untrusted and are compared with the byte-derived format. Pixwarden does not store the supplied filename or media type in the report.
 
 Input to `scanImage` must be a `Uint8Array` or Node.js `Buffer`. `scanImageStream` accepts an `AsyncIterable<Uint8Array>`, copies each yielded chunk, and stops reading once the byte cap is exceeded. The stream is buffered up to that cap before inspection; memory/RSS and stalled-source timeouts are not enforced. `sanitizeSvg` handles only the documented static allowlist; there is no raster decoder/sanitizer, OCR, steganography detection, remote fetching, or telemetry. `AbortSignal` is checked before parsing and between stream chunks; it cannot interrupt synchronous parsing or a source blocked while waiting to produce its next chunk. Byte, dimension, and frame thresholds are checked before any decoder (none is invoked). CPU, memory, and wall-clock limits are not enforced in process; run hostile workloads inside a killable worker/container. Limits may be tightened but not raised above built-in maxima.
 

@@ -131,4 +131,24 @@ describe("scanImage structural core", () => {
     }
     expect(caught).toMatchObject({ code: "MALFORMED_INPUT" });
   });
+
+  it("compares optional filename and MIME hints against byte-derived format without retaining them", async () => {
+    const result = await scanImage(validPng, { hints: { filename: "/private/uploads/photo.jpg", mediaType: "image/jpeg" } });
+    expect(result.findings.filter((finding) => finding.id === "IMG-010")).toHaveLength(1);
+    expect(result.verdict).toBe("review");
+    expect(JSON.stringify(result)).not.toContain("/private/uploads");
+    expect(JSON.stringify(result)).not.toContain("photo.jpg");
+  });
+
+  it("passes recognized matching type hints", async () => {
+    const result = await scanImage(validPng, { hints: { filename: "photo.PNG", mediaType: "image/png; charset=binary" } });
+    expect(result.controls.hints?.status).toBe("passed");
+    expect(result.findings.some((finding) => finding.id === "IMG-010")).toBe(false);
+  });
+
+  it("reports unknown type hints as unsupported when the policy requires comparison", async () => {
+    const result = await scanImage(validPng, { hints: { filename: "photo.custom" }, requiredControls: ["structural", "hints"] });
+    expect(result.controls.hints?.status).toBe("unsupported");
+    expect(result.verdict).toBe("review");
+  });
 });
