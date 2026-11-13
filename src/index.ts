@@ -82,7 +82,10 @@ export async function scanImage(input: Uint8Array, options: ScanOptions = {}): P
   await new Promise<void>((resolve) => setImmediate(resolve));
   if (options.signal?.aborted) throw new PixwardenError("CANCELLED", "Scan was cancelled before inspection started.");
   const snapshot = Uint8Array.from(input);
+  return inspectSnapshot(snapshot, options, limits, started);
+}
 
+function inspectSnapshot(snapshot: Uint8Array, options: ScanOptions, limits: ResourceLimits, started: string): ScanResult {
   const structuralEnabled = options.structural ?? true;
   const binaryEnabled = options.binaryInspection ?? true;
   const metadataEnabled = options.metadata ?? true;
@@ -152,6 +155,37 @@ export async function scanImage(input: Uint8Array, options: ScanOptions = {}): P
     limitations: Object.freeze(limitations),
     inputBytes: snapshot.byteLength
   });
+}
+
+/**
+ * Read an async byte source without accepting more than the configured input cap.
+ * Chunks are snapshotted as they arrive; scanning begins only after the bounded
+ * input has been assembled. Cancellation is checked between yielded chunks.
+ */
+export async function scanImageStream(source: AsyncIterable<Uint8Array>, options: ScanOptions = {}): Promise<ScanResult> {
+  const started = new Date().toISOString();
+  if (source === null || typeof source !== "object" || typeof source[Symbol.asyncIterator] !== "function") {
+    throw new PixwardenError("INVALID_OPTIONS", "Input source must be an AsyncIterable of Uint8Array chunks.");
+  }
+  const limits = mergeLimits(options.limits);
+  if (options.signal?.aborted) throw new PixwardenError("CANCELLED", "Stream scan was cancelled before reading input.");
+  const chunks: Uint8Array[] = [];
+  let totalBytes = 0;
+  for await (const chunk of source) {
+    if (options.signal?.aborted) throw new PixwardenError("CANCELLED", "Stream scan was cancelled while reading input.");
+    if (!(chunk instanceof Uint8Array)) throw new PixwardenError("INVALID_OPTIONS", "Every stream chunk must be a Uint8Array or Node.js Buffer.");
+    if (chunk.byteLength > limits.maxBytes - totalBytes) throw new PixwardenError("INPUT_TOO_LARGE", "Stream input exceeds the configured byte limit.");
+    totalBytes += chunk.byteLength;
+    chunks.push(Uint8Array.from(chunk));
+  }
+  if (options.signal?.aborted) throw new PixwardenError("CANCELLED", "Stream scan was cancelled before inspection started.");
+  const snapshot = new Uint8Array(totalBytes);
+  let offset = 0;
+  for (const chunk of chunks) {
+    snapshot.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return inspectSnapshot(snapshot, options, limits, started);
 }
 
 export function getCapabilities(): CapabilityReport {
