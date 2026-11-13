@@ -21,7 +21,11 @@ Required: `requestVersion` (const `1`), `input` (exactly one of inline base64 by
 
 ### ScanOptions
 
-Fields: booleans `structural`, `metadata`, `binaryInspection`, `sanitize`; object `steganography` `{enabled:boolean,mode:"statistical"|"targeted",maxSamples?:integer}`; `aiInspection` `{enabled:boolean,ocr:boolean,adapterId?:string}`; `limits` (`ResourceLimits`); `policyId` string; `requiredControls` array of control IDs. Defaults are explicit in versioned policy, not hidden in schema. Unknown adapter IDs fail configuration validation.
+Fields: booleans `structural`, `metadata`, `binaryInspection`, `sanitize`; optional JS convenience field `hints` (`ScanHints` below; serialized as `ScanRequest.hints`); object `steganography` `{enabled:boolean,mode:"statistical"|"targeted",maxSamples?:integer}`; `aiInspection` `{enabled:boolean,ocr:boolean,adapterId?:string}`; `limits` (`ResourceLimits`); `policyId` string; `requiredControls` array of control IDs. Defaults are explicit in versioned policy, not hidden in schema. Unknown adapter IDs fail configuration validation.
+
+### ScanHints
+
+Optional `filename` string (maximum 255 characters) and/or `mediaType` string (maximum 127 characters). These are untrusted hints only. Implementations compare recognized values to byte-derived formats, never use the filename as a path, and do not copy raw hint values into reports or logs. Unknown hint values produce an unsupported control state; a recognized mismatch is a review signal, not a malware verdict.
 
 ### ResourceLimits
 

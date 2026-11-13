@@ -1,10 +1,10 @@
 import { randomUUID } from "node:crypto";
 import { inspectBinaryIndicators, inspectStructure } from "./inspectors.js";
 import { sanitizeSvg } from "./svg-guard.js";
-import { PixwardenError, type CapabilityReport, type ControlResult, type Finding, type ImageFormat, type ResourceLimits, type ScanOptions, type ScanResult, type Verdict } from "./types.js";
+import { PixwardenError, type CapabilityReport, type ControlResult, type Finding, type ImageFormat, type ResourceLimits, type ScanHints, type ScanOptions, type ScanResult, type Verdict } from "./types.js";
 
 export { PixwardenError } from "./types.js";
-export type { CapabilityReport, ControlResult, Evidence, Finding, ImageFormat, ResourceLimits, ScanOptions, ScanResult, Verdict } from "./types.js";
+export type { CapabilityReport, ControlResult, Evidence, Finding, ImageFormat, ResourceLimits, ScanHints, ScanOptions, ScanResult, Verdict } from "./types.js";
 export type { SvgSanitizationResult } from "./svg-guard.js";
 export { sanitizeSvg } from "./svg-guard.js";
 
@@ -51,6 +51,59 @@ function makeControl(status: ControlResult["status"], summary: string): ControlR
   return Object.freeze({ status, summary });
 }
 
+const extensions: Readonly<Record<string, ImageFormat>> = Object.freeze({ jpg: "jpeg", jpeg: "jpeg", png: "png", gif: "gif", webp: "webp", svg: "svg" });
+const mediaTypes: Readonly<Record<string, ImageFormat>> = Object.freeze({
+  "image/jpeg": "jpeg", "image/png": "png", "image/gif": "gif", "image/webp": "webp", "image/svg+xml": "svg"
+});
+
+function inspectHints(format: ImageFormat, hints: ScanHints | undefined): { control: ControlResult; findings: Finding[] } {
+  if (!hints || (hints.filename === undefined && hints.mediaType === undefined)) {
+    return { control: makeControl("skipped", "No filename or media-type hints were supplied."), findings: [] };
+  }
+  let unsupportedHint = false;
+  const candidates: ImageFormat[] = [];
+  if (hints.filename !== undefined) {
+    const basename = hints.filename.split(/[\\/]/).at(-1) ?? "";
+    const dot = basename.lastIndexOf(".");
+    const extension = dot >= 0 ? basename.slice(dot + 1).toLowerCase() : "";
+    const candidate = extensions[extension];
+    if (candidate) candidates.push(candidate);
+    else unsupportedHint = true;
+  }
+  if (hints.mediaType !== undefined) {
+    const mediaType = hints.mediaType.split(";", 1)[0]!.trim().toLowerCase();
+    const candidate = mediaTypes[mediaType];
+    if (candidate) candidates.push(candidate);
+    else unsupportedHint = true;
+  }
+  const findings: Finding[] = (format === "unknown" ? [] : [...new Set(candidates)].filter((candidate) => candidate !== format)).map((candidate) => ({
+    id: "IMG-010",
+    severity: "medium",
+    stage: "identify",
+    title: "Declared type disagrees with image bytes",
+    description: "A recognized filename extension or media type does not match the format detected from the input bytes.",
+    status: "suspected",
+    controlStatus: "passed",
+    evidence: [{ kind: "policy", summary: "Caller-provided type hint differs from byte-derived format." }]
+  }));
+  if (format === "unknown" || unsupportedHint) {
+    return { control: makeControl("unsupported", "One or more type hints or the detected format could not be compared using a supported profile."), findings };
+  }
+  return { control: makeControl("passed", "Recognized caller hints were compared with the byte-derived format."), findings };
+}
+
+function validateHints(hints: ScanHints | undefined): void {
+  if (hints === undefined) return;
+  if (hints === null || typeof hints !== "object") throw new PixwardenError("INVALID_OPTIONS", "Hints must be an object.");
+  if (hints.filename === undefined && hints.mediaType === undefined) throw new PixwardenError("INVALID_OPTIONS", "At least one filename or media-type hint is required.");
+  if (hints.filename !== undefined && (typeof hints.filename !== "string" || hints.filename.length > 255 || /[\u0000-\u001f\u007f]/.test(hints.filename))) {
+    throw new PixwardenError("INVALID_OPTIONS", "Filename hint must be a short string without control characters.");
+  }
+  if (hints.mediaType !== undefined && (typeof hints.mediaType !== "string" || hints.mediaType.length > 127 || /[\u0000-\u001f\u007f]/.test(hints.mediaType))) {
+    throw new PixwardenError("INVALID_OPTIONS", "Media-type hint must be a short string without control characters.");
+  }
+}
+
 function evaluateVerdict(
   findings: readonly Finding[],
   controls: Readonly<Record<string, ControlResult>>,
@@ -89,13 +142,17 @@ export async function scanImage(input: Uint8Array, options: ScanOptions = {}): P
 }
 
 function inspectSnapshot(snapshot: Uint8Array, options: ScanOptions, limits: ResourceLimits, started: string): ScanResult {
+  validateHints(options.hints);
   const structuralEnabled = options.structural ?? true;
   const binaryEnabled = options.binaryInspection ?? true;
   const metadataEnabled = options.metadata ?? true;
   const structural = structuralEnabled ? inspectStructure(snapshot, limits) : undefined;
   const format: ImageFormat = structural?.format ?? "unknown";
   const findings: Finding[] = [...(structural?.findings ?? [])];
+  const hintInspection = inspectHints(format, options.hints);
+  findings.push(...hintInspection.findings);
   const controls: Record<string, ControlResult> = {
+    hints: hintInspection.control,
     structural: structuralEnabled
       ? structural?.validity === "unknown" ? makeControl("unsupported", "No structural profile is available for this format.") : makeControl(structural?.validity === "valid" ? "passed" : "failed", "A bounded format-specific structural profile ran.")
       : makeControl("skipped", "Structural inspection was disabled by the caller."),
@@ -106,7 +163,9 @@ function inspectSnapshot(snapshot: Uint8Array, options: ScanOptions, limits: Res
       ? makeControl("passed", "Read-only signature indicators were scanned; this is not malware scanning and may produce false positives.")
       : makeControl("skipped", "Binary signature inspection was disabled by the caller."),
     decode: makeControl("unsupported", "No image decoder is bundled or invoked."),
-    sanitization: makeControl("unsupported", "No sanitizer is implemented; the original input is unchanged.")
+    sanitization: format === "svg"
+      ? makeControl("skipped", "The SVG sanitizer is available separately and was not invoked by scanImage.")
+      : makeControl("unsupported", "No raster sanitizer is implemented; the original input is unchanged.")
   };
   if (binaryEnabled) findings.push(...inspectBinaryIndicators(snapshot));
   for (const [name, maximum, observed] of [
@@ -125,7 +184,7 @@ function inspectSnapshot(snapshot: Uint8Array, options: ScanOptions, limits: Res
     throw new PixwardenError("INVALID_OPTIONS", "requiredControls must contain known controls and cannot be empty.");
   }
   const evaluation = evaluateVerdict(findings, controls, required, options.unsupportedFormat ?? "review", options.incompleteAnalysis ?? "review");
-  const enabledControls = ["structural", ...(binaryEnabled ? ["binary"] : []), ...(metadataEnabled ? ["metadata"] : [])];
+  const enabledControls = ["structural", ...(binaryEnabled ? ["binary"] : []), ...(metadataEnabled ? ["metadata"] : []), ...(options.hints ? ["hints"] : [])];
   const coverage = enabledControls.some((id) => controls[id]?.status === "error")
     ? "incomplete"
     : enabledControls.some((id) => ["unsupported", "skipped"].includes(controls[id]?.status ?? "unsupported"))
@@ -134,7 +193,7 @@ function inspectSnapshot(snapshot: Uint8Array, options: ScanOptions, limits: Res
   const completed = new Date().toISOString();
   const limitations = [
     "Structural validity is limited to the implemented byte-level profile; it is not proof of safe rendering or decoding.",
-    "No raster or SVG decoder, sanitizer, OCR, steganography detector, or model analysis is bundled.",
+    "No raster decoder/sanitizer, OCR, steganography detector, or model analysis is bundled. The SVG sanitizer is a separate operation and is not invoked by scanImage.",
     "In-process parsing has no hard CPU, memory, or wall-clock enforcement. Use a killable worker/container for hostile workloads.",
     "Binary signatures are indicators only; they neither prove a complete embedded file nor replace antivirus analysis."
   ];
@@ -171,6 +230,7 @@ export async function scanImageStream(source: AsyncIterable<Uint8Array>, options
     throw new PixwardenError("INVALID_OPTIONS", "Input source must be an AsyncIterable of Uint8Array chunks.");
   }
   const limits = mergeLimits(options.limits);
+  validateHints(options.hints);
   if (options.signal?.aborted) throw new PixwardenError("CANCELLED", "Stream scan was cancelled before reading input.");
   const chunks: Uint8Array[] = [];
   let totalBytes = 0;

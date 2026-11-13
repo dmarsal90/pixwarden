@@ -7,7 +7,7 @@ Coverage labels: `D` direct deterministic inspection; `H` heuristic/probabilisti
 | Threat IDs | Planned detection | Planned mitigation | Limitations / required status behavior | Test IDs |
 |---|---|---|---|---|
 | IMG-001–006, 009, 011 | D: bounded per-format profiles | M: reject/review; reconstruct only by approved sanitizer | Profiles cover only supported spec subset; incomplete parse => failed/error | STR-001–006 |
-| IMG-007–008, 010, 012 | D/H: signature conflicts, terminator/tail, hint mismatch; limited differential checks | M: allowlisted output, fixed serving headers by caller | Arbitrary polyglot/parser differences not provable; unsupported => review | STR-003/007, BIN-002 |
+| IMG-007–008, 010, 012 | D/H: signature conflicts, terminator/tail, recognized extension/MIME mismatch; limited differential checks | M: allowlisted output, fixed serving headers by caller | Arbitrary polyglot/parser differences not provable; raw hints are omitted; unsupported hint/profile is explicit | STR-003/007, BIN-002 |
 | BIN-001–010 | D/H: region-aware signatures, structural gaps, bounded entropy | M: strip/reconstruct and post-scan | Signatures evadable; entropy noisy; no recursive unpack; report inconclusive | BIN-001–006, SAN-001 |
 | SVG-001–010 | D: Saxes XML parse, namespace checks, static element/attribute allowlist, DTD rejection | M: canonical allowlist serialization and parse-again check | Renderer differences remain; CSS/style/filter/animation support is intentionally narrow; pending CI and security review | SVG-001–006 |
 | META-001–008 | D: bounded known tag parsing and privacy tag map | M: strip/preserve/reject by policy | Unknown proprietary fields and parser coverage remain; never log raw values | META-001–004 |
