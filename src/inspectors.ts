@@ -338,6 +338,9 @@ export function inspectBinaryIndicators(data: Uint8Array): Finding[] {
         const marker = data[cursor]!;
         if (marker === 0 || (marker >= 0xd0 && marker <= 0xd7)) { cursor++; continue; }
         inScan = false;
+        // Rewind to the last marker-prefix byte so the segment parser below
+        // processes this marker and can continue through EOI and the trailer.
+        cursor--;
       }
       if (data[cursor] !== 0xff) break;
       while (cursor < data.length && data[cursor] === 0xff) cursor++;

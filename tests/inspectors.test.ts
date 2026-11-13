@@ -32,6 +32,14 @@ const signatureInAncillaryPng = new Uint8Array([
   ...pngChunk("IDAT", [0]),
   ...pngChunk("IEND", [])
 ]);
+const signatureInJpegEntropy = new Uint8Array([
+  0xff, 0xd8,
+  0xff, 0xc0, 0, 8, 8, 0, 1, 0, 1, 1,
+  0xff, 0xda, 0, 2,
+  0x4d, 0x5a, 0x50, 0x4b, 3, 4,
+  0xff, 0xd9,
+  0x4d, 0x5a
+]);
 
 describe("scanImage structural core", () => {
   it("identifies and validates a structurally complete PNG without decoding it", async () => {
@@ -50,6 +58,13 @@ describe("scanImage structural core", () => {
   it("checks PNG ancillary metadata regions for embedded format signatures", async () => {
     const result = await scanImage(signatureInAncillaryPng);
     expect(result.findings.some((item) => item.id === "BIN-009")).toBe(true);
+  });
+
+  it("skips JPEG entropy bytes but inspects bytes after the EOI marker", async () => {
+    const result = await scanImage(signatureInJpegEntropy);
+    const indicators = result.findings.filter((item) => item.id === "BIN-009");
+    expect(indicators).toHaveLength(1);
+    expect(indicators[0]?.evidence[0]?.offset).toBe(signatureInJpegEntropy.length - 2);
   });
 
   it("rejects a PNG chunk whose declared size exceeds the input", async () => {
