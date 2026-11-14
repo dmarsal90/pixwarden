@@ -1,0 +1,16 @@
+{
+  "status": "findings",
+  "bytesScanned": 128,
+  "findings": [{
+    "id": "BIN-009",
+    "severity": "medium",
+    "stage": "binary",
+    "title": "Embedded format signature",
+    "description": "A signature indicator occurs in a defined auxiliary region.",
+    "status": "suspected",
+    "controlStatus": "passed",
+    "evidence": [{ "kind": "range", "summary": "PDF header indicator", "offset": 80, "length": 5 }]
+  }],
+  "trailingData": false,
+  "recursiveInspection": false
+}

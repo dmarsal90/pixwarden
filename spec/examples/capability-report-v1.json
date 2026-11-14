@@ -1,0 +1,14 @@
+{
+  "runtime": "node",
+  "runtimeVersion": "22.12.0",
+  "engineVersion": "0.1.0",
+  "specVersion": "0.1.0",
+  "formats": {
+    "jpeg": { "inspect": true, "decode": false, "sanitize": false, "reason": "Bounded marker checks; no decoder." },
+    "png": { "inspect": true, "decode": false, "sanitize": false, "reason": "Bounded chunk checks; image stream is not decompressed." },
+    "unknown": { "inspect": false, "decode": false, "sanitize": false, "reason": "No structural profile." }
+  },
+  "optionalAdapters": {},
+  "hardLimits": { "inputBytes": true, "dimensionsBeforeDecode": true, "framesBeforeDecode": true, "memory": false, "cpu": false, "wallTime": false },
+  "networkAccess": false
+}

@@ -6,7 +6,7 @@ This directory is the in-repository seed for the planned `pixwarden-spec` source
 
 - Schema dialect: JSON Schema Draft 2020-12.
 - Canonical artifact: `schemas/pixwarden-v1.schema.json`.
-- Reusable contract names are under `$defs`; examples are in `examples/`.
+- Reusable contract names are under `$defs`; each main contract has a versioned golden example in `examples/`, and CI validates the examples.
 - Object contracts reject unknown properties except explicitly open maps such as capabilities and scalar evidence attributes.
 - `specVersion` and `resultVersion` change under separate compatibility rules in `docs/05-Backend-Schema.md`.
 - Do not publish the local URN or package metadata as a public-domain commitment.

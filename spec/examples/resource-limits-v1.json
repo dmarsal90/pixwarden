@@ -1,0 +1,14 @@
+{
+  "maxBytes": 10485760,
+  "maxWidth": 40000,
+  "maxHeight": 40000,
+  "maxPixels": 40000000,
+  "maxFrames": 200,
+  "maxMetadataBytes": 1048576,
+  "maxMetadataEntries": 256,
+  "maxNestingDepth": 32,
+  "maxWallTimeMs": 10000,
+  "maxMemoryBytes": 134217728,
+  "maxConcurrency": 4,
+  "enforcement": "worker"
+}

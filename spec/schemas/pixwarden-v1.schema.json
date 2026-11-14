@@ -126,7 +126,7 @@
       "type": "object", "additionalProperties": false, "required": ["status", "methods", "limitations"],
       "properties": {
         "status": { "type": "string", "enum": ["passed", "anomalous", "inconclusive", "unsupported", "error"] },
-        "methods": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["id", "applicable", "status"], "properties": { "id": { "type": "string", "minLength": 1, "maxLength": 128 }, "applicable": { "type": "boolean" }, "status": { "$ref": "#/$defs/ControlStatus" }, "samples": { "type": "integer", "minimum": 0 }, "score": { "type": "number" } } } },
+        "methods": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["id", "applicable", "status"], "properties": { "id": { "type": "string", "minLength": 1, "maxLength": 128 }, "applicable": { "type": "boolean" }, "status": { "type": "string", "enum": ["passed", "anomalous", "inconclusive", "skipped", "unsupported", "error"] }, "samples": { "type": "integer", "minimum": 0 }, "score": { "type": "number" } } } },
         "limitations": { "type": "array", "items": { "type": "string", "maxLength": 1000 } }
       }
     },

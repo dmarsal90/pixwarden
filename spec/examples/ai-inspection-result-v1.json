@@ -1,0 +1,17 @@
+{
+  "status": "partial",
+  "adapterId": "local-ocr-v1",
+  "dataEgress": "local",
+  "signals": [{
+    "id": "AI-003",
+    "severity": "low",
+    "stage": "ai",
+    "title": "Instruction-like text detected",
+    "description": "OCR returned text matching a prompt-injection heuristic; contextual review is required.",
+    "status": "suspected",
+    "controlStatus": "passed",
+    "confidence": 0.62,
+    "evidence": [{ "kind": "text_signal", "summary": "Instruction-like phrase detected; extracted text omitted." }]
+  }],
+  "limitations": ["Heuristic text signals can be benign or incomplete and do not predict model behavior."]
+}

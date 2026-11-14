@@ -7,6 +7,14 @@ import { scanImage } from "../src/index.js";
 const schema = JSON.parse(readFileSync(new URL("../spec/schemas/pixwarden-v1.schema.json", import.meta.url), "utf8")) as { $id: string };
 const request = JSON.parse(readFileSync(new URL("../spec/examples/scan-request-v1.json", import.meta.url), "utf8")) as unknown;
 const reviewResult = JSON.parse(readFileSync(new URL("../spec/examples/scan-result-review-v1.json", import.meta.url), "utf8")) as unknown;
+const contractExamples = [
+  ["ScanOptions", "scan-options-v1.json"], ["ScanHints", "scan-hints-v1.json"],
+  ["ResourceLimits", "resource-limits-v1.json"], ["Evidence", "evidence-v1.json"],
+  ["Finding", "finding-v1.json"], ["SecurityPolicy", "security-policy-v1.json"],
+  ["SanitizationResult", "sanitization-result-v1.json"], ["BinaryInspectionResult", "binary-inspection-result-v1.json"],
+  ["SteganographyResult", "steganography-result-v1.json"], ["AiInspectionResult", "ai-inspection-result-v1.json"],
+  ["CapabilityReport", "capability-report-v1.json"], ["EngineError", "engine-error-v1.json"]
+] as const;
 const ajv = new Ajv2020({ allErrors: true, strict: true });
 const addFormats = createRequire(import.meta.url)("ajv-formats") as (instance: InstanceType<typeof Ajv2020>) => void;
 addFormats(ajv);
@@ -45,6 +53,11 @@ describe("shared JSON contracts", () => {
       ...pngChunk("IEND", [])
     ]);
     expect(validator("ScanResult")(await scanImage(input))).toBe(true);
+  });
+
+  it.each(contractExamples)("validates the %s golden example", (name, filename) => {
+    const example = JSON.parse(readFileSync(new URL(`../spec/examples/${filename}`, import.meta.url), "utf8")) as unknown;
+    expect(validator(name)(example)).toBe(true);
   });
 
   it("requires exactly one input variant and refuses remote input references", () => {

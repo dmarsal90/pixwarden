@@ -1,0 +1,11 @@
+{
+  "id": "BIN-009",
+  "severity": "medium",
+  "stage": "binary",
+  "title": "Embedded format signature",
+  "description": "A signature indicator occurs in a defined auxiliary region; it does not prove a complete embedded payload.",
+  "status": "suspected",
+  "controlStatus": "passed",
+  "confidence": 0.55,
+  "evidence": [{ "kind": "range", "summary": "ZIP local-file header indicator", "offset": 64, "length": 4 }]
+}
