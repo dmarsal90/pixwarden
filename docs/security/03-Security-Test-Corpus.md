@@ -2,7 +2,7 @@
 
 **Document ID:** PW-CORPUS · **Version:** 0.1.1 · **Status:** Shared synthetic conformance manifest active; broader corpus planned · **Updated:** 2026-11-14
 
-The shared `spec/corpus/v1/manifest.json` contains fourteen hash-pinned, harmless synthetic byte vectors consumed directly by JS and PHP tests. This initial corpus is a subset of the broader plan below; absent cases are planned, not tested. No operational malware or live exploit payloads are included. A separate `pixwarden-spec` repository is not yet created.
+The shared `spec/corpus/v1/manifest.json` contains sixteen hash-pinned, harmless synthetic byte vectors consumed directly by JS and PHP tests. This initial corpus is a subset of the broader plan below; absent cases are planned, not tested. No operational malware or live exploit payloads are included. A separate `pixwarden-spec` repository is not yet created.
 
 ## Manifest contract
 
@@ -10,7 +10,7 @@ The current manifest records `id`, description, hex bytes, SHA-256, and expected
 
 ## Planned corpus cases
 
-Implemented vector IDs in v1 include `FMT-UNKNOWN-001`, `STR-PNG-TRUNCATED-001`, `STR-PNG-VALID-001`, `STR-GIF-VALID-001`, `STR-JPEG-VALID-001`, `STR-WEBP-VALID-001`, `META-PNG-EXIF-GPS-TAG-001`, `META-PNG-EXIF-MALFORMED-001`, `BIN-PNG-ANCILLARY-SIGNATURE-001`, `BIN-GIF-EXTENSION-SIGNATURE-001`, `BIN-JPEG-APP-SIGNATURE-001`, `BIN-WEBP-XMP-SIGNATURE-001`, `SVG-STATIC-SAFE-001`, and `SVG-ACTIVE-CONTENT-001`. The exact hashes and expected outcomes are maintained in the manifest.
+Implemented vector IDs in v1 include `FMT-UNKNOWN-001`, `STR-PNG-TRUNCATED-001`, `STR-PNG-VALID-001`, `STR-GIF-VALID-001`, `STR-JPEG-VALID-001`, `STR-WEBP-VALID-001`, `META-PNG-EXIF-GPS-TAG-001`, `META-PNG-EXIF-MALFORMED-001`, `BIN-PNG-ANCILLARY-SIGNATURE-001`, `BIN-GIF-EXTENSION-SIGNATURE-001`, `BIN-JPEG-APP-SIGNATURE-001`, `BIN-WEBP-XMP-SIGNATURE-001`, `SVG-STATIC-SAFE-001`, `SVG-ACTIVE-CONTENT-001`, `RES-PNG-WIDTH-LIMIT-001`, and `RES-GIF-FRAME-LIMIT-001`. The exact hashes and expected outcomes are maintained in the manifest.
 
 | Case ID | Construction / benign purpose | Expected assertion | Trace |
 |---|---|---|---|

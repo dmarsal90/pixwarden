@@ -43,16 +43,16 @@ Columns: **Exposure** (typical condition), **Impact/severity** (potential, conte
 | BIN-008 | Additional container | Embedded document/container; high | Format-aware signatures in allowed regions; no nested execution | BIN-009 / planned |
 | BIN-009 | Multiple format signatures | Polyglot/misrouting; high | Report candidate set and conflict | BIN-010 / planned |
 | BIN-010 | Payload survives sanitize | Transform failed to remove detected data; high | Post-scan artifact and compare expected normalized structure | SAN-001 / planned |
-| SVG-001 | Script/active element | SVG document embedding; high | XML element allowlist removes/rejects; render context still matters | Shared safe/active SVG vectors / implemented-js; php pending CI |
-| SVG-002 | Event-handler attributes | Active behavior; high | Namespace-aware attribute allowlist | Shared active SVG vector / implemented-js; php pending CI |
-| SVG-003 | External references | Network/privacy/SSRF when renderer resolves; high | No resolver, block external URLs; fragments policy | PHP sanitizer regression / implemented-js; php pending CI |
-| SVG-004 | External XML entities | File/network access; high; CWE-611 | Reject all DTDs; parser has no resolver or application entity loader | PHP DTD regression / implemented-js; php pending CI |
-| SVG-005 | Entity expansion | CPU/memory DoS; high; CWE-776/400 | Reject DTD, enforce byte/node/depth/output ceilings | PHP SVG limit regression / implemented-js; php pending CI |
-| SVG-006 | Embedded resources/data URLs | Payload and resource amplification; med-high | Remove resource-bearing elements/attributes; no data URLs allowed | PHP image-element regression / implemented-js; php pending CI |
-| SVG-007 | foreignObject/HTML | Scriptable foreign content; high | Reject/remove foreign content and subtree | Static allowlist / implemented-js; php pending CI |
-| SVG-008 | Dangerous URL scheme | Script/resource execution or fetch; high | Remove active/external URL values; allow local fragment references only | PHP URL regression / implemented-js; php pending CI |
-| SVG-009 | Namespace/encoding ambiguity | Sanitizer/parser differential; high | Strict UTF-8 XML parse, namespace check, output reserialization | PHP safe/active vectors / implemented-js; php pending CI |
-| SVG-010 | Renderer differences | One consumer's active interpretation; med-high | Narrow output profile and browser integration guidance; no universal equivalence | Partial in both runtimes; CI pending |
+| SVG-001 | Script/active element | SVG document embedding; high | XML element allowlist removes/rejects; render context still matters | Shared safe/active SVG vectors / implemented-js/php |
+| SVG-002 | Event-handler attributes | Active behavior; high | Namespace-aware attribute allowlist | Shared active SVG vector / implemented-js/php |
+| SVG-003 | External references | Network/privacy/SSRF when renderer resolves; high | No resolver, block external URLs; fragments policy | PHP sanitizer regression / implemented-js/php |
+| SVG-004 | External XML entities | File/network access; high; CWE-611 | Reject all DTDs; parser has no resolver or application entity loader | PHP DTD regression / implemented-js/php |
+| SVG-005 | Entity expansion | CPU/memory DoS; high; CWE-776/400 | Reject DTD, enforce byte/node/depth/output ceilings | PHP SVG limit regression / implemented-js/php |
+| SVG-006 | Embedded resources/data URLs | Payload and resource amplification; med-high | Remove resource-bearing elements/attributes; no data URLs allowed | PHP image-element regression / implemented-js/php |
+| SVG-007 | foreignObject/HTML | Scriptable foreign content; high | Reject/remove foreign content and subtree | Static allowlist / implemented-js/php |
+| SVG-008 | Dangerous URL scheme | Script/resource execution or fetch; high | Remove active/external URL values; allow local fragment references only | PHP URL regression / implemented-js/php |
+| SVG-009 | Namespace/encoding ambiguity | Sanitizer/parser differential; high | Strict UTF-8 XML parse, namespace check, output reserialization | PHP safe/active vectors / implemented-js/php |
+| SVG-010 | Renderer differences | One consumer's active interpretation; med-high | Narrow output profile and browser integration guidance; no universal equivalence | Partial in both runtimes |
 | META-001 | Malformed EXIF | Parser crash/DoS; high | Bound TIFF IFD offsets/counts/depth; reject malformed tables | META-001 / partial JS TIFF directory parser |
 | META-002 | Malformed XMP | XML/parser exposure; high | Harden XML; cap bytes; strip/reject | META-002 / planned |
 | META-003 | Inconsistent ICC profile | Decoder behavior/resource issues; med-high | Bound profile size and validate adapter support; strip option | META-003 / planned |
@@ -77,8 +77,8 @@ Columns: **Exposure** (typical condition), **Impact/severity** (potential, conte
 | DEC-004 | Bad structure lifetime/ownership | Native decoder corruption; high | Adapter isolation and versioned dependencies | DEC-004 / planned |
 | DEC-005 | CPU exhaustion | Complex parsing/filtering; high; CWE-400 | Worker CPU/time quotas; in-process deadline is cooperative | DEC-005 / planned |
 | DEC-006 | Memory exhaustion | Large expansion/pixel cache; high; CWE-400/409 | Pixels/frame limits plus worker RSS quota | DEC-006 / planned |
-| DEC-007 | Extreme dimensions | Tiny input drives huge allocation; high | Overflow-safe width/height/pixel ceilings before decode | DEC-007 / planned |
-| DEC-008 | Excess frames/pages | Animation workload; med-high | Frame/page ceiling, reject/flatten explicitly | DEC-008 / planned |
+| DEC-007 | Extreme dimensions | Tiny input drives huge allocation; high | Overflow-safe width/height/pixel ceilings before decode | Shared PNG width-limit vector; partial JS/PHP |
+| DEC-008 | Excess frames/pages | Animation workload; med-high | Frame/page ceiling, reject/flatten explicitly | Shared GIF frame-limit vector; partial JS/PHP |
 | DEC-009 | Unbounded recursion | Nested formats/metadata; high | No recursion default, depth budget | DEC-009 / planned |
 | DEC-010 | Process hang | Native decoder deadlock; high | Killable worker deadline; library-only timeout insufficient | DEC-010 / planned |
 | AI-001 | Visible instructions in image | Vision model follows image text; high context-dependent | OCR + advisory prompt-risk rules; cannot enforce downstream model | AI-002 / planned |

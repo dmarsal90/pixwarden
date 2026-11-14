@@ -1,6 +1,6 @@
 # Pixwarden Implementation Plan
 
-**Document ID:** PW-PLAN · **Version:** 0.1.6 · **Status:** Phases 2–5 in progress · **Updated:** 2026-11-14
+**Document ID:** PW-PLAN · **Version:** 0.1.7 · **Status:** Phases 2–5 in progress · **Updated:** 2026-11-14
 
 ## Phase gates and work items
 
@@ -47,8 +47,8 @@ Package-name lookup for `pixwarden-js` and `dmarsal90/pixwarden-php` was attempt
 
 Phase 2 has a strict Draft 2020-12 contract artifact in `spec/schemas/pixwarden-v1.schema.json`. It defines the request, result, policy, finding/evidence, capability, resource, sanitization, binary, steganography, AI and error contracts in reusable `$defs`. JS validates versioned golden examples in CI. PHP consumes the shared vectors; validation of complete PHP reports against the JSON Schema remains pending.
 
-The shared executable corpus is `spec/corpus/v1/manifest.json` (CC0-1.0, fourteen hash-pinned synthetic vectors). JS and PHP conformance tests consume the same manifest and verify exact shared classifications; additional assertions check binary-inspection status and bytes scanned where applicable. Expected `partial` coverage is deliberate because codec decoding and broader controls are not asserted.
+The shared executable corpus is `spec/corpus/v1/manifest.json` (CC0-1.0, sixteen hash-pinned synthetic vectors). JS and PHP conformance tests consume the same manifest and verify exact shared classifications; additional assertions check binary-inspection status and bytes scanned where applicable. Expected `partial` coverage is deliberate because codec decoding and broader controls are not asserted.
 
-The native PHP package in `php/` consumes the same manifest. Its bounded PNG/GIF/JPEG/WebP container profile, EXIF TIFF directory scan, indicator-only binary scan of selected metadata/extension/trailer ranges, and optional ext-dom SVG allowlist sanitizer run natively. Synthetic vectors cover privacy tags, malformed TIFF, inert signature bytes, and SVG content; none includes executable payloads or private values. Raster decode/sanitization, steganography, OCR, schema validation of PHP reports, richer resource limits, and independent repository packaging remain outstanding. The PHP package is not yet at functional parity with JS; its capability report and limitations must remain explicit.
+The native PHP package in `php/` consumes the same manifest. Its bounded PNG/GIF/JPEG/WebP container profile, basic dimension/frame limits, EXIF TIFF directory scan, indicator-only binary scan of selected metadata/extension/trailer ranges, and optional ext-dom SVG allowlist sanitizer run natively. Synthetic vectors cover privacy tags, malformed TIFF, inert signature bytes, SVG content, and resource limits; none includes executable payloads or private values. Raster decode/sanitization, steganography, OCR, schema validation of PHP reports, stronger memory/CPU/depth limits, and independent repository packaging remain outstanding. The PHP package is not yet at functional parity with JS; its capability report and limitations must remain explicit.
 
 The JS test suite now includes a deterministic malformed-input smoke corpus for parser crash resistance and evidence-range bounds. It is regression coverage only; sustained coverage-guided fuzzing and minimized native-decoder corpora remain planned.
