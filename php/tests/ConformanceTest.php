@@ -39,5 +39,9 @@ final class ConformanceTest extends TestCase
         $expectedIds = $vector['expected']['findingIds'];
         sort($expectedIds);
         self::assertSame($expectedIds, $ids, $vector['id'] . ': findingIds');
+        if (isset($vector['expected']['binaryStatus'])) {
+            self::assertSame($vector['expected']['binaryStatus'], $result['binaryInspection']['status']);
+            self::assertSame($vector['expected']['binaryBytesScanned'], $result['binaryInspection']['bytesScanned']);
+        }
     }
 }

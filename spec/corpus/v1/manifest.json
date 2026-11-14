@@ -58,6 +58,34 @@
       "inputHex": "89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c489000000086558496661626364656667688f42c06b00000001494441540028387de80000000049454e44ae426082",
       "sha256": "040be7b7eb348555cc7cace349b6e2d2e5ba472c9023cd22c257557913f8cb19",
       "expected": { "format": "png", "validity": "valid", "verdict": "reject", "coverage": "partial", "findingIds": ["META-001"] }
+    },
+    {
+      "id": "BIN-PNG-ANCILLARY-SIGNATURE-001",
+      "description": "PNG ancillary text chunk contains a harmless ZIP local-header signature indicator; it is not an executable payload.",
+      "inputHex": "89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c48900000006744558746100504b03044ee3313100000001494441540028387de80000000049454e44ae426082",
+      "sha256": "dd3049a1c915e150a03179517e7fbdf19f1528ba2811593f2db33f98fb45059c",
+      "expected": { "format": "png", "validity": "valid", "verdict": "review", "coverage": "partial", "findingIds": ["BIN-009"], "binaryStatus": "findings", "binaryBytesScanned": 6 }
+    },
+    {
+      "id": "BIN-GIF-EXTENSION-SIGNATURE-001",
+      "description": "Synthetic GIF comment extension contains a harmless format-signature indicator.",
+      "inputHex": "4749463839610100010000000021fe04504b0304002c000000000100010000020100003b",
+      "sha256": "9991d8f198d806fae055b34c7dbfdcb9a1ca24b1c9275e61428f65477c407046",
+      "expected": { "format": "gif", "validity": "valid", "verdict": "review", "coverage": "partial", "findingIds": ["BIN-009"], "binaryStatus": "findings", "binaryBytesScanned": 4 }
+    },
+    {
+      "id": "BIN-JPEG-APP-SIGNATURE-001",
+      "description": "Synthetic JPEG APP0 segment contains a harmless format-signature indicator.",
+      "inputHex": "ffd8ffe00006504b0304ffc00008080001000101ffda000211ffd9",
+      "sha256": "d8c2c5cd7d1bd6b1bc31ccfdd0a136ca4bdd7f23872a4868f01279ee77ad4a9e",
+      "expected": { "format": "jpeg", "validity": "valid", "verdict": "review", "coverage": "partial", "findingIds": ["BIN-009"], "binaryStatus": "findings", "binaryBytesScanned": 4 }
+    },
+    {
+      "id": "BIN-WEBP-XMP-SIGNATURE-001",
+      "description": "Synthetic WebP XMP chunk contains a harmless format-signature indicator.",
+      "inputHex": "524946461c00000057454250565038200400000000000000584d502004000000504b0304",
+      "sha256": "7a1b564f5421ec09f19f139a6b7a1dcfc6eb2d295cda176d4a7c32fa16fefc14",
+      "expected": { "format": "webp", "validity": "valid", "verdict": "review", "coverage": "partial", "findingIds": ["BIN-009"], "binaryStatus": "findings", "binaryBytesScanned": 4 }
     }
   ]
 }

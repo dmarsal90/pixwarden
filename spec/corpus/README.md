@@ -4,7 +4,7 @@ The versioned fixtures in `v1/manifest.json` are synthetic, harmless byte sequen
 
 ## Version 1
 
-Corpus version `1.0.0` covers an unknown input, a truncated PNG, minimal PNG/GIF/JPEG/WebP containers, and synthetic valid/malformed EXIF metadata cases. “Structurally valid” only means the enabled bounded structural profile accepts the container; it does not claim pixel decoding, full format conformance, or safety. Expected `partial` coverage makes that limitation explicit. The EXIF samples contain no private metadata values.
+Corpus version `1.0.0` currently contains twelve vectors: an unknown input, truncated PNG, minimal PNG/GIF/JPEG/WebP containers, synthetic valid/malformed EXIF metadata, and harmless signature indicators in defined ancillary regions. “Structurally valid” only means the enabled bounded structural profile accepts the container; it does not claim pixel decoding, full format conformance, or safety. Expected `partial` coverage makes that limitation explicit. EXIF samples contain no private values; signature samples are inert synthetic byte sequences.
 
 The fixtures and manifest are CC0-1.0. Each vector records its exact bytes as hex, digest, purpose, and expected outcome. New vectors are additive within a corpus version; changes to existing bytes or expectations require a new major corpus version and migration notes.
 

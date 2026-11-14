@@ -1,6 +1,6 @@
 # Format Security Matrix
 
-**Document ID:** PW-FORMAT · **Version:** 0.1.1 · **Status:** Initial profile; no decoders enabled · **Reviewed:** 2026-11-14
+**Document ID:** PW-FORMAT · **Version:** 0.1.2 · **Status:** Initial profile; no decoders enabled · **Reviewed:** 2026-11-14
 
 This is a planning matrix, not a promise of support. Exact specifications and decoder versions must be researched and pinned before implementation. File signatures are partial identifiers and must be combined with structure parsing and policy. All formats default to no automatic native decoder enablement. `Core` means initial byte-inspection priority only.
 
@@ -40,7 +40,7 @@ This is a planning matrix, not a promise of support. Exact specifications and de
 
 ## Policy and adapter gate
 
-Current implementation note: the matrix describes an incomplete profile, not full-format support. JS covers bounded structural profiles for JPEG, PNG, GIF, WebP, plus SVG static-profile processing. PHP is independently native and currently covers limited JPEG/PNG/GIF/WebP structure plus partial EXIF TIFF directory inspection on JPEG/PNG/WebP. Neither runtime includes a raster decoder; PHP binary-region inspection and SVG handling remain unsupported. Capability reports and partial coverage are authoritative for each runtime.
+Current implementation note: the matrix describes an incomplete profile, not full-format support. JS covers bounded structural profiles for JPEG, PNG, GIF, WebP, plus SVG static-profile processing. PHP is independently native and currently covers limited JPEG/PNG/GIF/WebP structure, partial EXIF TIFF directory inspection on JPEG/PNG/WebP, and indicator-only signatures in selected metadata/extension/trailer regions. Neither runtime includes a raster decoder; PHP SVG handling remains unsupported. Capability reports and partial coverage are authoritative for each runtime.
 
 An adapter proposal must name exact parser/decoder, versions and transitive native libraries; upstream security policy; supported subfeatures; format corpus; fuzz target; resource enforcement; license; platform/build matrix; sanitization fidelity; and whether its capability is equal in PHP and JS. A PHP GD decoder is build-dependent (PHP docs enumerate supported types conditionally); ImageMagick requires an explicit restrictive policy. These are candidates only, not dependencies selected by this baseline.
 

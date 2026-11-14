@@ -30,11 +30,18 @@ final class Scanner
         [$format, $validity, $findings] = $this->inspect($bytes);
         $metadataInspection = (new MetadataGuard())->inspect($bytes, $format, $maxMetadataBytes);
         $findings = array_merge($findings, $metadataInspection['findings']);
+        $binaryInspection = (new BinaryGuard())->inspect($bytes, $format);
+        $findings = array_merge($findings, $binaryInspection['findings']);
         $controls = [
             'hints' => ['status' => 'skipped', 'summary' => 'No filename or media-type hints were supplied.'],
             'structural' => ['status' => $validity === 'valid' ? 'passed' : ($validity === 'invalid' ? 'failed' : 'unsupported'), 'summary' => 'A bounded byte-level profile ran; no decoder was invoked.'],
             'metadata' => ['status' => 'unsupported', 'summary' => 'Only bounded EXIF TIFF directory structure and selected sensitive tag identifiers are inspected; values, XMP and text metadata are not parsed.'],
-            'binary' => ['status' => 'unsupported', 'summary' => 'PHP binary-region inspection is not implemented in this release.'],
+            'binary' => [
+                'status' => $binaryInspection['status'] === 'unsupported' ? 'unsupported' : 'passed',
+                'summary' => $binaryInspection['status'] === 'unsupported'
+                    ? 'No bounded binary-inspection regions are available for this format.'
+                    : 'Read-only indicator signatures are checked only in bounded format-defined metadata, extension, and trailer regions; this is not malware scanning.',
+            ],
             'decode' => ['status' => 'unsupported', 'summary' => 'No decoder is bundled or invoked.'],
             'sanitization' => ['status' => 'unsupported', 'summary' => 'No sanitizer is implemented; input bytes are unchanged.'],
         ];
@@ -82,7 +89,8 @@ final class Scanner
                 'hardLimits' => ['inputBytes' => true, 'dimensionsBeforeDecode' => false, 'framesBeforeDecode' => false, 'memory' => false, 'cpu' => false, 'wallTime' => false],
             ],
             'metadataInspection' => $metadataInspection,
-            'limitations' => ['PHP v0.2.0 provides limited container checks for JPEG, PNG, GIF and WebP plus bounded EXIF TIFF directory inspection for JPEG, PNG and WebP. Metadata values, XMP and text are not parsed; no decoder, binary-region inspection, SVG handling, sanitizer, OCR, steganography, or process isolation is included. A valid result is not proof of safe decoding or rendering.'],
+            'binaryInspection' => $binaryInspection,
+            'limitations' => ['PHP v0.3.0 provides limited container checks for JPEG, PNG, GIF and WebP, bounded EXIF TIFF directory inspection for JPEG, PNG and WebP, and indicator-only signatures in selected format-defined ancillary regions. Metadata values, XMP and text are not parsed; no decoder, SVG handling, sanitizer, OCR, steganography, or process isolation is included. Binary signatures do not prove an embedded file or replace malware scanning. A valid result is not proof of safe decoding or rendering.'],
             'inputBytes' => strlen($bytes),
         ];
     }
