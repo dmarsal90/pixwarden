@@ -31,6 +31,14 @@ final class PolicyOptionsTest extends TestCase
     public function testUnknownRequiredControlsAreRejectedAtConfigurationTime(): void
     {
         $this->expectException(InvalidScanOptionsException::class);
-        new ScanOptions(requiredControls: ['steganography']);
+        new ScanOptions(requiredControls: ['madeUpControl']);
+    }
+
+    public function testRequiredUnsupportedSteganographyControlDoesNotAllow(): void
+    {
+        $result = (new Scanner())->scan('opaque', new ScanOptions(requiredControls: ['steganography']));
+
+        self::assertSame('review', $result->verdict->value);
+        self::assertSame('unsupported', $result->controls['steganography']['status']);
     }
 }

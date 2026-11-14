@@ -197,6 +197,13 @@ describe("scanImage structural core", () => {
     expect(result.verdict).toBe("review");
   });
 
+  it("returns review when required steganography analysis is unsupported", async () => {
+    const result = await scanImage(validPng, { requiredControls: ["structural", "steganography"] });
+    expect(result.steganography.status).toBe("unsupported");
+    expect(result.controls.steganography?.status).toBe("unsupported");
+    expect(result.verdict).toBe("review");
+  });
+
   it("can cancel before synchronous inspection begins", async () => {
     const controller = new AbortController();
     const pending = scanImage(validPng, { signal: controller.signal });

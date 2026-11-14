@@ -23,7 +23,7 @@ final readonly class ScanOptions
     ) {
         $this->limits = $limits ?? new ResourceLimits();
         $this->hints = $hints;
-        $knownControls = ['hints', 'structural', 'metadata', 'binary', 'decode', 'sanitization'];
+        $knownControls = ['hints', 'structural', 'metadata', 'binary', 'decode', 'sanitization', 'steganography', 'aiInspection'];
         if ($requiredControls === [] || array_diff($requiredControls, $knownControls) !== []) {
             throw new InvalidScanOptionsException('Required controls must be a non-empty list of known control identifiers.');
         }

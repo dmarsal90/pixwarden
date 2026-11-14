@@ -69,6 +69,19 @@ export interface MetadataInspectionResult {
   readonly findings: readonly Finding[];
 }
 
+export interface SteganographyResult {
+  readonly status: "passed" | "anomalous" | "inconclusive" | "unsupported" | "error";
+  readonly methods: readonly { readonly id: string; readonly applicable: boolean; readonly status: "passed" | "anomalous" | "inconclusive" | "skipped" | "unsupported" | "error"; readonly samples?: number; readonly score?: number }[];
+  readonly limitations: readonly string[];
+}
+
+export interface AiInspectionResult {
+  readonly status: "not_requested" | "completed" | "partial" | "unsupported" | "error";
+  readonly dataEgress: "none" | "local" | "remote";
+  readonly signals: readonly Finding[];
+  readonly limitations: readonly string[];
+}
+
 export interface ControlResult {
   readonly status: ControlStatus;
   readonly summary: string;
@@ -108,6 +121,8 @@ export interface ScanResult {
   readonly findings: readonly Finding[];
   readonly binaryInspection?: BinaryInspectionResult;
   readonly metadataInspection?: MetadataInspectionResult;
+  readonly steganography: SteganographyResult;
+  readonly aiInspection: AiInspectionResult;
   readonly capabilities: CapabilityReport;
   readonly limitations: readonly string[];
   readonly inputBytes: number;
