@@ -1,5 +1,5 @@
 {
-  "corpusVersion": "1.0.10",
+  "corpusVersion": "1.0.11",
   "source": "Synthetic, harmless fixtures authored for Pixwarden conformance tests.",
   "license": "CC0-1.0",
   "vectors": [
@@ -291,6 +291,13 @@
       "inputHex": "474946383961010001000000003b",
       "sha256": "1f19970f056cd116a5fe3c02422c1ee1ac827136df470b5c89af492620512aa4",
       "expected": { "format": "gif", "validity": "invalid", "verdict": "reject", "coverage": "partial", "findingIds": ["IMG-006"] }
+    },
+    {
+      "id": "STR-GIF-TRAILING-DATA-001",
+      "description": "A valid one-frame GIF is followed by one byte after its trailer.",
+      "inputHex": "474946383961010001000000002c000000000100010000020100003b00",
+      "sha256": "eb43fb75410e02934df89133751784b5b3083b1a18babfbbaa21223033f5058b",
+      "expected": { "format": "gif", "validity": "invalid", "verdict": "reject", "coverage": "partial", "findingIds": ["IMG-008"] }
     }
   ]
 }
