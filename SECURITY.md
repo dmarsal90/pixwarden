@@ -8,4 +8,4 @@ Report suspected vulnerabilities privately to the repository maintainers. Includ
 
 ## Scope and limitations
 
-This project is not an antivirus, and its signatures are not malware verdicts. Structural acceptance applies only to the documented profile. Native decoders, OCR/model adapters, steganography detection, SVG sanitization, and hard CPU/memory isolation are not present in this first JS implementation. Deployments must retain upload authorization, quarantine, non-executable storage, response MIME controls, dependency patching, and process isolation where needed.
+This project is not an antivirus, and its signatures are not malware verdicts. Structural acceptance applies only to the documented profile. Native decoders, OCR/model adapters, steganography detection, raster sanitization, and hard CPU/memory isolation are not present in this first JS implementation. SVG sanitization is limited to a conservative allowlist. Deployments must retain upload authorization, quarantine, non-executable storage, response MIME controls, dependency patching, and process isolation where needed.

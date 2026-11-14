@@ -17,7 +17,7 @@ The source set is an initial baseline. Before implementation, research must be e
 
 ## Threat register and coverage map
 
-Columns: **Exposure** (typical condition), **Impact/severity** (potential, context-dependent), **Detection / mitigation** (proposed), **test** (synthetic corpus ID), **status** (all planned in current repository). `CWE` references identify related weakness classes, not exact equivalence.
+Columns: **Exposure** (typical condition), **Impact/severity** (potential, context-dependent), **Detection / mitigation** (proposed), **test** (synthetic corpus ID), **status** (planned unless marked otherwise). `CWE` references identify related weakness classes, not exact equivalence. The JS implementation is evolving; status does not mean CI or independent security review has completed.
 
 | ID | Scenario / affected surface | Exposure; impact / severity | Detection, mitigation and limitation | Test / status |
 |---|---|---|---|---|
@@ -43,16 +43,16 @@ Columns: **Exposure** (typical condition), **Impact/severity** (potential, conte
 | BIN-008 | Additional container | Embedded document/container; high | Format-aware signatures in allowed regions; no nested execution | BIN-009 / planned |
 | BIN-009 | Multiple format signatures | Polyglot/misrouting; high | Report candidate set and conflict | BIN-010 / planned |
 | BIN-010 | Payload survives sanitize | Transform failed to remove detected data; high | Post-scan artifact and compare expected normalized structure | SAN-001 / planned |
-| SVG-001 | Script/active element | SVG document embedding; high | XML element allowlist removes/rejects; render context still matters | SVG-001 / planned |
-| SVG-002 | Event-handler attributes | Active behavior; high | Namespace-aware attribute allowlist | SVG-002 / planned |
-| SVG-003 | External references | Network/privacy/SSRF when renderer resolves; high | No resolver, block external URLs; fragments policy | SVG-003 / planned |
-| SVG-004 | External XML entities | File/network access; high; CWE-611 | DTD/entity disabled in hardened parser | SVG-004 / planned |
-| SVG-005 | Entity expansion | CPU/memory DoS; high; CWE-776/400 | Disable DTD, node/depth/text ceilings | SVG-005 / planned |
-| SVG-006 | Embedded resources/data URLs | Payload and resource amplification; med-high | Remove or validate against narrow policy/size cap | SVG-006 / planned |
-| SVG-007 | foreignObject/HTML | Scriptable foreign content; high | Reject/remove foreign content | SVG-007 / planned |
-| SVG-008 | Dangerous URL scheme | Script/resource execution or fetch; high | URL allowlist; reject external and active schemes | SVG-008 / planned |
-| SVG-009 | Namespace/encoding ambiguity | Sanitizer/parser differential; high | Strict XML parse, reject duplicate/ambiguous constructs, serialize parsed tree | SVG-009 / planned |
-| SVG-010 | Renderer differences | One consumer's active interpretation; med-high | Narrow output profile and browser integration guidance; no universal equivalence | SVG-010 / planned |
+| SVG-001 | Script/active element | SVG document embedding; high | XML element allowlist removes/rejects; render context still matters | SVG-001 / implemented-js, CI pending |
+| SVG-002 | Event-handler attributes | Active behavior; high | Namespace-aware attribute allowlist | SVG-002 / implemented-js, CI pending |
+| SVG-003 | External references | Network/privacy/SSRF when renderer resolves; high | No resolver, block external URLs; fragments policy | SVG-003 / implemented-js, CI pending |
+| SVG-004 | External XML entities | File/network access; high; CWE-611 | Reject all DTDs; parser has no resolver or application entity loader | SVG-004 / implemented-js, CI pending |
+| SVG-005 | Entity expansion | CPU/memory DoS; high; CWE-776/400 | Reject DTD, enforce byte/node/depth/output ceilings | SVG-005 / implemented-js, CI pending |
+| SVG-006 | Embedded resources/data URLs | Payload and resource amplification; med-high | Remove resource-bearing elements/attributes; no data URLs allowed | SVG-006 / implemented-js, CI pending |
+| SVG-007 | foreignObject/HTML | Scriptable foreign content; high | Reject/remove foreign content and subtree | SVG-007 / implemented-js, CI pending |
+| SVG-008 | Dangerous URL scheme | Script/resource execution or fetch; high | Remove active/external URL values; allow local fragment references only | SVG-008 / implemented-js, CI pending |
+| SVG-009 | Namespace/encoding ambiguity | Sanitizer/parser differential; high | Strict UTF-8 XML parse, namespace check, output reserialization | SVG-009 / implemented-js, CI pending |
+| SVG-010 | Renderer differences | One consumer's active interpretation; med-high | Narrow output profile and browser integration guidance; no universal equivalence | SVG-010 / partial-js, CI pending |
 | META-001 | Malformed EXIF | Parser crash/DoS; high | Bound tag count/offset/depth; strip or reject | META-001 / planned |
 | META-002 | Malformed XMP | XML/parser exposure; high | Harden XML; cap bytes; strip/reject | META-002 / planned |
 | META-003 | Inconsistent ICC profile | Decoder behavior/resource issues; med-high | Bound profile size and validate adapter support; strip option | META-003 / planned |

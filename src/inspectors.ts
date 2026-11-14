@@ -1,4 +1,5 @@
 import type { Evidence, Finding, ImageFormat, ResourceLimits } from "./types.js";
+import { inspectSvg } from "./svg-guard.js";
 
 export interface StructuralInspection {
   readonly format: ImageFormat;
@@ -300,7 +301,10 @@ export function inspectStructure(data: Uint8Array, limits: ResourceLimits): Stru
   if (format === "jpeg") return inspectJpeg(data, limits);
   if (format === "gif") return inspectGif(data, limits);
   if (format === "webp") return inspectWebp(data, limits);
-  if (format === "svg") return { format, validity: "unknown", findings: [], metadataBytes: 0 };
+  if (format === "svg") {
+    const inspection = inspectSvg(data, limits);
+    return { format, validity: inspection.validity, findings: [...inspection.findings], metadataBytes: inspection.metadataBytes };
+  }
   return { format, validity: "unknown", findings: [], metadataBytes: 0 };
 }
 

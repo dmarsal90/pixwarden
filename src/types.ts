@@ -33,7 +33,7 @@ export interface Evidence {
 export interface Finding {
   readonly id: string;
   readonly severity: Severity;
-  readonly stage: "identify" | "structural" | "metadata" | "binary" | "resource" | "policy";
+  readonly stage: "identify" | "structural" | "metadata" | "active_content" | "binary" | "resource" | "policy";
   readonly title: string;
   readonly description: string;
   readonly status: "confirmed" | "suspected" | "inconclusive";
@@ -82,7 +82,7 @@ export interface ScanResult {
 }
 
 export class PixwardenError extends Error {
-  readonly code: "INVALID_OPTIONS" | "INPUT_TOO_LARGE" | "LIMIT_EXCEEDED" | "CANCELLED";
+  readonly code: "INVALID_OPTIONS" | "INPUT_TOO_LARGE" | "LIMIT_EXCEEDED" | "CANCELLED" | "MALFORMED_INPUT" | "SANITIZATION_FAILURE";
 
   constructor(code: PixwardenError["code"], message: string) {
     super(message);
