@@ -49,6 +49,8 @@ Input to `scanImage` and `scanImageIsolated` must be a `Uint8Array` or Node.js `
 
 See [the product requirements](docs/01-PRD.md), [technical design](docs/02-TRD.md), [format matrix](docs/security/02-Format-Security-Matrix.md), [coverage limits](docs/security/04-Detection-Mitigation-Coverage.md), and [security policy](SECURITY.md).
 
+Runnable file-ingress examples: [Node.js](examples/js/scan-file.mjs) and [PHP](php/examples/scan-file.php). Both retain/quarantine files unless the report establishes complete policy coverage; current profiles remain partial.
+
 ## Parser fuzzing
 
 The development-only Jazzer.js target uses the hash-checked synthetic fixtures. To replay the seed corpus locally:
