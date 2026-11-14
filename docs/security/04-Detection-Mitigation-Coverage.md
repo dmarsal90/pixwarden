@@ -6,7 +6,7 @@ Coverage labels: `D` direct deterministic inspection; `H` heuristic/probabilisti
 
 | Threat IDs | Planned detection | Planned mitigation | Limitations / required status behavior | Test IDs |
 |---|---|---|---|---|
-| IMG-001–006, 009, 011 | D: bounded per-format profiles | M: reject/review; reconstruct only by approved sanitizer | Profiles cover only supported spec subset; incomplete parse => failed/error | STR-001–006 |
+| IMG-001–006, 009, 011 | D: bounded per-format profiles; both runtimes verify PNG chunk CRCs | M: reject/review; reconstruct only by approved sanitizer | Profiles cover only supported spec subset; incomplete parse => failed/error | STR-001–006/008 |
 | IMG-007–008, 010, 012 | D/H: signature conflicts, terminator/tail, recognized extension/MIME mismatch; limited differential checks | M: allowlisted output, fixed serving headers by caller | Arbitrary polyglot/parser differences not provable; raw hints are omitted; unsupported hint/profile is explicit | STR-003/007, BIN-002 |
 | BIN-001–010 | D: indicator-only signatures in selected JPEG/PNG/GIF/WebP metadata/extension/trailer regions in both runtimes; JS has the broader current profile | M: strip/reconstruct and post-scan (not implemented for PHP) | Signatures evadable; pixel data excluded; no recursive unpack or entropy analysis; indicators do not prove a payload | Shared inert BIN-009 ancillary-region vectors |
 | SVG-001–010 | D: JS Saxes and PHP DOM XML parsing, namespace checks, static element/attribute allowlists, DTD/PI rejection | M: allowlist serialization and post-parse verification in both runtimes | PHP requires ext-dom; renderer differences remain; CSS/style/filter/animation support is intentionally narrow; no general renderer | Shared safe and active-content SVG vectors |

@@ -407,8 +407,9 @@ final class Scanner
         if ($format === 'unknown') {
             return [$format, 'unknown', []];
         }
+        $pngCrcMismatchOffset = null;
         if ($format === 'png') {
-            $valid = $this->validPng($bytes);
+            $valid = $this->validPng($bytes, $pngCrcMismatchOffset);
         } elseif ($format === 'gif') {
             $frames = strlen($bytes) >= 14 ? $this->countGifFrames($bytes) : null;
             $valid = $frames !== null && $frames > 0;
@@ -419,6 +420,15 @@ final class Scanner
         }
         if ($valid) {
             return [$format, 'valid', []];
+        }
+        if ($pngCrcMismatchOffset !== null) {
+            return [$format, 'invalid', [[
+                'id' => 'IMG-002', 'severity' => 'high', 'stage' => 'structural',
+                'title' => 'PNG chunk CRC mismatch',
+                'description' => 'A PNG chunk checksum does not match its type and payload bytes.',
+                'status' => 'confirmed', 'controlStatus' => 'failed',
+                'evidence' => [['kind' => 'range', 'summary' => 'Stored PNG chunk CRC differs from the computed checksum.', 'offset' => $pngCrcMismatchOffset, 'length' => 4]],
+            ]]];
         }
         return [$format, 'invalid', [[
             'id' => 'IMG-003', 'severity' => 'high', 'stage' => 'structural',
@@ -438,8 +448,9 @@ final class Scanner
         return $length !== false && $length['length'] === strlen($bytes) - 8;
     }
 
-    private function validPng(string $bytes): bool
+    private function validPng(string $bytes, ?int &$crcMismatchOffset): bool
     {
+        $crcMismatchOffset = null;
         if (strlen($bytes) < 45 || substr($bytes, 12, 4) !== 'IHDR') {
             return false;
         }
@@ -453,10 +464,19 @@ final class Scanner
                 return false;
             }
             $length = $unpackedLength['length'];
-            if ($length > strlen($bytes) - $offset - 12) {
+            if (!is_int($length) || $length > strlen($bytes) - $offset - 12) {
                 return false;
             }
             $type = substr($bytes, $offset + 4, 4);
+            $checksum = hash_init('crc32b');
+            hash_update($checksum, $type);
+            hash_update($checksum, substr($bytes, $offset + 8, $length));
+            $computedCrc = hash_final($checksum, true);
+            $storedCrc = substr($bytes, $offset + 8 + $length, 4);
+            if (!hash_equals($storedCrc, $computedCrc)) {
+                $crcMismatchOffset = $offset + 8 + $length;
+                return false;
+            }
             if (!$seenHeader && $type !== 'IHDR') {
                 return false;
             }
