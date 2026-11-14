@@ -1,6 +1,6 @@
 # Pixwarden Implementation Plan
 
-**Document ID:** PW-PLAN · **Version:** 0.1.1 · **Status:** Phase 2 in progress · **Updated:** 2026-11-14
+**Document ID:** PW-PLAN · **Version:** 0.1.2 · **Status:** Phases 2–4 in progress · **Updated:** 2026-11-14
 
 ## Phase gates and work items
 
@@ -48,5 +48,7 @@ Package-name lookup for `pixwarden-js` and `dmarsal90/pixwarden-php` was attempt
 Phase 2 has a strict Draft 2020-12 contract artifact in `spec/schemas/pixwarden-v1.schema.json`. It defines the request, result, policy, finding/evidence, capability, resource, sanitization, binary, steganography, AI and error contracts in reusable `$defs`. Versioned golden examples are validated in JS CI; PHP conformance and shared executable vectors remain pending.
 
 The first shared executable corpus is now `spec/corpus/v1/manifest.json` (CC0-1.0, six hash-pinned synthetic vectors). The JS conformance test consumes that manifest directly and checks exact structural classification fields; the expected `partial` coverage is deliberate because codec decoding and broader controls are not asserted. PHP consumption and broader malformed/metadata/SVG/false-positive vectors remain pending.
+
+The first native PHP package scaffold is in `php/` and consumes the same manifest. Its bounded PNG/GIF/JPEG/WebP container profile passes all six shared vectors on PHP 8.4 locally; PHP 8.2/8.3 CI remains pending. It enforces the input-byte cap but does not yet implement PHP metadata, binary, SVG, decode, or sanitization guards and is not at functional parity with JS. Its capability report and limitations reflect that status. Static analysis, formatting checks, fuller malformed-structure tests, schema validation of PHP reports, PSR-12 review, and independent repository packaging remain outstanding.
 
 The JS test suite now includes a deterministic malformed-input smoke corpus for parser crash resistance and evidence-range bounds. It is regression coverage only; sustained coverage-guided fuzzing and minimized native-decoder corpora remain planned.
