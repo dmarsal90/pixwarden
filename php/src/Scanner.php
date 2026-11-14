@@ -408,6 +408,7 @@ final class Scanner
             return [$format, 'unknown', []];
         }
         $pngCrcMismatchOffset = null;
+        $webpErrorId = null;
         if ($format === 'png') {
             $valid = $this->validPng($bytes, $pngCrcMismatchOffset);
         } elseif ($format === 'gif') {
@@ -416,7 +417,7 @@ final class Scanner
         } elseif ($format === 'jpeg') {
             $valid = strlen($bytes) >= 4 && str_ends_with($bytes, "\xff\xd9") && str_contains(substr($bytes, 2), "\xff\xc0");
         } else {
-            $valid = $this->validWebp($bytes);
+            $valid = $this->validWebp($bytes, $webpErrorId);
         }
         if ($valid) {
             return [$format, 'valid', []];
@@ -431,7 +432,7 @@ final class Scanner
             ]]];
         }
         return [$format, 'invalid', [[
-            'id' => 'IMG-003', 'severity' => 'high', 'stage' => 'structural',
+            'id' => $webpErrorId ?? 'IMG-003', 'severity' => 'high', 'stage' => 'structural',
             'title' => 'Truncated or unsupported container structure',
             'description' => 'The bounded PHP profile could not validate the required terminal/container structure.',
             'status' => 'confirmed', 'controlStatus' => 'failed',
@@ -439,13 +440,71 @@ final class Scanner
         ]]];
     }
 
-    private function validWebp(string $bytes): bool
+    private function validWebp(string $bytes, ?string &$errorId = null): bool
     {
-        if (strlen($bytes) < 20 || substr($bytes, 12, 4) !== 'VP8 ') {
+        $errorId = null;
+        $size = strlen($bytes);
+        if ($size < 20 || substr($bytes, 0, 4) !== 'RIFF' || substr($bytes, 8, 4) !== 'WEBP') {
             return false;
         }
-        $length = unpack('Vlength', substr($bytes, 4, 4));
-        return $length !== false && $length['length'] === strlen($bytes) - 8;
+        $riffLength = unpack('Vlength', substr($bytes, 4, 4));
+        if ($riffLength === false || !is_int($riffLength['length']) || $riffLength['length'] !== $size - 8) {
+            return false;
+        }
+
+        $offset = 12;
+        $seenVp8x = false;
+        $seenImage = false;
+        while ($offset < $size) {
+            if ($size - $offset < 8) {
+                return false;
+            }
+            $kind = substr($bytes, $offset, 4);
+            $chunkLength = unpack('Vlength', substr($bytes, $offset + 4, 4));
+            if ($chunkLength === false || !is_int($chunkLength['length'])) {
+                return false;
+            }
+            $length = $chunkLength['length'];
+            $remaining = $size - $offset - 8;
+            $padding = $length & 1;
+            if ($length > $remaining || $padding > $remaining - $length) {
+                return false;
+            }
+            $payload = $offset + 8;
+            $end = $payload + $length;
+            if ($padding === 1 && $bytes[$end] !== "\0") {
+                return false;
+            }
+
+            if ($kind === 'VP8X') {
+                if ($offset !== 12 || $seenVp8x || $length !== 10) {
+                    $errorId = 'IMG-006';
+                    return false;
+                }
+                $flags = ord($bytes[$payload]);
+                if (($flags & 0xc1) !== 0 || substr($bytes, $payload + 1, 3) !== "\0\0\0") {
+                    $errorId = 'IMG-006';
+                    return false;
+                }
+                $seenVp8x = true;
+            } elseif ($kind === 'VP8 ' || $kind === 'VP8L') {
+                if ($length === 0 || $seenImage) {
+                    $errorId = 'IMG-006';
+                    return false;
+                }
+                $seenImage = true;
+            } elseif ($kind === 'ANMF') {
+                if ($length <= 16) {
+                    $errorId = 'IMG-006';
+                    return false;
+                }
+                $seenImage = true;
+            }
+
+            $offset = $end + $padding;
+        }
+
+        return $offset === $size && $seenImage;
     }
 
     private function validPng(string $bytes, ?int &$crcMismatchOffset): bool

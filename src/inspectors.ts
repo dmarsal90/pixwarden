@@ -213,6 +213,8 @@ function inspectWebp(data: Uint8Array, limits: ResourceLimits): StructuralInspec
   let frames = 0;
   let metadataBytes = 0;
   let hasImagePayload = false;
+  let hasBitstream = false;
+  let hasVp8x = false;
   let width: number | undefined;
   let height: number | undefined;
   while (offset < declaredEnd) {
@@ -222,8 +224,10 @@ function inspectWebp(data: Uint8Array, limits: ResourceLimits): StructuralInspec
     const end = offset + 8 + size + (size & 1);
     if (!Number.isSafeInteger(end) || end > declaredEnd) return invalid("webp", "IMG-004", "WebP chunk length exceeds RIFF boundary", "Chunk payload exceeds the declared container size.", offset + 4);
     const payload = offset + 8;
+    if ((size & 1) === 1 && data[end - 1] !== 0) return invalid("webp", "IMG-003", "Invalid WebP chunk padding", "An odd-length RIFF chunk must have a zero padding byte.", end - 1);
     if (kind === "VP8X") {
-      if (size !== 10) return invalid("webp", "IMG-006", "Invalid VP8X chunk", "VP8X payload must be 10 bytes.", offset);
+      if (offset !== 12 || hasVp8x || size !== 10 || (data[payload]! & 0xc1) !== 0 || data[payload + 1] !== 0 || data[payload + 2] !== 0 || data[payload + 3] !== 0) return invalid("webp", "IMG-006", "Invalid VP8X chunk", "VP8X must be the first 10-byte chunk and reserved fields must be zero.", offset);
+      hasVp8x = true;
       width = 1 + data[payload + 4]! + (data[payload + 5]! << 8) + (data[payload + 6]! << 16);
       height = 1 + data[payload + 7]! + (data[payload + 8]! << 8) + (data[payload + 9]! << 16);
       if (exceedsDimensions(width, height, limits)) findings.push(finding("DEC-007", "high", "resource", "WebP dimensions exceed policy", "Declared canvas dimensions exceed configured limits.", payload + 4, 6));
@@ -232,7 +236,8 @@ function inspectWebp(data: Uint8Array, limits: ResourceLimits): StructuralInspec
       frames++;
       if (frames > limits.maxFrames) findings.push(finding("DEC-008", "high", "resource", "WebP frame limit exceeded", "Frame count exceeds configured limit.", offset));
     } else if (kind === "VP8 " || kind === "VP8L") {
-      if (size === 0) return invalid("webp", "IMG-006", "Empty WebP image bitstream", "Image payload chunk must not be empty.", offset);
+      if (size === 0 || hasBitstream) return invalid("webp", "IMG-006", "Invalid WebP image bitstream", "Image payload chunk must be non-empty and unique in this bounded profile.", offset);
+      hasBitstream = true;
       hasImagePayload = true;
     } else if (kind === "EXIF" || kind === "XMP " || kind === "ICCP") {
       metadataBytes += size;
