@@ -25,6 +25,13 @@
       "expected": { "format": "png", "validity": "valid", "verdict": "allow", "coverage": "partial", "findingIds": [] }
     },
     {
+      "id": "STR-PNG-IHDR-COLOR-TYPE-INVALID-001",
+      "description": "Minimal PNG with a recomputed IHDR CRC but an invalid color type value.",
+      "inputHex": "89504e470d0a1a0a0000000d4948445200000001000000010807000000a7a9a3ec00000001494441540028387de80000000049454e44ae426082",
+      "sha256": "a09497919f317246a822782de1da0291fe75dc04deca810306f5dc8c53ac4adb",
+      "expected": { "format": "png", "validity": "invalid", "verdict": "reject", "coverage": "partial", "findingIds": ["IMG-006"] }
+    },
+    {
       "id": "STR-PNG-CRC-MISMATCH-001",
       "description": "A minimal synthetic PNG has one altered IDAT CRC byte while its chunk lengths and container boundaries remain intact.",
       "inputHex": "89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c48900000001494441540029387de80000000049454e44ae426082",

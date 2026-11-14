@@ -408,9 +408,10 @@ final class Scanner
             return [$format, 'unknown', []];
         }
         $pngCrcMismatchOffset = null;
+        $pngErrorId = null;
         $webpErrorId = null;
         if ($format === 'png') {
-            $valid = $this->validPng($bytes, $pngCrcMismatchOffset);
+            $valid = $this->validPng($bytes, $pngCrcMismatchOffset, $pngErrorId);
         } elseif ($format === 'gif') {
             $frames = strlen($bytes) >= 14 ? $this->countGifFrames($bytes) : null;
             $valid = $frames !== null && $frames > 0;
@@ -432,7 +433,7 @@ final class Scanner
             ]]];
         }
         return [$format, 'invalid', [[
-            'id' => $webpErrorId ?? 'IMG-003', 'severity' => 'high', 'stage' => 'structural',
+            'id' => $pngErrorId ?? $webpErrorId ?? 'IMG-003', 'severity' => 'high', 'stage' => 'structural',
             'title' => 'Truncated or unsupported container structure',
             'description' => 'The bounded PHP profile could not validate the required terminal/container structure.',
             'status' => 'confirmed', 'controlStatus' => 'failed',
@@ -507,9 +508,10 @@ final class Scanner
         return $offset === $size && $seenImage;
     }
 
-    private function validPng(string $bytes, ?int &$crcMismatchOffset): bool
+    private function validPng(string $bytes, ?int &$crcMismatchOffset, ?string &$errorId = null): bool
     {
         $crcMismatchOffset = null;
+        $errorId = null;
         if (strlen($bytes) < 45 || substr($bytes, 12, 4) !== 'IHDR') {
             return false;
         }
@@ -541,6 +543,23 @@ final class Scanner
             }
             if ($type === 'IHDR') {
                 if ($seenHeader || $length !== 13) {
+                    $errorId = 'IMG-006';
+                    return false;
+                }
+                $bitDepth = ord($bytes[$offset + 16]);
+                $colorType = ord($bytes[$offset + 17]);
+                $validBitDepths = match ($colorType) {
+                    0 => [1, 2, 4, 8, 16],
+                    2 => [8, 16],
+                    3 => [1, 2, 4, 8],
+                    4, 6 => [8, 16],
+                    default => [],
+                };
+                if (!in_array($bitDepth, $validBitDepths, true)
+                    || ord($bytes[$offset + 18]) !== 0
+                    || ord($bytes[$offset + 19]) !== 0
+                    || ord($bytes[$offset + 20]) > 1) {
+                    $errorId = 'IMG-006';
                     return false;
                 }
                 $seenHeader = true;
