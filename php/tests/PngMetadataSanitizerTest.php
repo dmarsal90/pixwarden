@@ -12,19 +12,20 @@ final class PngMetadataSanitizerTest extends TestCase
 {
     public function testRemovesOnlyTextChunksAndChecksOutput(): void
     {
-        $base = hex2bin('89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c48900000001494441540028387de80000000049454e44ae426082');
-        self::assertNotFalse($base);
-        $text = $this->chunk('tEXt', "Comment\0private");
-        $source = substr($base, 0, 33) . $text . substr($base, 33);
+        $manifest = json_decode((string) file_get_contents(__DIR__ . '/../../spec/corpus/v1/manifest.json'), true, flags: JSON_THROW_ON_ERROR);
+        $vector = array_values(array_filter($manifest['vectors'], static fn (array $item): bool => $item['id'] === 'SAN-PNG-TEXT-STRIP-001'))[0] ?? null;
+        self::assertNotNull($vector);
+        $source = hex2bin($vector['inputHex']);
+        self::assertNotFalse($source);
         $snapshot = $source;
 
         $result = (new Scanner())->stripPngExifAndTextMetadata($source);
 
-        self::assertSame(['tEXt' => 1], $result['removedChunks']);
-        self::assertSame('passed', $result['postCheckStatus']);
+        self::assertSame($vector['transform']['removedChunks'], $result['removedChunks']);
+        self::assertSame($vector['transform']['postCheckStatus'], $result['postCheckStatus']);
+        self::assertSame($vector['transform']['expectedSha256'], hash('sha256', $result['bytes']));
         self::assertSame($snapshot, $source);
-        self::assertStringNotContainsString('private', $result['bytes']);
-        self::assertSame(substr($base, -12), substr($result['bytes'], -12));
+        self::assertStringNotContainsString('synthetic', $result['bytes']);
         self::assertSame('valid', (new Scanner())->scan($result['bytes'])->validity);
     }
 
@@ -32,10 +33,5 @@ final class PngMetadataSanitizerTest extends TestCase
     {
         $this->expectException(SanitizationFailureException::class);
         (new Scanner())->stripPngExifAndTextMetadata("\x89PNG\r\n\x1a\n");
-    }
-
-    private function chunk(string $type, string $payload): string
-    {
-        return pack('N', strlen($payload)) . $type . $payload . pack('N', crc32($type . $payload));
     }
 }

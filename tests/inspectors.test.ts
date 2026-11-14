@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { sanitizeSvg, stripPngExifAndTextMetadata, scanImage, scanImageStream } from "../src/index.js";
 
 function pngChunk(type: string, payload: number[]): number[] {
@@ -77,6 +79,16 @@ describe("scanImage structural core", () => {
     expect(withText).toEqual(original);
     expect(new TextDecoder().decode(result.bytes)).not.toContain("PII");
     expect(result.bytes.slice(-12)).toEqual(validPng.slice(-12));
+  });
+
+  it("matches the shared corpus metadata-strip transform vector", () => {
+    const manifest = JSON.parse(readFileSync(new URL("../spec/corpus/v1/manifest.json", import.meta.url), "utf8"));
+    const vector = manifest.vectors.find((item: { id: string }) => item.id === "SAN-PNG-TEXT-STRIP-001");
+    expect(vector).toBeDefined();
+    const result = stripPngExifAndTextMetadata(Buffer.from(vector.inputHex, "hex"));
+    expect(createHash("sha256").update(result.bytes).digest("hex")).toBe(vector.transform.expectedSha256);
+    expect(result.removedChunks).toEqual(vector.transform.removedChunks);
+    expect(result.postCheckStatus).toBe(vector.transform.postCheckStatus);
   });
 
   it("refuses malformed PNG input for metadata stripping", () => {
