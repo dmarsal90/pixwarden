@@ -14,13 +14,22 @@ export async function fuzz(input) {
   if (input.byteLength > MAX_FUZZ_INPUT_BYTES) return;
 
   const original = Buffer.from(input);
-  const report = await scanImage(input, { limits: { maxBytes: MAX_FUZZ_INPUT_BYTES } });
+  const report = await scanImage(input, {
+    limits: { maxBytes: MAX_FUZZ_INPUT_BYTES, maxMetadataBytes: 1_000_000 },
+    aiInspection: { enabled: true, ocr: false }
+  });
 
   assert.equal(report.inputBytes, input.byteLength, "report must preserve the input byte count");
   assert.deepEqual(input, original, "inspection must not mutate caller-owned bytes");
   assert.ok(["jpeg", "png", "gif", "webp", "svg", "unknown"].includes(report.format));
   assert.ok(["valid", "invalid", "unknown"].includes(report.validity));
   assert.ok(report.findings.length <= input.byteLength + 16, "finding count must remain bounded by input size");
+  assert.ok(["completed", "partial", "unsupported", "error"].includes(report.aiInspection.status));
+  assert.equal(report.aiInspection.dataEgress, "none");
+  const expectedAiControl = report.aiInspection.status === "error" ? "error"
+    : report.aiInspection.status === "unsupported" || report.aiInspection.status === "partial" ? "unsupported"
+      : "passed";
+  assert.equal(report.controls.aiInspection.status, expectedAiControl, "incomplete AI inspection must not pass its control");
 
   for (const control of Object.values(report.controls)) {
     assert.ok(controlStatuses.has(control.status), "control status must use the shared enum");

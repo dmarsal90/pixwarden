@@ -2,11 +2,14 @@
 
 declare(strict_types=1);
 
-use Pixwarden\PixwardenException;
+use Pixwarden\AiInspectionOptions;
 use Pixwarden\CapabilityUnavailableException;
 use Pixwarden\InvalidInputException;
+use Pixwarden\PixwardenException;
+use Pixwarden\ResourceLimits;
 use Pixwarden\ResourceLimitExceededException;
 use Pixwarden\SanitizationFailureException;
+use Pixwarden\ScanOptions;
 use Pixwarden\Scanner;
 
 require __DIR__ . '/../vendor/autoload.php';
@@ -24,7 +27,10 @@ $scanner = new Scanner();
 $config->setTarget(static function (string $input) use ($scanner): void {
     $original = $input;
     try {
-        $result = $scanner->scan($input);
+        $result = $scanner->scan($input, new ScanOptions(
+            new ResourceLimits(maxBytes: 65_536, maxMetadataBytes: 1_000_000),
+            aiInspection: new AiInspectionOptions(enabled: true),
+        ));
     } catch (PixwardenException) {
         return;
     }
@@ -40,6 +46,18 @@ $config->setTarget(static function (string $input) use ($scanner): void {
         || !in_array($report['validity'] ?? null, ['valid', 'invalid', 'unknown'], true)
         || !in_array($report['verdict'] ?? null, ['allow', 'sanitize', 'reject', 'review'], true)) {
         throw new Error('Scanner returned a report outside the shared enum contract.');
+    }
+    $aiStatus = $report['aiInspection']['status'] ?? null;
+    $expectedAiControl = match ($aiStatus) {
+        'not_requested' => 'skipped',
+        'unsupported', 'partial' => 'unsupported',
+        'error' => 'error',
+        'completed' => 'passed',
+        default => throw new Error('AI inspection returned a status outside its enum contract.'),
+    };
+    if (($report['aiInspection']['dataEgress'] ?? null) !== 'none'
+        || ($report['controls']['aiInspection']['status'] ?? null) !== $expectedAiControl) {
+        throw new Error('AI inspection status or data-egress control is inconsistent.');
     }
 
     $inputLength = strlen($input);
