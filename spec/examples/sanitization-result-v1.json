@@ -1,0 +1,9 @@
+{
+  "status": "produced",
+  "sourceDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "artifactDigest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "format": "png",
+  "bytes": 128,
+  "transformations": ["metadata-stripped", "raster-reencoded"],
+  "postCheckStatus": "passed"
+}

@@ -1,0 +1,13 @@
+{
+  "policyVersion": 1,
+  "id": "default-upload",
+  "requiredControls": ["structural", "binary"],
+  "unsupportedFormat": "review",
+  "incompleteAnalysis": "review",
+  "unknownFinding": "review",
+  "severityThresholds": { "allow": "info", "sanitize": "low", "reject": "high", "review": "medium" },
+  "metadataAction": "strip",
+  "svgAction": "sanitize",
+  "sanitizationFailure": "reject",
+  "allowOnlyIfAllRequiredPassed": true
+}

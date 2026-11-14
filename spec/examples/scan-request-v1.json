@@ -1,0 +1,5 @@
+{
+  "requestVersion": 1,
+  "input": { "base64": "iVBORw0KGgo=" },
+  "options": { "structural": true, "metadata": true, "binaryInspection": true }
+}

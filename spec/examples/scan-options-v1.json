@@ -1,0 +1,14 @@
+{
+  "structural": true,
+  "metadata": true,
+  "binaryInspection": true,
+  "sanitize": false,
+  "hints": { "filename": "upload.png", "mediaType": "image/png" },
+  "limits": { "maxBytes": 10485760, "maxPixels": 40000000 },
+  "steganography": { "enabled": false, "mode": "statistical", "maxSamples": 100000 },
+  "aiInspection": { "enabled": false, "ocr": false },
+  "policyId": "default-upload",
+  "requiredControls": ["structural", "binary"],
+  "unsupportedFormat": "review",
+  "incompleteAnalysis": "review"
+}

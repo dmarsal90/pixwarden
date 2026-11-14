@@ -1,0 +1,12 @@
+{
+  "code": "LIMIT_EXCEEDED",
+  "stage": "resource",
+  "message": "Input exceeds the configured byte limit.",
+  "retryable": false,
+  "fatal": true,
+  "controlStatus": "failed",
+  "limitName": "maxBytes",
+  "observed": 10485761,
+  "maximum": 10485760,
+  "correlationId": "scan-0f4a8ef0"
+}

@@ -1,0 +1,8 @@
+{
+  "kind": "metadata_tag",
+  "summary": "GPS coordinates present; value redacted.",
+  "offset": 128,
+  "length": 32,
+  "redactedValue": "[redacted]",
+  "attributes": { "tag": "GPSLatitude", "source": "EXIF" }
+}

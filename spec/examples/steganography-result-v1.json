@@ -1,0 +1,5 @@
+{
+  "status": "inconclusive",
+  "methods": [{ "id": "lsb-histogram-v1", "applicable": true, "status": "inconclusive", "samples": 4096, "score": 0.41 }],
+  "limitations": ["Statistical anomalies are not proof of hidden content; this method does not inspect distributed or transform-resistant payloads."]
+}

@@ -1,0 +1,36 @@
+{
+  "resultVersion": 1,
+  "scanId": "0f4a8ef0-20b8-4f52-9ed2-03c6c4540a01",
+  "engineVersion": "0.1.0",
+  "specVersion": "0.1.0",
+  "startedAt": "2026-11-14T15:00:00.000Z",
+  "completedAt": "2026-11-14T15:00:00.010Z",
+  "format": "png",
+  "validity": "valid",
+  "decodability": "not_attempted",
+  "sanitized": false,
+  "policyCompliant": false,
+  "coverage": "partial",
+  "verdict": "review",
+  "controls": {
+    "structural": { "status": "passed", "summary": "The bounded PNG profile ran." },
+    "metadata": { "status": "unsupported", "summary": "Metadata tags and values were not parsed." },
+    "binary": { "status": "passed", "summary": "Defined auxiliary regions were inspected." }
+  },
+  "findings": [],
+  "capabilities": {
+    "runtime": "node",
+    "runtimeVersion": "22.12.0",
+    "engineVersion": "0.1.0",
+    "specVersion": "0.1.0",
+    "formats": {
+      "png": { "inspect": true, "decode": false, "sanitize": false, "reason": "Bounded structure inspection only." },
+      "unknown": { "inspect": false, "decode": false, "sanitize": false, "reason": "No format profile." }
+    },
+    "optionalAdapters": {},
+    "hardLimits": { "inputBytes": true, "dimensionsBeforeDecode": true, "framesBeforeDecode": true, "memory": false, "cpu": false, "wallTime": false },
+    "networkAccess": false
+  },
+  "limitations": ["A valid structure does not establish safe rendering or decoding."],
+  "inputBytes": 8
+}

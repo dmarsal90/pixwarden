@@ -32,10 +32,12 @@ const formats: CapabilityReport["formats"] = Object.freeze({
 
 const capabilityReport: CapabilityReport = Object.freeze({
   runtime: "node",
+  runtimeVersion: process.versions.node,
   engineVersion: ENGINE_VERSION,
   specVersion: SPEC_VERSION,
   formats,
   networkAccess: false,
+  optionalAdapters: Object.freeze({}),
   hardLimits: Object.freeze({ inputBytes: true, dimensionsBeforeDecode: true, framesBeforeDecode: true, memory: false, cpu: false, wallTime: false })
 });
 
