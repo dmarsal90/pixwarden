@@ -129,7 +129,7 @@ final class Scanner
                 'engineVersion' => '0.1.0', 'specVersion' => '0.1.0',
                 'networkAccess' => false,
                 'formats' => $formatCapabilities,
-                'optionalAdapters' => [],
+                'optionalAdapters' => (object) [],
                 'hardLimits' => ['inputBytes' => true, 'dimensionsBeforeDecode' => true, 'framesBeforeDecode' => true, 'memory' => false, 'cpu' => false, 'wallTime' => false],
             ],
             'metadataInspection' => $metadataInspection,

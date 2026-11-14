@@ -35,4 +35,4 @@ Install with Composer once the package is released: `composer require dmarsal90/
 
 ## Development
 
-From this directory run `composer install`, `composer test`, and `composer analyse`. Shared vectors are loaded from `../spec/corpus/v1/manifest.json` and hash-checked before the scan.
+From this directory run `composer install`, `composer test`, and `composer analyse`. Shared vectors are loaded from `../spec/corpus/v1/manifest.json`, hash-checked, and every emitted report is validated against the shared Draft 2020-12 `ScanResult` contract. `opis/json-schema` is a development-only validator dependency; it is not required by applications using Pixwarden PHP.

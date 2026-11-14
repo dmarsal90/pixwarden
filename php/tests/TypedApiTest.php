@@ -23,7 +23,7 @@ final class TypedApiTest extends TestCase
         self::assertSame('png', $result->format->value);
         self::assertInstanceOf(Verdict::class, $result->verdict);
         self::assertNotSame([], $result->controls);
-        self::assertSame($result->toArray(), json_decode(json_encode($result, JSON_THROW_ON_ERROR), true, flags: JSON_THROW_ON_ERROR));
+        self::assertSame(json_encode($result->toArray(), JSON_THROW_ON_ERROR), json_encode($result, JSON_THROW_ON_ERROR));
     }
 
     public function testInvalidResourceConfigurationUsesPixwardenException(): void
