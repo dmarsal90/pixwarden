@@ -52,5 +52,38 @@ $config->setTarget(static function (string $input) use ($scanner): void {
             }
         }
     }
+
+    if (($report['format'] ?? null) === 'svg') {
+        try {
+            $sanitized = $scanner->sanitizeSvg($input);
+        } catch (PixwardenException $error) {
+            if (!in_array($error->errorCode, [
+                Pixwarden\ErrorCode::SvgRejected,
+                Pixwarden\ErrorCode::ResourceLimitExceeded,
+                Pixwarden\ErrorCode::CapabilityUnavailable,
+            ], true)) {
+                throw $error;
+            }
+            if ($input !== $original) {
+                throw new Error('Rejected SVG sanitization modified caller-owned input.');
+            }
+
+            return;
+        }
+
+        if (!is_string($sanitized['bytes'] ?? null)
+            || ($sanitized['postCheckStatus'] ?? null) !== 'passed'
+            || ($sanitized['inputBytes'] ?? null) !== strlen($input)
+            || ($sanitized['outputBytes'] ?? null) !== strlen($sanitized['bytes'])) {
+            throw new Error('SVG sanitizer returned inconsistent metadata.');
+        }
+
+        $repeated = $scanner->sanitizeSvg($sanitized['bytes']);
+        if (($repeated['bytes'] ?? null) !== $sanitized['bytes']
+            || ($repeated['removedAttributes'] ?? null) !== 0
+            || ($repeated['removedElements'] ?? null) !== []) {
+            throw new Error('SVG sanitization is not idempotent.');
+        }
+    }
 });
 $config->setMaxLen(65_536);

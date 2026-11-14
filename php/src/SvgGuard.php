@@ -81,7 +81,7 @@ final class SvgGuard
         $result = $this->parseAndSerialize($bytes, self::MAX_BYTES);
         $verification = $this->parseAndSerialize($result['output'], self::MAX_BYTES);
         if ($verification['output'] !== $result['output'] || $verification['removedAttributes'] !== 0 || $verification['removedElements'] !== []) {
-            throw new SvgRejectedException('Sanitized SVG did not pass its post-sanitization check.');
+            throw new SanitizationFailureException('Sanitized SVG did not pass its post-sanitization check.');
         }
         return [
             'bytes' => $result['output'],

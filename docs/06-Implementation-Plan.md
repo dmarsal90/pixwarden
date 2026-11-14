@@ -29,7 +29,7 @@ Neither language task may publish a capability absent from the shared declared p
 
 ## Verification plan
 
-Unit tests cover deterministic helpers and policy; integration tests cover adapters; conformance tests consume common fixture manifests; malformed-input regressions retain minimized synthetic cases; property tests assert no crashes, bounded offsets and stable error output; fuzz targets parsers in isolated CI workers; benchmarks report environment and limits. Probability-based detectors are measured on separated benign/synthetic attack sets for precision, recall, false-positive/negative rates, latency and memory. No claimed metric without a reproducible dataset and run.
+Unit tests cover deterministic helpers and policy; integration tests cover adapters; conformance tests consume common fixture manifests; malformed-input regressions retain minimized synthetic cases; property tests assert no crashes, bounded offsets and stable error output; fuzz targets parsers and SVG sanitizer post-check/idempotence invariants; benchmarks report environment and limits. Probability-based detectors are measured on separated benign/synthetic attack sets for precision, recall, false-positive/negative rates, latency and memory. No claimed metric without a reproducible dataset and run.
 
 ## Definition of Done
 
