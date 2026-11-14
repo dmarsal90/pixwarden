@@ -575,28 +575,41 @@ final class Scanner
         $webpErrorId = null;
         $jpegErrorId = null;
         $jpegMetadataExceededOffset = null;
+        $pngMetadataExceededOffset = null;
+        $webpMetadataExceededOffset = null;
         $gifErrorId = null;
         $gifMetadataExceededOffset = null;
         if ($format === 'png') {
-            $valid = $this->validPng($bytes, $pngCrcMismatchOffset, $pngTrailingDataOffset, $pngErrorId);
+            $valid = $this->validPng($bytes, $pngCrcMismatchOffset, $pngTrailingDataOffset, $pngErrorId, $maxMetadataBytes, $pngMetadataExceededOffset);
         } elseif ($format === 'gif') {
             $frames = strlen($bytes) >= 14 ? $this->countGifFrames($bytes, $gifErrorId, $maxMetadataBytes, $gifMetadataExceededOffset) : null;
             $valid = $frames !== null && $frames > 0;
         } elseif ($format === 'jpeg') {
             $valid = $this->validJpeg($bytes, $jpegErrorId, $maxMetadataBytes, $jpegMetadataExceededOffset);
         } else {
-            $valid = $this->validWebp($bytes, $webpTrailingDataOffset, $webpErrorId);
+            $valid = $this->validWebp($bytes, $webpTrailingDataOffset, $webpErrorId, $maxMetadataBytes, $webpMetadataExceededOffset);
         }
         if ($valid) {
-            $metadataExceeded = $format === 'gif' ? $gifMetadataExceededOffset : ($format === 'jpeg' ? $jpegMetadataExceededOffset : null);
+            $metadataExceeded = match ($format) {
+                'gif' => $gifMetadataExceededOffset,
+                'jpeg' => $jpegMetadataExceededOffset,
+                'png' => $pngMetadataExceededOffset,
+                'webp' => $webpMetadataExceededOffset,
+            };
             if ($metadataExceeded !== null) {
-                $isGif = $format === 'gif';
+                $labels = [
+                    'gif' => ['GIF extension limit exceeded', 'Extension bytes exceed configured metadata limit.', 'GIF extension data exceeds configured metadata byte budget.'],
+                    'jpeg' => ['JPEG metadata limit exceeded', 'Metadata segment bytes exceed configured limit.', 'JPEG metadata segment exceeds configured byte budget.'],
+                    'png' => ['PNG metadata limit exceeded', 'Metadata byte count exceeds the configured limit.', 'PNG metadata exceeds configured byte budget.'],
+                    'webp' => ['WebP metadata limit exceeded', 'Metadata bytes exceed configured limit.', 'WebP metadata exceeds configured byte budget.'],
+                ];
+                [$title, $description, $summary] = $labels[$format];
                 return [$format, 'valid', [[
                     'id' => 'META-006', 'severity' => 'medium', 'stage' => 'metadata',
-                    'title' => $isGif ? 'GIF extension limit exceeded' : 'JPEG metadata limit exceeded',
-                    'description' => $isGif ? 'Extension bytes exceed configured metadata limit.' : 'Metadata segment bytes exceed configured limit.',
+                    'title' => $title,
+                    'description' => $description,
                     'status' => 'confirmed', 'controlStatus' => 'failed',
-                    'evidence' => [['kind' => 'range', 'summary' => $isGif ? 'GIF extension data exceeds configured metadata byte budget.' : 'JPEG metadata segment exceeds configured byte budget.', 'offset' => $metadataExceeded['offset'], 'length' => $metadataExceeded['length']]],
+                    'evidence' => [['kind' => 'range', 'summary' => $summary, 'offset' => $metadataExceeded['offset'], 'length' => $metadataExceeded['length']]],
                 ]]];
             }
             return [$format, 'valid', []];
@@ -637,10 +650,13 @@ final class Scanner
         ]]];
     }
 
-    private function validWebp(string $bytes, ?int &$trailingDataOffset = null, ?string &$errorId = null): bool
+    /** @param array{offset: int, length: int}|null $metadataExceeded */
+    private function validWebp(string $bytes, ?int &$trailingDataOffset = null, ?string &$errorId = null, int $maximumMetadataBytes = PHP_INT_MAX, ?array &$metadataExceeded = null): bool
     {
         $trailingDataOffset = null;
         $errorId = null;
+        $metadataExceeded = null;
+        $metadataBytes = 0;
         $size = strlen($bytes);
         if ($size < 20 || substr($bytes, 0, 4) !== 'RIFF' || substr($bytes, 8, 4) !== 'WEBP') {
             $errorId = 'IMG-003';
@@ -689,6 +705,12 @@ final class Scanner
                 return false;
             }
 
+            if (in_array($kind, ['EXIF', 'XMP ', 'ICCP'], true)) {
+                $metadataBytes += $length;
+                if ($metadataBytes > $maximumMetadataBytes && $metadataExceeded === null) {
+                    $metadataExceeded = ['offset' => $offset, 'length' => $length];
+                }
+            }
             if ($kind === 'VP8X') {
                 if ($offset !== 12 || $seenVp8x || $length !== 10) {
                     $errorId = 'IMG-006';
@@ -830,11 +852,14 @@ final class Scanner
         return false;
     }
 
-    private function validPng(string $bytes, ?int &$crcMismatchOffset, ?int &$trailingDataOffset = null, ?string &$errorId = null): bool
+    /** @param array{offset: int, length: int}|null $metadataExceeded */
+    private function validPng(string $bytes, ?int &$crcMismatchOffset, ?int &$trailingDataOffset = null, ?string &$errorId = null, int $maximumMetadataBytes = PHP_INT_MAX, ?array &$metadataExceeded = null): bool
     {
         $crcMismatchOffset = null;
         $trailingDataOffset = null;
         $errorId = null;
+        $metadataExceeded = null;
+        $metadataBytes = 0;
         if (strlen($bytes) < 45) {
             $errorId = 'IMG-003';
             return false;
@@ -857,6 +882,12 @@ final class Scanner
                 return false;
             }
             $type = substr($bytes, $offset + 4, 4);
+            if (in_array($type, ['eXIf', 'tEXt', 'zTXt', 'iTXt', 'iCCP'], true)) {
+                $metadataBytes += $length;
+                if ($metadataBytes > $maximumMetadataBytes && $metadataExceeded === null) {
+                    $metadataExceeded = ['offset' => $offset, 'length' => $length];
+                }
+            }
             for ($typeIndex = 0; $typeIndex < 4; $typeIndex++) {
                 $typeByte = ord($type[$typeIndex]);
                 if (!(($typeByte >= 65 && $typeByte <= 90) || ($typeByte >= 97 && $typeByte <= 122))) {
