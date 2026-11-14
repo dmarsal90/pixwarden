@@ -76,6 +76,6 @@ All samples use reserved names and harmless content. Corpus generation must be d
 
 No test results are claimed until fixtures, harnesses and runtime implementations exist and have been executed.
 
-The corpus includes opt-in AI-002 PNG text fixtures for uncompressed and compressed simulated override phrases, benign imperative wording, and a compressed expansion exceeding the metadata budget. Override phrases produce advisory findings without disclosing their value; benign text must not trigger the narrow rules; budget overflow leaves the AI control unsupported. These do not test OCR or visual prompt injection. PHP vectors also record expected partial results when `ext-zlib` is absent.
+The corpus includes opt-in AI-002 PNG text fixtures for uncompressed and compressed simulated override phrases, benign imperative wording, and a compressed expansion exceeding the metadata budget. Override phrases produce advisory findings without disclosing their value; benign text must not trigger the narrow rules; budget overflow leaves the AI control unsupported. These do not test OCR or visual prompt injection. PHP CI also runs `composer test:no-zlib`, which disables `zlib_decode` and verifies partial results for compressed text without an AI policy pass.
 
 The `STEG-PNG-RGBA8-STATISTICS-001` vector verifies that optional static RGBA8 statistics are bounded, reported as inconclusive, and never mark the required steganography policy control passed.
