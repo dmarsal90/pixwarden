@@ -13,6 +13,58 @@ const patterns = [
 interface TextEntry { readonly start: number; readonly length: number; readonly text: string; readonly compressed: boolean }
 
 /** Advisory inspection of bounded PNG tEXt/zTXt/iTXt metadata only. */
+export function inspectInstructionMetadata(data: Uint8Array, format: string, maxMetadataBytes: number, ocrRequested: boolean): AiInspectionResult {
+  if (format === "jpeg") return inspectJpegComments(data, maxMetadataBytes, ocrRequested);
+  if (format !== "png") return unsupported(format);
+  return inspectPngInstructionMetadata(data, maxMetadataBytes, ocrRequested);
+}
+
+function unsupported(format: string): AiInspectionResult {
+  return { status: "unsupported", dataEgress: "none", signals: [], limitations: [`The ${format} format is not supported by the bounded metadata prompt-risk rules.`] };
+}
+
+function inspectJpegComments(data: Uint8Array, maximum: number, ocrRequested: boolean): AiInspectionResult {
+  const limitations = [
+    "Rules inspect JPEG COM comment segments only; visible pixels, EXIF/XMP text, OCR output, and other formats are not inspected.",
+    "Text matching is advisory and can miss paraphrased, encoded, multilingual, or visually embedded instructions; it cannot determine downstream model behavior."
+  ];
+  const findings: Finding[] = [];
+  let offset = 2;
+  let consumed = 0;
+  let partial = false;
+  while (offset < data.length) {
+    if (data[offset] !== 0xff) { partial = true; break; }
+    while (data[offset] === 0xff) offset++;
+    if (offset >= data.length) { partial = true; break; }
+    const marker = data[offset++]!;
+    if (marker === 0xda) break;
+    if (marker === 0xd9) break;
+    if (marker === 0xd8 || marker === 0x01 || (marker >= 0xd0 && marker <= 0xd7)) continue;
+    if (offset + 2 > data.length) { partial = true; break; }
+    const length = (data[offset]! << 8) | data[offset + 1]!;
+    if (length < 2 || length > data.length - offset) { partial = true; break; }
+    const start = offset + 2;
+    const payloadLength = length - 2;
+    if (marker === 0xfe) {
+      const allowed = Math.max(0, maximum - consumed);
+      const inspectedLength = Math.min(payloadLength, allowed);
+      const text = new TextDecoder("latin1").decode(data.subarray(start, start + inspectedLength));
+      if (patterns.some((pattern) => pattern.test(text))) findings.push({
+        id: "AI-002", severity: "medium", stage: "ai", title: "Instruction-like text in JPEG comment metadata",
+        description: "JPEG COM metadata matches a narrow rule for instruction override or system-prompt disclosure language. The text was not included in the report.",
+        status: "suspected", controlStatus: "passed", evidence: [{ kind: "range", summary: "A bounded JPEG COM field matched a prompt-risk rule; field contents are redacted.", offset: start, length: inspectedLength }]
+      });
+      consumed += inspectedLength;
+      if (inspectedLength < payloadLength) { partial = true; break; }
+    }
+    offset += length;
+  }
+  if (ocrRequested) limitations.push("OCR was requested but is not implemented; only metadata text rules ran.");
+  if (partial) limitations.push("JPEG comment metadata was malformed or exceeded the configured inspection bound.");
+  return { status: ocrRequested || partial ? "partial" : "completed", dataEgress: "none", signals: findings, limitations };
+}
+
+/** Advisory, bounded prompt-risk rules for PNG text metadata. */
 export function inspectPngInstructionMetadata(data: Uint8Array, maxMetadataBytes: number, ocrRequested: boolean): AiInspectionResult {
   const limitations = [
     "This rule set inspects PNG tEXt, zTXt and iTXt fields, with compressed output capped by the metadata budget; it does not inspect visible pixels, OCR output, or other formats.",

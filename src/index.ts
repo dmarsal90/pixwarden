@@ -5,7 +5,7 @@ import { inspectMetadata } from "./metadata-guard.js";
 import { sanitizeSvg } from "./svg-guard.js";
 import { stripPngExifAndTextMetadata } from "./png-metadata-sanitizer.js";
 import { sanitizePngRgba8 } from "./png-raster-sanitizer.js";
-import { inspectPngInstructionMetadata } from "./ai-injection-guard.js";
+import { inspectInstructionMetadata } from "./ai-injection-guard.js";
 import { inspectPngRgba8Steganography } from "./steganography-guard.js";
 import { PixwardenError, type AiInspectionResult, type BinaryInspectionResult, type CapabilityReport, type ControlResult, type Finding, type ImageFormat, type MetadataInspectionResult, type ResourceLimits, type ScanHints, type ScanIsolationOptions, type ScanOptions, type ScanResult, type SteganographyOptions, type SteganographyResult, type Verdict } from "./types.js";
 
@@ -261,7 +261,7 @@ function inspectSnapshot(snapshot: Uint8Array, options: ScanOptions, limits: Res
   const binaryInspection = binaryEnabled ? inspectBinaryIndicators(snapshot) : undefined;
   const metadataInspection = metadataEnabled ? inspectMetadata(snapshot, format, limits.maxMetadataBytes) : undefined;
   const aiInspection: AiInspectionResult = options.aiInspection?.enabled
-    ? inspectPngInstructionMetadata(structural?.validity === "valid" ? snapshot : new Uint8Array(), limits.maxMetadataBytes, options.aiInspection.ocr)
+    ? inspectInstructionMetadata(structural?.validity === "valid" ? snapshot : new Uint8Array(), format, limits.maxMetadataBytes, options.aiInspection.ocr)
     : { status: "not_requested", dataEgress: "none", signals: [], limitations: ["No OCR or multimodal inspection ran. No text was extracted or sent to a model."] };
   const steganographyOptions: SteganographyOptions = options.steganography ?? { enabled: false, mode: "statistical" };
   const steganographyWithinLimits = structural?.validity === "valid"

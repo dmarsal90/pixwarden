@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Pixwarden;
 
-/** Advisory, bounded prompt-risk rules for PNG text metadata. */
+/** Advisory, bounded prompt-risk rules for selected image metadata. */
 final class AiInjectionGuard
 {
     private const SIGNATURE = "\x89PNG\r\n\x1a\n";
@@ -26,8 +26,11 @@ final class AiInjectionGuard
         if (!$options->enabled) {
             return ['status' => 'not_requested', 'dataEgress' => 'none', 'signals' => [], 'limitations' => $limitations];
         }
+        if ($format === 'jpeg' && str_starts_with($bytes, "\xff\xd8")) {
+            return $this->inspectJpegComments($bytes, $maximum, $options);
+        }
         if ($format !== 'png' || !str_starts_with($bytes, self::SIGNATURE)) {
-            return ['status' => 'unsupported', 'dataEgress' => 'none', 'signals' => [], 'limitations' => [...$limitations, 'The input is not a PNG profile supported by this metadata rule set.']];
+            return ['status' => 'unsupported', 'dataEgress' => 'none', 'signals' => [], 'limitations' => [...$limitations, 'The input is not a PNG or JPEG comment profile supported by this metadata rule set.']];
         }
 
         $signals = [];
@@ -90,6 +93,87 @@ final class AiInjectionGuard
         }
 
         return ['status' => $options->ocr || $partial ? 'partial' : 'completed', 'dataEgress' => 'none', 'signals' => $signals, 'limitations' => $limitations];
+    }
+
+    /** @return array{status: string, dataEgress: string, signals: list<array<string, mixed>>, limitations: list<string>} */
+    private function inspectJpegComments(string $bytes, int $maximum, AiInspectionOptions $options): array
+    {
+        $limitations = [
+            'Rules inspect JPEG COM comment segments only; visible pixels, EXIF/XMP text, OCR output and other formats are not inspected.',
+            'Text matching is advisory and can miss paraphrased, encoded, multilingual, or visually embedded instructions; it cannot determine downstream model behavior.',
+        ];
+        $signals = [];
+        $offset = 2;
+        $consumed = 0;
+        $partial = false;
+        $total = strlen($bytes);
+        while ($offset < $total) {
+            if (ord($bytes[$offset]) !== 0xff) {
+                $partial = true;
+                break;
+            }
+            while ($offset < $total && ord($bytes[$offset]) === 0xff) {
+                $offset++;
+            }
+            if ($offset >= $total) {
+                $partial = true;
+                break;
+            }
+            $marker = ord($bytes[$offset++]);
+            if ($marker === 0xda || $marker === 0xd9) {
+                break;
+            }
+            if ($marker === 0xd8 || $marker === 0x01 || ($marker >= 0xd0 && $marker <= 0xd7)) {
+                continue;
+            }
+            if ($offset + 2 > $total) {
+                $partial = true;
+                break;
+            }
+            $length = (ord($bytes[$offset]) << 8) | ord($bytes[$offset + 1]);
+            if ($length < 2 || $length > $total - $offset) {
+                $partial = true;
+                break;
+            }
+            $start = $offset + 2;
+            $payloadLength = $length - 2;
+            if ($marker === 0xfe) {
+                $allowed = max(0, $maximum - $consumed);
+                $inspectedLength = min($payloadLength, $allowed);
+                $text = substr($bytes, $start, $inspectedLength);
+                foreach (self::PATTERNS as $pattern) {
+                    if (preg_match($pattern, $text) === 1) {
+                        $signals[] = [
+                            'id' => 'AI-002', 'severity' => 'medium', 'stage' => 'ai',
+                            'title' => 'Instruction-like text in JPEG comment metadata',
+                            'description' => 'JPEG COM metadata matches a narrow rule for instruction override or system-prompt disclosure language. The text was not included in the report.',
+                            'status' => 'suspected', 'controlStatus' => 'passed',
+                            'evidence' => [[
+                                'kind' => 'range', 'summary' => 'A bounded JPEG COM field matched a prompt-risk rule; field contents are redacted.',
+                                'offset' => $start, 'length' => $inspectedLength,
+                            ]],
+                        ];
+                        break;
+                    }
+                }
+                $consumed += $inspectedLength;
+                if ($inspectedLength < $payloadLength) {
+                    $partial = true;
+                    break;
+                }
+            }
+            $offset += $length;
+        }
+        if ($options->ocr) {
+            $limitations[] = 'OCR was requested but is not implemented; only metadata text rules ran.';
+        }
+        if ($partial) {
+            $limitations[] = 'JPEG comment metadata was malformed or exceeded the configured inspection bound.';
+        }
+        return [
+            'status' => $options->ocr || $partial ? 'partial' : 'completed',
+            'dataEgress' => 'none', 'signals' => $signals, 'limitations' => $limitations,
+        ];
     }
 
     /** @return array{start: int, length: int, text: string, compressed: bool}|null */
