@@ -1,5 +1,5 @@
 {
-  "corpusVersion": "1.0.3",
+  "corpusVersion": "1.0.4",
   "source": "Synthetic, harmless fixtures authored for Pixwarden conformance tests.",
   "license": "CC0-1.0",
   "vectors": [
@@ -99,6 +99,20 @@
       "description": "A one-frame GIF has a Graphic Control Extension with a set reserved bit.",
       "inputHex": "4749463839610100010000000021f90420000000002c000000000100010000020100003b",
       "sha256": "cff7be063a123f94b6c90171e958f0f354160c68c9f253fd315ee250a6ae13b3",
+      "expected": { "format": "gif", "validity": "invalid", "verdict": "reject", "coverage": "partial", "findingIds": ["IMG-006"] }
+    },
+    {
+      "id": "STR-GIF-PLAIN-TEXT-HEADER-SIZE-INVALID-001",
+      "description": "A GIF Plain Text Extension uses an 11-byte header instead of the required 12 bytes.",
+      "inputHex": "4749463839610100010000000021010b0000000000000000000000002c000000000100010000020100003b",
+      "sha256": "cfe01ef1d45efb5af8b0da44eb02411b632d13bdbbe13d5e05510a25db0cc74c",
+      "expected": { "format": "gif", "validity": "invalid", "verdict": "reject", "coverage": "partial", "findingIds": ["IMG-006"] }
+    },
+    {
+      "id": "STR-GIF-APPLICATION-HEADER-SIZE-INVALID-001",
+      "description": "A GIF Application Extension uses a 10-byte header instead of the required 11 bytes.",
+      "inputHex": "4749463839610100010000000021ff0a00000000000000000000002c000000000100010000020100003b",
+      "sha256": "acae67a6210cd55578dde58afd966204276e2a78594da4ddb1ef121a297e1716",
       "expected": { "format": "gif", "validity": "invalid", "verdict": "reject", "coverage": "partial", "findingIds": ["IMG-006"] }
     },
     {

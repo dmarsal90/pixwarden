@@ -330,6 +330,15 @@ final class Scanner
                     }
                     $cursor += 6;
                 } else {
+                    $fixedBlockSize = match ($label) {
+                        0x01 => 12,
+                        0xff => 11,
+                        default => null,
+                    };
+                    if ($fixedBlockSize !== null && $cursor < $size && ord($bytes[$cursor]) !== $fixedBlockSize) {
+                        $errorId = 'IMG-006';
+                        return null;
+                    }
                     $next = $this->skipGifSubBlocks($bytes, $cursor);
                     if ($next === null) {
                         return null;
