@@ -1,5 +1,5 @@
 {
-  "corpusVersion": "1.0.6",
+  "corpusVersion": "1.0.7",
   "source": "Synthetic, harmless fixtures authored for Pixwarden conformance tests.",
   "license": "CC0-1.0",
   "vectors": [
@@ -113,6 +113,13 @@
       "description": "A GIF Application Extension uses a 10-byte header instead of the required 11 bytes.",
       "inputHex": "4749463839610100010000000021ff0a00000000000000000000002c000000000100010000020100003b",
       "sha256": "acae67a6210cd55578dde58afd966204276e2a78594da4ddb1ef121a297e1716",
+      "expected": { "format": "gif", "validity": "invalid", "verdict": "reject", "coverage": "partial", "findingIds": ["IMG-006"] }
+    },
+    {
+      "id": "STR-GIF-APPLICATION-ID-NONPRINTABLE-001",
+      "description": "A GIF Application Extension has a non-printable byte in its eight-byte application identifier.",
+      "inputHex": "4749463839610100010000000021ff0b00455453434150452e3031002c000000000100010000020100003b",
+      "sha256": "859e42a42b8e14c75e3ce3c44ce4b48f28bc1bc7150241610b7fbd6b57fb3181",
       "expected": { "format": "gif", "validity": "invalid", "verdict": "reject", "coverage": "partial", "findingIds": ["IMG-006"] }
     },
     {

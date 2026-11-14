@@ -206,6 +206,13 @@ function inspectGif(data: Uint8Array, limits: ResourceLimits): StructuralInspect
         if (fixedBlockSize !== null && offset < data.length && data[offset] !== fixedBlockSize) {
           return invalid("gif", "IMG-006", "Invalid GIF extension header size", "Plain Text and Application Extension headers require their specified fixed size.", offset);
         }
+        if (label === 0xff && offset + 12 <= data.length) {
+          for (let index = offset + 1; index < offset + 9; index++) {
+            if (data[index]! < 0x20 || data[index]! > 0x7e) {
+              return invalid("gif", "IMG-006", "Invalid GIF application identifier", "Application identifiers must contain eight printable ASCII bytes.", index);
+            }
+          }
+        }
         const blocks = readSubBlocks(offset);
         if (!blocks) return invalid("gif", "IMG-003", "Truncated GIF extension blocks", "Extension data exceeds input or lacks a terminator.", offset);
         metadataBytes += blocks.bytes;
