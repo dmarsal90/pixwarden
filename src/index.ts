@@ -3,12 +3,15 @@ import { Worker } from "node:worker_threads";
 import { inspectBinaryIndicators, inspectStructure } from "./inspectors.js";
 import { inspectMetadata } from "./metadata-guard.js";
 import { sanitizeSvg } from "./svg-guard.js";
+import { stripPngExifAndTextMetadata } from "./png-metadata-sanitizer.js";
 import { PixwardenError, type BinaryInspectionResult, type CapabilityReport, type ControlResult, type Finding, type ImageFormat, type MetadataInspectionResult, type ResourceLimits, type ScanHints, type ScanIsolationOptions, type ScanOptions, type ScanResult, type Verdict } from "./types.js";
 
 export { PixwardenError } from "./types.js";
 export type { BinaryInspectionResult, CapabilityReport, ControlResult, Evidence, Finding, ImageFormat, MetadataInspectionResult, ResourceLimits, ScanHints, ScanIsolationOptions, ScanOptions, ScanResult, Verdict } from "./types.js";
 export type { SvgSanitizationResult } from "./svg-guard.js";
 export { sanitizeSvg } from "./svg-guard.js";
+export { stripPngExifAndTextMetadata } from "./png-metadata-sanitizer.js";
+export type { PngMetadataSanitizationResult } from "./png-metadata-sanitizer.js";
 
 export const ENGINE_VERSION = "0.1.0";
 export const SPEC_VERSION = "0.1.0";
@@ -24,7 +27,7 @@ const defaultLimits: ResourceLimits = Object.freeze({
 
 const formats: CapabilityReport["formats"] = Object.freeze({
   jpeg: { inspect: true, decode: false, sanitize: false, reason: "Bounded marker and segment structure inspection only; no decoder is bundled." },
-  png: { inspect: true, decode: false, sanitize: false, reason: "Chunk bounds/order/CRC and dimensions are inspected; image data is not decompressed." },
+  png: { inspect: true, decode: false, sanitize: true, reason: "A limited EXIF/text-chunk removal transform is available; it does not decode pixels or remove all metadata." },
   gif: { inspect: true, decode: false, sanitize: false, reason: "Block, sub-block and frame structure is inspected; LZW data is not decoded." },
   webp: { inspect: true, decode: false, sanitize: false, reason: "RIFF chunk bounds and selected dimensions/frame metadata are inspected; bitstreams are not decoded." },
   svg: { inspect: true, decode: false, sanitize: true, reason: "Saxes-backed XML profile and static allowlist sanitizer; unsupported active features are removed or reported." },

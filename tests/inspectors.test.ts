@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { sanitizeSvg, scanImage, scanImageStream } from "../src/index.js";
+import { sanitizeSvg, stripPngExifAndTextMetadata, scanImage, scanImageStream } from "../src/index.js";
 
 function pngChunk(type: string, payload: number[]): number[] {
   const bytes = [...type].map((char) => char.charCodeAt(0)).concat(payload);
@@ -64,6 +64,25 @@ const jpegWithGpsExif = new Uint8Array([
 ]);
 
 describe("scanImage structural core", () => {
+  it("strips only PNG EXIF and textual chunks and structurally rechecks output", () => {
+    const withText = new Uint8Array([
+      ...validPng.subarray(0, 33),
+      ...pngChunk("tEXt", [0x41, 0, 0x50, 0x49, 0x49]),
+      ...validPng.subarray(33)
+    ]);
+    const original = Uint8Array.from(withText);
+    const result = stripPngExifAndTextMetadata(withText);
+    expect(result.removedChunks).toEqual({ tEXt: 1 });
+    expect(result.postCheckStatus).toBe("passed");
+    expect(withText).toEqual(original);
+    expect(new TextDecoder().decode(result.bytes)).not.toContain("PII");
+    expect(result.bytes.slice(-12)).toEqual(validPng.slice(-12));
+  });
+
+  it("refuses malformed PNG input for metadata stripping", () => {
+    expect(() => stripPngExifAndTextMetadata(Uint8Array.from(validPng).slice(0, 12))).toThrow();
+  });
+
   it("identifies and validates a structurally complete PNG without decoding it", async () => {
     const result = await scanImage(validPng);
     expect(result.format).toBe("png");

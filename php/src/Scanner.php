@@ -100,12 +100,14 @@ final class Scanner
             $formatCapabilities[$supportedFormat] = [
                 'inspect' => in_array($supportedFormat, ['jpeg', 'png', 'gif', 'webp'], true) || ($supportedFormat === 'svg' && $svgAvailable),
                 'decode' => false,
-                'sanitize' => $supportedFormat === 'svg' && $svgAvailable,
+                'sanitize' => ($supportedFormat === 'svg' && $svgAvailable) || $supportedFormat === 'png',
                 'reason' => $supportedFormat === 'svg'
                     ? ($svgAvailable ? 'A DOM-based static allowlist inspection/sanitizer is available separately; no general renderer is bundled.' : 'PHP ext-dom is unavailable.')
-                    : (in_array($supportedFormat, ['jpeg', 'png', 'gif', 'webp'], true)
+                    : ($supportedFormat === 'png'
+                        ? 'A limited EXIF/text-chunk removal transform is available; it does not decode pixels or remove all metadata.'
+                        : (in_array($supportedFormat, ['jpeg', 'png', 'gif', 'webp'], true)
                         ? 'Limited byte-level container profile only; no decoder is bundled.'
-                        : 'No structural profile is available.'),
+                        : 'No structural profile is available.')),
             ];
         }
         return [
@@ -146,6 +148,14 @@ final class Scanner
     public function sanitizeSvg(string $bytes): array
     {
         return (new SvgGuard())->sanitize($bytes);
+    }
+
+    /** Remove PNG eXIf and textual metadata chunks without decoding image data.
+     * @return array<string, mixed>
+     */
+    public function stripPngExifAndTextMetadata(string $bytes): array
+    {
+        return (new PngMetadataSanitizer())->sanitize($bytes);
     }
 
     /**
