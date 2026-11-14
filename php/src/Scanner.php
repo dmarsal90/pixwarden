@@ -277,7 +277,14 @@ final class Scanner
         while ($cursor < $size) {
             $marker = ord($bytes[$cursor++]);
             if ($marker === 0x3b) {
-                return $cursor === $size && $frames > 0 ? $frames : null;
+                if ($cursor !== $size) {
+                    return null;
+                }
+                if ($frames === 0) {
+                    $errorId = 'IMG-006';
+                    return null;
+                }
+                return $frames;
             }
             if ($marker === 0x2c) {
                 if ($cursor + 9 > $size) {
