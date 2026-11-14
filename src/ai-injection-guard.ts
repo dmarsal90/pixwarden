@@ -60,7 +60,7 @@ function inspectJpegTextMetadata(data: Uint8Array, maximum: number, ocrRequested
         const text = new TextDecoder("latin1").decode(data.subarray(start, start + inspectedLength));
         addSignal(text, start, inspectedLength, "JPEG COM comment");
       } else if (startsWith(data, start, [69, 120, 105, 102, 0, 0])) {
-        const exif = inspectAsciiUserComment(data, start, start + inspectedLength);
+        const exif = inspectAsciiUserCommentTiff(data, start + 6, start + inspectedLength);
         if (exif.text !== undefined && exif.offset !== undefined && exif.length !== undefined) addSignal(exif.text, exif.offset, exif.length, "JPEG EXIF UserComment");
         if (exif.partial) partial = true;
       }
@@ -76,8 +76,7 @@ function inspectJpegTextMetadata(data: Uint8Array, maximum: number, ocrRequested
 
 interface ExifComment { readonly text?: string; readonly offset?: number; readonly length?: number; readonly partial: boolean }
 
-function inspectAsciiUserComment(data: Uint8Array, app1Start: number, app1End: number): ExifComment {
-  const tiff = app1Start + 6;
+function inspectAsciiUserCommentTiff(data: Uint8Array, tiff: number, app1End: number): ExifComment {
   if (app1End - tiff < 8) return { partial: true };
   const little = data[tiff] === 0x49 && data[tiff + 1] === 0x49;
   if (!little && !(data[tiff] === 0x4d && data[tiff + 1] === 0x4d)) return { partial: true };
@@ -131,10 +130,10 @@ function startsWith(data: Uint8Array, offset: number, bytes: readonly number[]):
   return offset >= 0 && offset + bytes.length <= data.length && bytes.every((byte, index) => data[offset + index] === byte);
 }
 
-/** Advisory, bounded prompt-risk rules for PNG text metadata. */
+/** Advisory, bounded prompt-risk rules for PNG text and ASCII EXIF metadata. */
 export function inspectPngInstructionMetadata(data: Uint8Array, maxMetadataBytes: number, ocrRequested: boolean): AiInspectionResult {
   const limitations = [
-    "This rule set inspects PNG tEXt, zTXt and iTXt fields, with compressed output capped by the metadata budget; it does not inspect visible pixels, OCR output, or other formats.",
+    "This rule set inspects PNG tEXt, zTXt, iTXt and ASCII EXIF UserComment values, with compressed output capped by the metadata budget; it does not inspect visible pixels, OCR output, or other formats.",
     "Text matching is advisory and can miss paraphrased, encoded, multilingual, or visually embedded instructions; it cannot determine downstream model behavior."
   ];
   if (!signature.every((byte, index) => data[index] === byte)) {
@@ -144,13 +143,25 @@ export function inspectPngInstructionMetadata(data: Uint8Array, maxMetadataBytes
   let offset = 8;
   let consumed = 0;
   let partial = false;
-  while (offset + 12 <= data.length && consumed < maxMetadataBytes) {
+  while (offset + 12 <= data.length) {
     const length = readU32(data, offset);
     if (length > data.length - offset - 12) break;
     const kind = String.fromCharCode(data[offset + 4]!, data[offset + 5]!, data[offset + 6]!, data[offset + 7]!);
     const payloadStart = offset + 8;
     const payloadEnd = payloadStart + length;
-    if (kind === "tEXt" || kind === "iTXt" || kind === "zTXt") {
+    if (kind === "eXIf") {
+      const allowed = Math.max(0, maxMetadataBytes - consumed);
+      const inspectedLength = Math.min(length, allowed);
+      const exif = inspectAsciiUserCommentTiff(data, payloadStart, payloadStart + inspectedLength);
+      const exifText = exif.text;
+      if (exifText !== undefined && exif.offset !== undefined && exif.length !== undefined && patterns.some((pattern) => pattern.test(exifText))) findings.push({
+        id: "AI-002", severity: "medium", stage: "ai", title: "Instruction-like text in PNG EXIF metadata",
+        description: "PNG EXIF UserComment metadata matches a narrow rule for instruction override or system-prompt disclosure language. The text was not included in the report.",
+        status: "suspected", controlStatus: "passed", evidence: [{ kind: "range", summary: "A bounded PNG EXIF UserComment field matched a prompt-risk rule; field contents are redacted.", offset: exif.offset, length: exif.length }]
+      });
+      if (exif.partial || inspectedLength < length) partial = true;
+      consumed += inspectedLength;
+    } else if (kind === "tEXt" || kind === "iTXt" || kind === "zTXt") {
       const allowed = Math.max(0, maxMetadataBytes - consumed);
       const entry = extractText(data, payloadStart, payloadEnd, kind, allowed);
       if (entry) {
@@ -172,7 +183,7 @@ export function inspectPngInstructionMetadata(data: Uint8Array, maxMetadataBytes
     if (kind === "IEND") break;
   }
   if (ocrRequested) limitations.push("OCR was requested but is not implemented; only metadata text rules ran.");
-  if (partial) limitations.push("Some PNG text metadata was malformed or exceeded the configured metadata inspection bound.");
+  if (partial) limitations.push("Some PNG text/EXIF metadata was malformed, used an unsupported UserComment encoding, or exceeded the configured metadata inspection bound.");
   return {
     status: ocrRequested || partial ? "partial" : "completed",
     dataEgress: "none",

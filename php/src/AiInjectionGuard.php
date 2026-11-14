@@ -20,7 +20,7 @@ final class AiInjectionGuard
     public function inspect(string $bytes, string $format, int $maximum, AiInspectionOptions $options): array
     {
         $limitations = [
-            'Rules inspect PNG tEXt, zTXt and iTXt fields; compressed output is capped by the metadata budget. Visible pixels, OCR output and other formats are not inspected.',
+            'Rules inspect PNG tEXt, zTXt, iTXt and ASCII EXIF UserComment values; compressed output is capped by the metadata budget. Visible pixels, OCR output and other formats are not inspected.',
             'Text matching is advisory and can miss paraphrased, encoded, multilingual, or visually embedded instructions; it cannot determine downstream model behavior.',
         ];
         if (!$options->enabled) {
@@ -30,7 +30,7 @@ final class AiInjectionGuard
             return $this->inspectJpegTextMetadata($bytes, $maximum, $options);
         }
         if ($format !== 'png' || !str_starts_with($bytes, self::SIGNATURE)) {
-            return ['status' => 'unsupported', 'dataEgress' => 'none', 'signals' => [], 'limitations' => [...$limitations, 'The input is not a PNG or JPEG comment profile supported by this metadata rule set.']];
+            return ['status' => 'unsupported', 'dataEgress' => 'none', 'signals' => [], 'limitations' => [...$limitations, 'The input is not a PNG text/EXIF or JPEG comment/EXIF profile supported by this metadata rule set.']];
         }
 
         $signals = [];
@@ -38,7 +38,7 @@ final class AiInjectionGuard
         $consumed = 0;
         $partial = false;
         $total = strlen($bytes);
-        while ($offset + 12 <= $total && $consumed < $maximum) {
+        while ($offset + 12 <= $total) {
             $unpackedLength = unpack('Nvalue', substr($bytes, $offset, 4));
             if ($unpackedLength === false || !isset($unpackedLength['value']) || !is_int($unpackedLength['value'])) {
                 return ['status' => 'error', 'dataEgress' => 'none', 'signals' => [], 'limitations' => [...$limitations, 'A PNG metadata chunk length could not be represented safely.']];
@@ -50,7 +50,19 @@ final class AiInjectionGuard
             $kind = substr($bytes, $offset + 4, 4);
             $payloadStart = $offset + 8;
             $payloadEnd = $payloadStart + $length;
-            if ($kind === 'tEXt' || $kind === 'zTXt' || $kind === 'iTXt') {
+            if ($kind === 'eXIf') {
+                $allowed = max(0, $maximum - $consumed);
+                $inspectedLength = min($length, $allowed);
+                $comment = $this->inspectAsciiExifUserComment($bytes, $payloadStart, $payloadStart + $inspectedLength);
+                if ($comment['text'] !== null && $comment['offset'] !== null && $comment['length'] !== null) {
+                    $signal = $this->makePngExifSignal($comment['text'], $comment['offset'], $comment['length']);
+                    if ($signal !== null) {
+                        $signals[] = $signal;
+                    }
+                }
+                $partial = $partial || $comment['partial'] || $inspectedLength < $length;
+                $consumed += $inspectedLength;
+            } elseif ($kind === 'tEXt' || $kind === 'zTXt' || $kind === 'iTXt') {
                 $remaining = $maximum - $consumed;
                 $allowed = $remaining > 0 ? $remaining : 0;
                 $entry = $this->extractText($bytes, $payloadStart, $payloadEnd, $kind, $allowed);
@@ -89,7 +101,7 @@ final class AiInjectionGuard
             $limitations[] = 'OCR was requested but is not implemented; only metadata text rules ran.';
         }
         if ($partial) {
-            $limitations[] = 'Some PNG text metadata was malformed or exceeded the configured metadata inspection bound.';
+            $limitations[] = 'Some PNG text/EXIF metadata was malformed, used an unsupported UserComment encoding, or exceeded the configured metadata inspection bound.';
         }
 
         return ['status' => $options->ocr || $partial ? 'partial' : 'completed', 'dataEgress' => 'none', 'signals' => $signals, 'limitations' => $limitations];
@@ -147,7 +159,7 @@ final class AiInjectionGuard
                         $signals[] = $signal;
                     }
                 } elseif (substr($bytes, $start, min(6, $inspectedLength)) === "Exif\0\0") {
-                    $comment = $this->inspectAsciiExifUserComment($bytes, $start, $start + $inspectedLength);
+                    $comment = $this->inspectAsciiExifUserComment($bytes, $start + 6, $start + $inspectedLength);
                     if ($comment['text'] !== null && $comment['offset'] !== null && $comment['length'] !== null) {
                         $signal = $this->makeJpegSignal($comment['text'], $comment['offset'], $comment['length'], 'JPEG EXIF UserComment');
                         if ($signal !== null) {
@@ -197,9 +209,8 @@ final class AiInjectionGuard
     }
 
     /** @return array{text: ?string, offset: ?int, length: ?int, partial: bool} */
-    private function inspectAsciiExifUserComment(string $bytes, int $app1Start, int $app1End): array
+    private function inspectAsciiExifUserComment(string $bytes, int $tiff, int $app1End): array
     {
-        $tiff = $app1Start + 6;
         if ($app1End - $tiff < 8) {
             return ['text' => null, 'offset' => null, 'length' => null, 'partial' => true];
         }
@@ -278,6 +289,26 @@ final class AiInjectionGuard
             ];
         }
         return ['text' => null, 'offset' => null, 'length' => null, 'partial' => false];
+    }
+
+    /** @return array<string, mixed>|null */
+    private function makePngExifSignal(string $text, int $offset, int $length): ?array
+    {
+        foreach (self::PATTERNS as $pattern) {
+            if (preg_match($pattern, $text) === 1) {
+                return [
+                    'id' => 'AI-002', 'severity' => 'medium', 'stage' => 'ai',
+                    'title' => 'Instruction-like text in PNG EXIF metadata',
+                    'description' => 'PNG EXIF UserComment metadata matches a narrow rule for instruction override or system-prompt disclosure language. The text was not included in the report.',
+                    'status' => 'suspected', 'controlStatus' => 'passed',
+                    'evidence' => [[
+                        'kind' => 'range', 'summary' => 'A bounded PNG EXIF UserComment field matched a prompt-risk rule; field contents are redacted.',
+                        'offset' => $offset, 'length' => $length,
+                    ]],
+                ];
+            }
+        }
+        return null;
     }
 
     /** @return array{start: int, length: int, text: string, compressed: bool}|null */
