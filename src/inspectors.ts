@@ -71,43 +71,49 @@ function inspectPng(data: Uint8Array, limits: ResourceLimits): StructuralInspect
   let dataSequenceEnded = false;
   let seenPalette = false;
   let seenEnd = false;
+  const reject = (id: string, title: string, description: string, offset?: number): StructuralInspection => {
+    const result = invalid("png", id, title, description, offset);
+    return { ...result, findings: [...findings, ...result.findings], metadataBytes, ...(width === undefined ? {} : { width }), ...(height === undefined ? {} : { height }) };
+  };
   while (offset < data.length) {
-    if (data.length - offset < 12) return invalid("png", "IMG-003", "Truncated PNG chunk", "A chunk is shorter than its length, type, and CRC fields.", offset);
+    if (data.length - offset < 12) return reject("IMG-003", "Truncated PNG chunk", "A chunk is shorter than its length, type, and CRC fields.", offset);
     const size = readU32BE(data, offset);
-    if (size > data.length - offset - 12) return invalid("png", "IMG-004", "PNG chunk length exceeds input", "The declared chunk length exceeds the remaining input.", offset);
+    if (size > data.length - offset - 12) return reject("IMG-004", "PNG chunk length exceeds input", "The declared chunk length exceeds the remaining input.", offset);
     const typeOffset = offset + 4;
     const type = String.fromCharCode(data[typeOffset]!, data[typeOffset + 1]!, data[typeOffset + 2]!, data[typeOffset + 3]!);
     for (let i = 0; i < 4; i++) {
       const c = data[typeOffset + i]!;
-      if (!((c >= 65 && c <= 90) || (c >= 97 && c <= 122))) return invalid("png", "IMG-001", "Invalid PNG chunk type", "Chunk type bytes must be ASCII letters.", typeOffset + i);
+      if (!((c >= 65 && c <= 90) || (c >= 97 && c <= 122))) return reject("IMG-001", "Invalid PNG chunk type", "Chunk type bytes must be ASCII letters.", typeOffset + i);
     }
-    if (data[typeOffset + 2]! >= 97 && data[typeOffset + 2]! <= 122) return invalid("png", "IMG-001", "Invalid PNG reserved chunk-type bit", "The third chunk-type letter must be uppercase in this PNG profile.", typeOffset + 2);
+    if (data[typeOffset + 2]! >= 97 && data[typeOffset + 2]! <= 122) return reject("IMG-001", "Invalid PNG reserved chunk-type bit", "The third chunk-type letter must be uppercase in this PNG profile.", typeOffset + 2);
     const payloadOffset = offset + 8;
-    const crcOffset = payloadOffset + size;
-    const expectedCrc = readU32BE(data, crcOffset);
-    if (pngCrc(data, typeOffset, crcOffset) !== expectedCrc) return invalid("png", "IMG-002", "PNG chunk CRC mismatch", `The ${type} chunk checksum does not match its contents.`, crcOffset);
-    if (chunks === 0 && type !== "IHDR") return invalid("png", "IMG-005", "PNG header chunk is not first", "IHDR must be the first PNG chunk.", offset);
-    if (type[0] === type[0]?.toUpperCase() && !new Set(["IHDR", "PLTE", "IDAT", "IEND"]).has(type)) return invalid("png", "IMG-006", "Unknown critical PNG chunk", "An unrecognized critical chunk prevents reliable validation.", offset);
-    if (type === "IHDR") {
-      if (seenHeader || chunks !== 0 || size !== 13) return invalid("png", "IMG-006", "Invalid PNG IHDR", "IHDR must occur once as the first chunk and contain 13 bytes.", offset);
+    if (type === "IHDR" && chunks === 0 && size === 13) {
       width = readU32BE(data, payloadOffset);
       height = readU32BE(data, payloadOffset + 4);
       if (exceedsDimensions(width, height, limits)) findings.push(finding("DEC-007", "high", "resource", "PNG dimensions exceed policy", "Declared dimensions exceed the configured image limits.", payloadOffset, 8));
+    }
+    const crcOffset = payloadOffset + size;
+    const expectedCrc = readU32BE(data, crcOffset);
+    if (pngCrc(data, typeOffset, crcOffset) !== expectedCrc) return reject("IMG-002", "PNG chunk CRC mismatch", `The ${type} chunk checksum does not match its contents.`, crcOffset);
+    if (chunks === 0 && type !== "IHDR") return reject("IMG-005", "PNG header chunk is not first", "IHDR must be the first PNG chunk.", offset);
+    if (type[0] === type[0]?.toUpperCase() && !new Set(["IHDR", "PLTE", "IDAT", "IEND"]).has(type)) return reject("IMG-006", "Unknown critical PNG chunk", "An unrecognized critical chunk prevents reliable validation.", offset);
+    if (type === "IHDR") {
+      if (seenHeader || chunks !== 0 || size !== 13) return reject("IMG-006", "Invalid PNG IHDR", "IHDR must occur once as the first chunk and contain 13 bytes.", offset);
       const bitDepth = data[payloadOffset + 8]!;
       colorType = data[payloadOffset + 9]!;
       const validDepths: Record<number, readonly number[]> = { 0: [1, 2, 4, 8, 16], 2: [8, 16], 3: [1, 2, 4, 8], 4: [8, 16], 6: [8, 16] };
       if (!validDepths[colorType]?.includes(bitDepth) || data[payloadOffset + 10] !== 0 || data[payloadOffset + 11] !== 0 || data[payloadOffset + 12]! > 1) {
-        return invalid("png", "IMG-006", "Invalid PNG image parameters", "Bit depth, color type, compression, filter, or interlace value is invalid.", payloadOffset + 8);
+        return reject("IMG-006", "Invalid PNG image parameters", "Bit depth, color type, compression, filter, or interlace value is invalid.", payloadOffset + 8);
       }
       seenHeader = true;
     } else if (type === "PLTE") {
-      if (!seenHeader || seenData || seenPalette || [0, 4].includes(colorType ?? -1) || size === 0 || size % 3 !== 0 || size > 768) return invalid("png", "IMG-006", "Invalid PNG palette", "PLTE must be a single valid palette before image data and is forbidden for grayscale color types.", offset);
+      if (!seenHeader || seenData || seenPalette || [0, 4].includes(colorType ?? -1) || size === 0 || size % 3 !== 0 || size > 768) return reject("IMG-006", "Invalid PNG palette", "PLTE must be a single valid palette before image data and is forbidden for grayscale color types.", offset);
       seenPalette = true;
     } else if (type === "IDAT") {
-      if (!seenHeader || seenEnd || dataSequenceEnded) return invalid("png", "IMG-006", "PNG image data is out of order", "IDAT chunks must form one consecutive sequence after IHDR.", offset);
+      if (!seenHeader || seenEnd || dataSequenceEnded) return reject("IMG-006", "PNG image data is out of order", "IDAT chunks must form one consecutive sequence after IHDR.", offset);
       seenData = true;
     } else if (type === "IEND") {
-      if (size !== 0 || !seenData) return invalid("png", "IMG-006", "Invalid PNG IEND", "IEND must have an empty payload and follow image data.", offset);
+      if (size !== 0 || !seenData) return reject("IMG-006", "Invalid PNG IEND", "IEND must have an empty payload and follow image data.", offset);
       seenEnd = true;
       offset = crcOffset + 4;
       break;
@@ -119,8 +125,8 @@ function inspectPng(data: Uint8Array, limits: ResourceLimits): StructuralInspect
     chunks++;
     offset = crcOffset + 4;
   }
-  if (!seenHeader || !seenData || !seenEnd) return invalid("png", "IMG-003", "Incomplete PNG structure", "PNG is missing IHDR, IDAT, or IEND.", offset);
-  if (colorType === 3 && !seenPalette) return invalid("png", "IMG-006", "Indexed PNG has no palette", "PLTE is required for indexed-color PNG images.", 8);
+  if (!seenHeader || !seenData || !seenEnd) return reject("IMG-003", "Incomplete PNG structure", "PNG is missing IHDR, IDAT, or IEND.", offset);
+  if (colorType === 3 && !seenPalette) return reject("IMG-006", "Indexed PNG has no palette", "PLTE is required for indexed-color PNG images.", 8);
   if (offset < data.length) findings.push(finding("IMG-008", "medium", "structural", "Data follows PNG IEND", "Bytes remain after the PNG end chunk.", offset, data.length - offset));
   return { format: "png", validity: findings.some((f) => f.id.startsWith("IMG-")) ? "invalid" : "valid", findings, metadataBytes, ...(width === undefined ? {} : { width }), ...(height === undefined ? {} : { height }) };
 }

@@ -1,5 +1,5 @@
 {
-  "corpusVersion": "1.0.12",
+  "corpusVersion": "1.0.13",
   "source": "Synthetic, harmless fixtures authored for Pixwarden conformance tests.",
   "license": "CC0-1.0",
   "vectors": [
@@ -319,6 +319,52 @@
       "inputHex": "474946383961010001000000002c000000000000010000020100003b",
       "sha256": "564002ef0a64f230ef2090206ae832158cd0dead7e748c84dd117d1db745cbdb",
       "expected": { "format": "gif", "validity": "invalid", "verdict": "reject", "coverage": "partial", "findingIds": ["IMG-006"] }
+    },
+    {
+      "id": "STR-PNG-CHUNK-LENGTH-OVERRUN-001",
+      "description": "PNG IEND chunk declares one payload byte when its chunk has none.",
+      "inputHex": "89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c48900000001494441540028387de80000000149454e44ae426082",
+      "sha256": "96e444718e77ce9860beed53a72829fe673976ff51f251f85e7cf3d75f7c0f85",
+      "expected": {
+        "format": "png",
+        "validity": "invalid",
+        "verdict": "reject",
+        "coverage": "partial",
+        "findingIds": [
+          "IMG-004"
+        ]
+      }
+    },
+    {
+      "id": "STR-PNG-CHUNK-NAME-NONLETTER-001",
+      "description": "PNG IDAT chunk type contains a non-letter byte and its existing CRC no longer matches.",
+      "inputHex": "89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c48900000001314441540028387de80000000049454e44ae426082",
+      "sha256": "9b92adc0bf1b4887916f0df997e904c3e0e1bfc3ea7771c2668353761997affb",
+      "expected": {
+        "format": "png",
+        "validity": "invalid",
+        "verdict": "reject",
+        "coverage": "partial",
+        "findingIds": [
+          "IMG-001"
+        ]
+      }
+    },
+    {
+      "id": "RES-PNG-OVERSIZED-IHDR-CRC-MISMATCH-001",
+      "description": "PNG IHDR declares an over-policy width while its CRC is stale.",
+      "inputHex": "89504e470d0a1a0a0000000d49484452010000010000000108060000001f15c48900000001494441540028387de80000000049454e44ae426082",
+      "sha256": "23fd684ff072a2c825b4387746da82f3da143c65b90021540d8f1e33af333e4d",
+      "expected": {
+        "format": "png",
+        "validity": "invalid",
+        "verdict": "reject",
+        "coverage": "partial",
+        "findingIds": [
+          "DEC-007",
+          "IMG-002"
+        ]
+      }
     }
   ]
 }

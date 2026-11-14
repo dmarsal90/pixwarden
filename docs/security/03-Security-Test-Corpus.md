@@ -2,7 +2,7 @@
 
 **Document ID:** PW-CORPUS · **Version:** 0.2.1 · **Status:** Shared synthetic conformance and scheduled JS/PHP fuzzing active; broader corpus planned · **Updated:** 2026-11-14
 
-The shared `spec/corpus/v1/manifest.json` contains forty-five hash-pinned, harmless synthetic byte vectors (corpus version 1.0.12) consumed directly by JS and PHP tests. This initial corpus is a subset of the broader plan below; absent cases are planned, not tested. No operational malware or live exploit payloads are included. A separate `pixwarden-spec` repository is not yet created.
+The shared `spec/corpus/v1/manifest.json` contains forty-eight hash-pinned, harmless synthetic byte vectors (corpus version 1.0.13) consumed directly by JS and PHP tests. This initial corpus is a subset of the broader plan below; absent cases are planned, not tested. No operational malware or live exploit payloads are included. A separate `pixwarden-spec` repository is not yet created.
 
 ## Manifest contract
 
