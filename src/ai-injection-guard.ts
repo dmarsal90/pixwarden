@@ -15,12 +15,62 @@ interface TextEntry { readonly start: number; readonly length: number; readonly 
 /** Advisory inspection of bounded PNG tEXt/zTXt/iTXt metadata only. */
 export function inspectInstructionMetadata(data: Uint8Array, format: string, maxMetadataBytes: number, ocrRequested: boolean): AiInspectionResult {
   if (format === "jpeg") return inspectJpegTextMetadata(data, maxMetadataBytes, ocrRequested);
+  if (format === "webp") return inspectWebpExif(data, maxMetadataBytes, ocrRequested);
   if (format !== "png") return unsupported(format);
   return inspectPngInstructionMetadata(data, maxMetadataBytes, ocrRequested);
 }
 
 function unsupported(format: string): AiInspectionResult {
   return { status: "unsupported", dataEgress: "none", signals: [], limitations: [`The ${format} format is not supported by the bounded metadata prompt-risk rules.`] };
+}
+
+function inspectWebpExif(data: Uint8Array, maximum: number, ocrRequested: boolean): AiInspectionResult {
+  const limitations = [
+    "Rules inspect ASCII EXIF UserComment values in WebP EXIF chunks only; visible pixels, XMP text, OCR output, and other metadata are not inspected.",
+    "Text matching is advisory and can miss paraphrased, encoded, multilingual, or visually embedded instructions; it cannot determine downstream model behavior."
+  ];
+  if (!startsWith(data, 0, [82, 73, 70, 70]) || !startsWith(data, 8, [87, 69, 66, 80])) {
+    return { status: "unsupported", dataEgress: "none", signals: [], limitations: [...limitations, "The input is not a WebP profile supported by this metadata rule set."] };
+  }
+  const end = readU32LE(data, 4) + 8;
+  if (end !== data.length) return { status: "partial", dataEgress: "none", signals: [], limitations: [...limitations, "WebP metadata container bounds could not be fully inspected."] };
+  const findings: Finding[] = [];
+  let offset = 12;
+  let consumed = 0;
+  let partial = false;
+  while (offset + 8 <= end) {
+    const kind = String.fromCharCode(data[offset]!, data[offset + 1]!, data[offset + 2]!, data[offset + 3]!);
+    const size = readU32LE(data, offset + 4);
+    const payloadStart = offset + 8;
+    const payloadEnd = payloadStart + size;
+    const chunkEnd = payloadEnd + (size & 1);
+    if (!Number.isSafeInteger(chunkEnd) || chunkEnd > end || ((size & 1) === 1 && data[payloadEnd] !== 0)) {
+      partial = true;
+      break;
+    }
+    if (kind === "EXIF" || kind === "XMP " || kind === "ICCP") {
+      const allowed = Math.max(0, maximum - consumed);
+      const inspectedLength = Math.min(size, allowed);
+      if (kind === "EXIF") {
+        const tiffStart = startsWith(data, payloadStart, [69, 120, 105, 102, 0, 0]) ? payloadStart + 6 : payloadStart;
+        const exif = inspectAsciiUserCommentTiff(data, tiffStart, payloadStart + inspectedLength);
+        const exifText = exif.text;
+        if (exifText !== undefined && exif.offset !== undefined && exif.length !== undefined && patterns.some((pattern) => pattern.test(exifText))) findings.push({
+          id: "AI-002", severity: "medium", stage: "ai", title: "Instruction-like text in WebP EXIF metadata",
+          description: "WebP EXIF UserComment metadata matches a narrow rule for instruction override or system-prompt disclosure language. The text was not included in the report.",
+          status: "suspected", controlStatus: "passed", evidence: [{ kind: "range", summary: "A bounded WebP EXIF UserComment field matched a prompt-risk rule; field contents are redacted.", offset: exif.offset, length: exif.length }]
+        });
+        partial = partial || exif.partial;
+      }
+      consumed += inspectedLength;
+      if (inspectedLength < size) { partial = true; break; }
+    }
+    offset = chunkEnd;
+  }
+  if (offset !== end) partial = true;
+  if (ocrRequested) limitations.push("OCR was requested but is not implemented; only metadata text rules ran.");
+  if (partial) limitations.push("WebP EXIF metadata was malformed, used an unsupported UserComment encoding, or exceeded the configured inspection bound.");
+  return { status: ocrRequested || partial ? "partial" : "completed", dataEgress: "none", signals: findings, limitations };
 }
 
 function inspectJpegTextMetadata(data: Uint8Array, maximum: number, ocrRequested: boolean): AiInspectionResult {
@@ -231,4 +281,8 @@ function findZero(data: Uint8Array, start: number, end: number): number {
 
 function readU32(data: Uint8Array, offset: number): number {
   return data[offset]! * 0x1000000 + data[offset + 1]! * 0x10000 + data[offset + 2]! * 0x100 + data[offset + 3]!;
+}
+
+function readU32LE(data: Uint8Array, offset: number): number {
+  return data[offset]! + data[offset + 1]! * 0x100 + data[offset + 2]! * 0x10000 + data[offset + 3]! * 0x1000000;
 }

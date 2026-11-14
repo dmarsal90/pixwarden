@@ -29,8 +29,11 @@ final class AiInjectionGuard
         if ($format === 'jpeg' && str_starts_with($bytes, "\xff\xd8")) {
             return $this->inspectJpegTextMetadata($bytes, $maximum, $options);
         }
+        if ($format === 'webp' && str_starts_with($bytes, 'RIFF') && substr($bytes, 8, 4) === 'WEBP') {
+            return $this->inspectWebpExif($bytes, $maximum, $options);
+        }
         if ($format !== 'png' || !str_starts_with($bytes, self::SIGNATURE)) {
-            return ['status' => 'unsupported', 'dataEgress' => 'none', 'signals' => [], 'limitations' => [...$limitations, 'The input is not a PNG text/EXIF or JPEG comment/EXIF profile supported by this metadata rule set.']];
+            return ['status' => 'unsupported', 'dataEgress' => 'none', 'signals' => [], 'limitations' => [...$limitations, 'The input is not a PNG text/EXIF, JPEG comment/EXIF, or WebP EXIF profile supported by this metadata rule set.']];
         }
 
         $signals = [];
@@ -104,6 +107,71 @@ final class AiInjectionGuard
             $limitations[] = 'Some PNG text/EXIF metadata was malformed, used an unsupported UserComment encoding, or exceeded the configured metadata inspection bound.';
         }
 
+        return ['status' => $options->ocr || $partial ? 'partial' : 'completed', 'dataEgress' => 'none', 'signals' => $signals, 'limitations' => $limitations];
+    }
+
+    /** @return array{status: string, dataEgress: string, signals: list<array<string, mixed>>, limitations: list<string>} */
+    private function inspectWebpExif(string $bytes, int $maximum, AiInspectionOptions $options): array
+    {
+        $limitations = [
+            'Rules inspect ASCII EXIF UserComment values in WebP EXIF chunks only; visible pixels, XMP text, OCR output and other metadata are not inspected.',
+            'Text matching is advisory and can miss paraphrased, encoded, multilingual, or visually embedded instructions; it cannot determine downstream model behavior.',
+        ];
+        $riff = unpack('Vlength', substr($bytes, 4, 4));
+        if ($riff === false || !isset($riff['length']) || $riff['length'] + 8 !== strlen($bytes)) {
+            return ['status' => 'partial', 'dataEgress' => 'none', 'signals' => [], 'limitations' => [...$limitations, 'WebP metadata container bounds could not be fully inspected.']];
+        }
+        $signals = [];
+        $offset = 12;
+        $total = strlen($bytes);
+        $consumed = 0;
+        $partial = false;
+        while ($offset + 8 <= $total) {
+            $kind = substr($bytes, $offset, 4);
+            $unpacked = unpack('Vlength', substr($bytes, $offset + 4, 4));
+            if ($unpacked === false || !isset($unpacked['length'])) {
+                $partial = true;
+                break;
+            }
+            $size = $unpacked['length'];
+            $payloadStart = $offset + 8;
+            $payloadEnd = $payloadStart + $size;
+            $chunkEnd = $payloadEnd + ($size & 1);
+            if ($chunkEnd > $total || (($size & 1) === 1 && $bytes[$payloadEnd] !== "\0")) {
+                $partial = true;
+                break;
+            }
+            if (in_array($kind, ['EXIF', 'XMP ', 'ICCP'], true)) {
+                $allowed = max(0, $maximum - $consumed);
+                $inspectedLength = min($size, $allowed);
+                if ($kind === 'EXIF') {
+                    $tiffStart = substr($bytes, $payloadStart, min(6, $inspectedLength)) === "Exif\0\0" ? $payloadStart + 6 : $payloadStart;
+                    $comment = $this->inspectAsciiExifUserComment($bytes, $tiffStart, $payloadStart + $inspectedLength);
+                    if ($comment['text'] !== null && $comment['offset'] !== null && $comment['length'] !== null) {
+                        $signal = $this->makeWebpExifSignal($comment['text'], $comment['offset'], $comment['length']);
+                        if ($signal !== null) {
+                            $signals[] = $signal;
+                        }
+                    }
+                    $partial = $partial || $comment['partial'];
+                }
+                $consumed += $inspectedLength;
+                if ($inspectedLength < $size) {
+                    $partial = true;
+                    break;
+                }
+            }
+            $offset = $chunkEnd;
+        }
+        if ($offset !== $total) {
+            $partial = true;
+        }
+        if ($options->ocr) {
+            $limitations[] = 'OCR was requested but is not implemented; only metadata text rules ran.';
+        }
+        if ($partial) {
+            $limitations[] = 'WebP EXIF metadata was malformed, used an unsupported UserComment encoding, or exceeded the configured inspection bound.';
+        }
         return ['status' => $options->ocr || $partial ? 'partial' : 'completed', 'dataEgress' => 'none', 'signals' => $signals, 'limitations' => $limitations];
     }
 
@@ -303,6 +371,26 @@ final class AiInjectionGuard
                     'status' => 'suspected', 'controlStatus' => 'passed',
                     'evidence' => [[
                         'kind' => 'range', 'summary' => 'A bounded PNG EXIF UserComment field matched a prompt-risk rule; field contents are redacted.',
+                        'offset' => $offset, 'length' => $length,
+                    ]],
+                ];
+            }
+        }
+        return null;
+    }
+
+    /** @return array<string, mixed>|null */
+    private function makeWebpExifSignal(string $text, int $offset, int $length): ?array
+    {
+        foreach (self::PATTERNS as $pattern) {
+            if (preg_match($pattern, $text) === 1) {
+                return [
+                    'id' => 'AI-002', 'severity' => 'medium', 'stage' => 'ai',
+                    'title' => 'Instruction-like text in WebP EXIF metadata',
+                    'description' => 'WebP EXIF UserComment metadata matches a narrow rule for instruction override or system-prompt disclosure language. The text was not included in the report.',
+                    'status' => 'suspected', 'controlStatus' => 'passed',
+                    'evidence' => [[
+                        'kind' => 'range', 'summary' => 'A bounded WebP EXIF UserComment field matched a prompt-risk rule; field contents are redacted.',
                         'offset' => $offset, 'length' => $length,
                     ]],
                 ];
