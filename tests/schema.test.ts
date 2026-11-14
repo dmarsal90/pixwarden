@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { Ajv2020 } from "ajv/dist/2020.js";
-import addFormats from "ajv-formats";
+import * as ajvFormats from "ajv-formats";
 import { describe, expect, it } from "vitest";
 import { scanImage } from "../src/index.js";
 
@@ -8,7 +8,7 @@ const schema = JSON.parse(readFileSync(new URL("../spec/schemas/pixwarden-v1.sch
 const request = JSON.parse(readFileSync(new URL("../spec/examples/scan-request-v1.json", import.meta.url), "utf8")) as unknown;
 const reviewResult = JSON.parse(readFileSync(new URL("../spec/examples/scan-result-review-v1.json", import.meta.url), "utf8")) as unknown;
 const ajv = new Ajv2020({ allErrors: true, strict: true });
-addFormats(ajv);
+ajvFormats.default(ajv);
 ajv.addSchema(schema);
 
 function validator(name: string) {
