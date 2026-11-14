@@ -1,5 +1,5 @@
 {
-  "corpusVersion": "1.0.13",
+  "corpusVersion": "1.0.14",
   "source": "Synthetic, harmless fixtures authored for Pixwarden conformance tests.",
   "license": "CC0-1.0",
   "vectors": [
@@ -363,6 +363,51 @@
         "findingIds": [
           "DEC-007",
           "IMG-002"
+        ]
+      }
+    },
+    {
+      "id": "RES-WEBP-RIFF-LENGTH-OVERRUN-001",
+      "description": "A WebP RIFF header declares a container length larger than the available input.",
+      "inputHex": "52494646ff00000057454250565038200400000000000000",
+      "sha256": "3dc4c793a3c45a813d23ea4fd21456370ed14f0d02a7134645fa461ff33878f9",
+      "expected": {
+        "format": "webp",
+        "validity": "invalid",
+        "verdict": "reject",
+        "coverage": "partial",
+        "findingIds": [
+          "IMG-004"
+        ]
+      }
+    },
+    {
+      "id": "RES-WEBP-CHUNK-LENGTH-OVERRUN-001",
+      "description": "A WebP image chunk declares payload bytes beyond the RIFF boundary.",
+      "inputHex": "52494646100000005745425056503820ff00000000000000",
+      "sha256": "cacb0c25212d425e4a8f1bd0f600e062e98107c89571bb187a733a59ce45c5e7",
+      "expected": {
+        "format": "webp",
+        "validity": "invalid",
+        "verdict": "reject",
+        "coverage": "partial",
+        "findingIds": [
+          "IMG-004"
+        ]
+      }
+    },
+    {
+      "id": "STR-WEBP-UNKNOWN-CHUNK-ONLY-001",
+      "description": "A bounded WebP container has an unknown chunk but no supported image payload.",
+      "inputHex": "524946461000000057454250585038200400000000000000",
+      "sha256": "7d375655d4f7a7fd9ac45f1909626360ea98fab2338fa5aac5906911c0e9792a",
+      "expected": {
+        "format": "webp",
+        "validity": "invalid",
+        "verdict": "reject",
+        "coverage": "partial",
+        "findingIds": [
+          "IMG-006"
         ]
       }
     }
