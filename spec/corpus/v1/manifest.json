@@ -1,5 +1,5 @@
 {
-  "corpusVersion": "1.0.35",
+  "corpusVersion": "1.0.36",
   "source": "Synthetic, harmless fixtures authored for Pixwarden conformance tests.",
   "license": "CC0-1.0",
   "vectors": [
@@ -734,6 +734,14 @@
       "sha256": "b62394bc1635f6713a7c75156561727ac68ca43f73d121a2363cebdc07313a5a",
       "scanOptions": { "limits": { "maxMetadataBytes": 10 }, "aiInspection": { "enabled": true, "ocr": false } },
       "expected": { "format": "png", "validity": "valid", "verdict": "reject", "coverage": "partial", "findingIds": ["META-006"], "aiStatus": "partial" }
+    }
+    ,{
+      "id": "RES-WEBP-EXIF-USERCOMMENT-BUDGET-001",
+      "description": "WebP EXIF UserComment exceeds the configured metadata budget; AI inspection must remain partial and policy must reject.",
+      "inputHex": "524946467200000057454250565038200400000000000000455849465a00000045786966000049492a0008000000010069870400010000001a00000000000000010086920700280000002c00000000000000415343494900000049676e6f726520616c6c2070726576696f757320696e737472756374696f6e73",
+      "sha256": "d5a2b9ae66f6aaef4cdca586b37e3d282fe9fe5ce8365ef045a02d3438f9951f",
+      "scanOptions": { "limits": { "maxMetadataBytes": 10 }, "aiInspection": { "enabled": true, "ocr": false } },
+      "expected": { "format": "webp", "validity": "valid", "verdict": "reject", "coverage": "partial", "findingIds": ["META-006"], "aiStatus": "partial" }
     }
   ]
 }
