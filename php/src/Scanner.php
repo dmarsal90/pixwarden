@@ -410,13 +410,14 @@ final class Scanner
         $pngCrcMismatchOffset = null;
         $pngErrorId = null;
         $webpErrorId = null;
+        $jpegErrorId = null;
         if ($format === 'png') {
             $valid = $this->validPng($bytes, $pngCrcMismatchOffset, $pngErrorId);
         } elseif ($format === 'gif') {
             $frames = strlen($bytes) >= 14 ? $this->countGifFrames($bytes) : null;
             $valid = $frames !== null && $frames > 0;
         } elseif ($format === 'jpeg') {
-            $valid = strlen($bytes) >= 4 && str_ends_with($bytes, "\xff\xd9") && str_contains(substr($bytes, 2), "\xff\xc0");
+            $valid = $this->validJpeg($bytes, $jpegErrorId);
         } else {
             $valid = $this->validWebp($bytes, $webpErrorId);
         }
@@ -433,7 +434,7 @@ final class Scanner
             ]]];
         }
         return [$format, 'invalid', [[
-            'id' => $pngErrorId ?? $webpErrorId ?? 'IMG-003', 'severity' => 'high', 'stage' => 'structural',
+            'id' => $pngErrorId ?? $webpErrorId ?? $jpegErrorId ?? 'IMG-003', 'severity' => 'high', 'stage' => 'structural',
             'title' => 'Truncated or unsupported container structure',
             'description' => 'The bounded PHP profile could not validate the required terminal/container structure.',
             'status' => 'confirmed', 'controlStatus' => 'failed',
@@ -506,6 +507,99 @@ final class Scanner
         }
 
         return $offset === $size && $seenImage;
+    }
+
+    private function validJpeg(string $bytes, ?string &$errorId = null): bool
+    {
+        $errorId = null;
+        $size = strlen($bytes);
+        if ($size < 4 || substr($bytes, 0, 2) !== "\xff\xd8") {
+            return false;
+        }
+
+        $sofMarkers = [0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf];
+        $offset = 2;
+        $inScan = false;
+        $seenSof = false;
+        $seenScan = false;
+        while ($offset < $size) {
+            if ($inScan) {
+                while ($offset < $size && ord($bytes[$offset]) !== 0xff) {
+                    $offset++;
+                }
+                if ($offset >= $size) {
+                    $errorId = 'IMG-003';
+                    return false;
+                }
+                $markerStart = $offset;
+                while ($offset < $size && ord($bytes[$offset]) === 0xff) {
+                    $offset++;
+                }
+                if ($offset >= $size) {
+                    $errorId = 'IMG-003';
+                    return false;
+                }
+                $marker = ord($bytes[$offset]);
+                if ($marker === 0x00 || ($marker >= 0xd0 && $marker <= 0xd7)) {
+                    $offset++;
+                    continue;
+                }
+                $inScan = false;
+                $offset = $markerStart;
+            }
+
+            if (ord($bytes[$offset]) !== 0xff) {
+                $errorId = 'IMG-001';
+                return false;
+            }
+            while ($offset < $size && ord($bytes[$offset]) === 0xff) {
+                $offset++;
+            }
+            if ($offset >= $size) {
+                $errorId = 'IMG-003';
+                return false;
+            }
+            $marker = ord($bytes[$offset++]);
+            if ($marker === 0xd9) {
+                if (!$seenSof || !$seenScan) {
+                    $errorId = 'IMG-006';
+                    return false;
+                }
+                if ($offset !== $size) {
+                    $errorId = 'IMG-008';
+                    return false;
+                }
+                return true;
+            }
+            if ($marker === 0xd8 || $marker === 0x01 || ($marker >= 0xd0 && $marker <= 0xd7)) {
+                continue;
+            }
+            if ($offset + 2 > $size) {
+                $errorId = 'IMG-003';
+                return false;
+            }
+            $segmentLength = $this->u16be($bytes, $offset);
+            if ($segmentLength < 2 || $segmentLength > $size - $offset) {
+                $errorId = 'IMG-004';
+                return false;
+            }
+            $payloadLength = $segmentLength - 2;
+            if (in_array($marker, $sofMarkers, true)) {
+                if ($payloadLength < 6) {
+                    $errorId = 'IMG-003';
+                    return false;
+                }
+                $seenSof = true;
+            }
+            if ($marker === 0xda) {
+                $seenScan = true;
+                $inScan = true;
+            }
+            $offset += $segmentLength;
+        }
+
+        $errorId = 'IMG-003';
+        return false;
     }
 
     private function validPng(string $bytes, ?int &$crcMismatchOffset, ?string &$errorId = null): bool
