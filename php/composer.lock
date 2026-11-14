@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "2212a9cc0bfe5e5da34cff3b2d7adba5",
+    "content-hash": "3def279c3fdb07f2e6939460a4088bb4",
     "packages": [],
     "packages-dev": [
         {
@@ -631,6 +631,96 @@
                 }
             ],
             "time": "2026-08-11T10:17:44+00:00"
+        },
+        {
+            "name": "nikic/include-interceptor",
+            "version": "v0.1.2",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/nikic/include-interceptor.git",
+                "reference": "6a074d12c391b0906df0c2527ee8b16514025577"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/nikic/include-interceptor/zipball/6a074d12c391b0906df0c2527ee8b16514025577",
+                "reference": "6a074d12c391b0906df0c2527ee8b16514025577",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=7.1"
+            },
+            "require-dev": {
+                "phpunit/phpunit": "^7 || ^8"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Nikic\\IncludeInterceptor\\": "src/",
+                    "Nikic\\IncludeInterceptor\\Tests\\": "tests/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Robin Appelman",
+                    "email": "icewind@owncloud.com"
+                }
+            ],
+            "description": "Intercept PHP includes",
+            "support": {
+                "issues": "https://github.com/nikic/include-interceptor/issues",
+                "source": "https://github.com/nikic/include-interceptor/tree/v0.1.2"
+            },
+            "time": "2021-11-27T21:03:08+00:00"
+        },
+        {
+            "name": "nikic/php-fuzzer",
+            "version": "v0.0.11",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/nikic/PHP-Fuzzer.git",
+                "reference": "5ebe3dafec828c80391db7adb1d63f79c8185c91"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/nikic/PHP-Fuzzer/zipball/5ebe3dafec828c80391db7adb1d63f79c8185c91",
+                "reference": "5ebe3dafec828c80391db7adb1d63f79c8185c91",
+                "shasum": ""
+            },
+            "require": {
+                "nikic/include-interceptor": "^0.1.1",
+                "nikic/php-parser": "^5.0",
+                "php": ">= 7.4",
+                "ulrichsg/getopt-php": "^4.0"
+            },
+            "require-dev": {
+                "phpstan/phpstan": "^1.10",
+                "phpunit/phpunit": "^9"
+            },
+            "suggest": {
+                "ext-pcntl": "Needed for timeout support"
+            },
+            "bin": [
+                "bin/php-fuzzer"
+            ],
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "PhpFuzzer\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "support": {
+                "issues": "https://github.com/nikic/PHP-Fuzzer/issues",
+                "source": "https://github.com/nikic/PHP-Fuzzer/tree/v0.0.11"
+            },
+            "time": "2025-05-21T19:53:32+00:00"
         },
         {
             "name": "nikic/php-parser",
@@ -4699,6 +4789,57 @@
                 }
             ],
             "time": "2025-11-17T20:03:58+00:00"
+        },
+        {
+            "name": "ulrichsg/getopt-php",
+            "version": "v4.0.4",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/getopt-php/getopt-php.git",
+                "reference": "9313ecde04f7bed262716e3a4d32a5e2cea3ffad"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/getopt-php/getopt-php/zipball/9313ecde04f7bed262716e3a4d32a5e2cea3ffad",
+                "reference": "9313ecde04f7bed262716e3a4d32a5e2cea3ffad",
+                "shasum": ""
+            },
+            "require": {
+                "ext-mbstring": "*",
+                "php": "^7.1 || ^8.0"
+            },
+            "require-dev": {
+                "phpunit/phpunit": "*",
+                "squizlabs/php_codesniffer": "^3.5.8",
+                "tflori/phpunit-printer": "*"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "GetOpt\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Ulrich Schmidt-Goertz",
+                    "email": "ulrich@schmidt-goertz.de"
+                },
+                {
+                    "name": "Thomas Flori",
+                    "email": "thflori@gmail.com"
+                }
+            ],
+            "description": "Command line arguments parser for PHP 7.1 and above",
+            "homepage": "http://getopt-php.github.io/getopt-php",
+            "support": {
+                "issues": "https://github.com/getopt-php/getopt-php/issues",
+                "source": "https://github.com/getopt-php/getopt-php/tree/v4.0.4"
+            },
+            "time": "2025-02-11T14:42:04+00:00"
         }
     ],
     "aliases": [],
