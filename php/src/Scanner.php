@@ -487,10 +487,12 @@ final class Scanner
         $errorId = null;
         $size = strlen($bytes);
         if ($size < 20 || substr($bytes, 0, 4) !== 'RIFF' || substr($bytes, 8, 4) !== 'WEBP') {
+            $errorId = 'IMG-003';
             return false;
         }
         $riffLength = unpack('Vlength', substr($bytes, 4, 4));
         if ($riffLength === false || !is_int($riffLength['length']) || $riffLength['length'] !== $size - 8) {
+            $errorId = 'IMG-004';
             return false;
         }
 
@@ -499,6 +501,7 @@ final class Scanner
         $seenImage = false;
         while ($offset < $size) {
             if ($size - $offset < 8) {
+                $errorId = 'IMG-003';
                 return false;
             }
             $kind = substr($bytes, $offset, 4);
@@ -510,11 +513,13 @@ final class Scanner
             $remaining = $size - $offset - 8;
             $padding = $length & 1;
             if ($length > $remaining || $padding > $remaining - $length) {
+                $errorId = 'IMG-004';
                 return false;
             }
             $payload = $offset + 8;
             $end = $payload + $length;
             if ($padding === 1 && $bytes[$end] !== "\0") {
+                $errorId = 'IMG-003';
                 return false;
             }
 
@@ -546,7 +551,15 @@ final class Scanner
             $offset = $end + $padding;
         }
 
-        return $offset === $size && $seenImage;
+        if ($offset !== $size) {
+            $errorId = 'IMG-004';
+            return false;
+        }
+        if (!$seenImage) {
+            $errorId = 'IMG-006';
+            return false;
+        }
+        return true;
     }
 
     private function validJpeg(string $bytes, ?string &$errorId = null): bool
