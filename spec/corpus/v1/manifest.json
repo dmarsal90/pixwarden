@@ -1,5 +1,5 @@
 {
-  "corpusVersion": "1.0.37",
+  "corpusVersion": "1.0.38",
   "source": "Synthetic, harmless fixtures authored for Pixwarden conformance tests.",
   "license": "CC0-1.0",
   "vectors": [
@@ -746,5 +746,133 @@
     ,{"id":"AI-JPEG-EXIF-USERCOMMENT-UTF16LE-OVERRIDE-001","description":"Synthetic JPEG EXIF UserComment uses UTF-16 little-endian in a little-endian TIFF directory; bounded inspection must redact an override signal.","inputHex":"ffd8ffe1007e45786966000049492a0008000000010069870400010000001a000000000000000100869207004a0000002c00000000000000554e49434f444500490067006e006f0072006500200061006c006c002000700072006500760069006f0075007300200069006e0073007400720075006300740069006f006e0073000000ffc00008080001000101ffda00020000ffd9","sha256":"74491b2f49f976ff7a75e8c7b05c590624ef0af9d01c174dc9bb896ab4a489ca","scanOptions":{"aiInspection":{"enabled":true,"ocr":false}},"expected":{"format":"jpeg","validity":"valid","verdict":"review","coverage":"partial","findingIds":["AI-002"],"aiStatus":"completed"}},
     {"id":"AI-JPEG-EXIF-USERCOMMENT-UTF16BE-OVERRIDE-001","description":"Synthetic JPEG EXIF UserComment uses UTF-16 big-endian in a big-endian TIFF directory; bounded inspection must redact an override signal.","inputHex":"ffd8ffe1007e4578696600004d4d002a00000008000187690004000000010000001a000000000001928600070000004a0000002c00000000554e49434f44450000490067006e006f0072006500200061006c006c002000700072006500760069006f0075007300200069006e0073007400720075006300740069006f006e00730000ffc00008080001000101ffda00020000ffd9","sha256":"6432031c67e71a762c434717ed793837949875edd1fcf51334c9e71217d3a74e","scanOptions":{"aiInspection":{"enabled":true,"ocr":false}},"expected":{"format":"jpeg","validity":"valid","verdict":"review","coverage":"partial","findingIds":["AI-002"],"aiStatus":"completed"}},
     {"id":"AI-JPEG-EXIF-USERCOMMENT-UTF16LE-BENIGN-001","description":"Synthetic JPEG EXIF UserComment uses UTF-16 little-endian in a little-endian TIFF directory; bounded inspection must allow benign descriptive text.","inputHex":"ffd8ffe1007645786966000049492a0008000000010069870400010000001a00000000000000010086920700420000002c00000000000000554e49434f444500540068006500200070006f007200740072006100690074002000730068006f007700730020006d006f0075006e007400610069006e0073000000ffc00008080001000101ffda00020000ffd9","sha256":"db807756559f4a2f493c52dfd19deef14569b4df02352f13f2961219aab38ed1","scanOptions":{"aiInspection":{"enabled":true,"ocr":false}},"expected":{"format":"jpeg","validity":"valid","verdict":"allow","coverage":"partial","findingIds":[],"aiStatus":"completed"}}
+    ,{
+      "id": "AI-PNG-EXIF-USERCOMMENT-UTF16-LITTLE-OVERRIDE-001",
+      "description": "Synthetic PNG EXIF UserComment uses UTF-16 little-endian with a narrow override phrase; inspection must flag it and redact text.",
+      "inputHex": "89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c489000000766558496649492a0008000000010069870400010000001a000000000000000100869207004a0000002c00000000000000554e49434f444500490067006e006f0072006500200061006c006c002000700072006500760069006f0075007300200069006e0073007400720075006300740069006f006e0073000000d6ce44730000000b49444154789c6360000200000500017a5eab3f0000000049454e44ae426082",
+      "sha256": "4ce26df82e571d614f51e7ea06293f08916f7d1497c8752611008f9f0e2d0ab7",
+      "scanOptions": {
+        "aiInspection": {
+          "enabled": true,
+          "ocr": false
+        }
+      },
+      "expected": {
+        "format": "png",
+        "validity": "valid",
+        "verdict": "review",
+        "coverage": "partial",
+        "findingIds": [
+          "AI-002"
+        ],
+        "aiStatus": "completed"
+      }
+    },
+    {
+      "id": "AI-PNG-EXIF-USERCOMMENT-UTF16-BIG-OVERRIDE-001",
+      "description": "Synthetic PNG EXIF UserComment uses UTF-16 big-endian with a narrow override phrase; inspection must flag it and redact text.",
+      "inputHex": "89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c48900000076655849664d4d002a00000008000187690004000000010000001a000000000001928600070000004a0000002c00000000554e49434f44450000490067006e006f0072006500200061006c006c002000700072006500760069006f0075007300200069006e0073007400720075006300740069006f006e007300006b899d390000000b49444154789c6360000200000500017a5eab3f0000000049454e44ae426082",
+      "sha256": "351238897f8c1d9aa3f4aeab25dfdbc6b7aa0bdb0639b2d2c7a25ef6d08a6521",
+      "scanOptions": {
+        "aiInspection": {
+          "enabled": true,
+          "ocr": false
+        }
+      },
+      "expected": {
+        "format": "png",
+        "validity": "valid",
+        "verdict": "review",
+        "coverage": "partial",
+        "findingIds": [
+          "AI-002"
+        ],
+        "aiStatus": "completed"
+      }
+    },
+    {
+      "id": "AI-PNG-EXIF-USERCOMMENT-UTF16-LITTLE-MALFORMED-001",
+      "description": "Synthetic PNG EXIF UserComment uses an unpaired UTF-16 surrogate and must remain incomplete.",
+      "inputHex": "89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c489000000366558496649492a0008000000010069870400010000001a000000000000000100869207000a0000002c00000000000000554e49434f44450000d896ed03460000000b49444154789c6360000200000500017a5eab3f0000000049454e44ae426082",
+      "sha256": "faefe6b2e1452fcc4b395d914d36563b5c05fdb7f0d1cee6c291ff1f088f4643",
+      "scanOptions": {
+        "aiInspection": {
+          "enabled": true,
+          "ocr": false
+        }
+      },
+      "expected": {
+        "format": "png",
+        "validity": "valid",
+        "verdict": "review",
+        "coverage": "partial",
+        "findingIds": [],
+        "aiStatus": "partial"
+      }
+    },
+    {
+      "id": "AI-WEBP-EXIF-USERCOMMENT-UTF16-LITTLE-OVERRIDE-001",
+      "description": "Synthetic WEBP EXIF UserComment uses UTF-16 little-endian with a narrow override phrase; inspection must flag it and redact text.",
+      "inputHex": "524946469400000057454250565038200400000000000000455849467c00000045786966000049492a0008000000010069870400010000001a000000000000000100869207004a0000002c00000000000000554e49434f444500490067006e006f0072006500200061006c006c002000700072006500760069006f0075007300200069006e0073007400720075006300740069006f006e0073000000",
+      "sha256": "b2ab3e4e3fd05c567c5c5282c0f61157e65dac3cbb2aab01d56ec61aaf07fc01",
+      "scanOptions": {
+        "aiInspection": {
+          "enabled": true,
+          "ocr": false
+        }
+      },
+      "expected": {
+        "format": "webp",
+        "validity": "valid",
+        "verdict": "review",
+        "coverage": "partial",
+        "findingIds": [
+          "AI-002"
+        ],
+        "aiStatus": "completed"
+      }
+    },
+    {
+      "id": "AI-WEBP-EXIF-USERCOMMENT-UTF16-BIG-OVERRIDE-001",
+      "description": "Synthetic WEBP EXIF UserComment uses UTF-16 big-endian with a narrow override phrase; inspection must flag it and redact text.",
+      "inputHex": "524946469400000057454250565038200400000000000000455849467c0000004578696600004d4d002a00000008000187690004000000010000001a000000000001928600070000004a0000002c00000000554e49434f44450000490067006e006f0072006500200061006c006c002000700072006500760069006f0075007300200069006e0073007400720075006300740069006f006e00730000",
+      "sha256": "8fb1ad0c69730619ee5ecda24022b13126b7fb5f1ad548bbcb8844425442c5af",
+      "scanOptions": {
+        "aiInspection": {
+          "enabled": true,
+          "ocr": false
+        }
+      },
+      "expected": {
+        "format": "webp",
+        "validity": "valid",
+        "verdict": "review",
+        "coverage": "partial",
+        "findingIds": [
+          "AI-002"
+        ],
+        "aiStatus": "completed"
+      }
+    },
+    {
+      "id": "AI-WEBP-EXIF-USERCOMMENT-UTF16-LITTLE-MALFORMED-001",
+      "description": "Synthetic WEBP EXIF UserComment uses an unpaired UTF-16 surrogate and must remain incomplete.",
+      "inputHex": "524946465400000057454250565038200400000000000000455849463c00000045786966000049492a0008000000010069870400010000001a000000000000000100869207000a0000002c00000000000000554e49434f44450000d8",
+      "sha256": "65e8677a4efe824d2160da62106ccd3f6b4f3f4a5d97b1671f122c7a4b50e7d2",
+      "scanOptions": {
+        "aiInspection": {
+          "enabled": true,
+          "ocr": false
+        }
+      },
+      "expected": {
+        "format": "webp",
+        "validity": "valid",
+        "verdict": "review",
+        "coverage": "partial",
+        "findingIds": [],
+        "aiStatus": "partial"
+      }
+    }
   ]
 }
