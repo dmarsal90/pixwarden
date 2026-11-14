@@ -28,6 +28,7 @@ jobs:
         with:
           php-version: ${{ matrix.php }}
           tools: composer:v2
+          extensions: dom
           coverage: none
       - run: composer install --no-interaction --prefer-dist
         working-directory: php

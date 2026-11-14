@@ -32,6 +32,7 @@ final class Scanner
         $findings = array_merge($findings, $metadataInspection['findings']);
         $binaryInspection = (new BinaryGuard())->inspect($bytes, $format);
         $findings = array_merge($findings, $binaryInspection['findings']);
+        $svgAvailable = class_exists(\DOMDocument::class);
         $controls = [
             'hints' => ['status' => 'skipped', 'summary' => 'No filename or media-type hints were supplied.'],
             'structural' => ['status' => $validity === 'valid' ? 'passed' : ($validity === 'invalid' ? 'failed' : 'unsupported'), 'summary' => 'A bounded byte-level profile ran; no decoder was invoked.'],
@@ -43,7 +44,11 @@ final class Scanner
                     : 'Read-only indicator signatures are checked only in bounded format-defined metadata, extension, and trailer regions; this is not malware scanning.',
             ],
             'decode' => ['status' => 'unsupported', 'summary' => 'No decoder is bundled or invoked.'],
-            'sanitization' => ['status' => 'unsupported', 'summary' => 'No sanitizer is implemented; input bytes are unchanged.'],
+            'sanitization' => $format === 'svg'
+                ? ($svgAvailable
+                    ? ['status' => 'skipped', 'summary' => 'The SVG sanitizer is available separately and was not invoked by scan().']
+                    : ['status' => 'unsupported', 'summary' => 'PHP ext-dom is unavailable, so SVG inspection and sanitization cannot run.'])
+                : ['status' => 'unsupported', 'summary' => 'No raster sanitizer is implemented; input bytes are unchanged.'],
         ];
         $hasBlockingFinding = array_filter($findings, static fn (array $finding): bool => in_array($finding['severity'], ['high', 'critical'], true) || $finding['controlStatus'] === 'failed') !== [];
         $hasReviewFinding = array_filter($findings, static fn (array $finding): bool => in_array($finding['status'], ['suspected', 'inconclusive'], true)) !== [];
@@ -56,12 +61,14 @@ final class Scanner
         $formatCapabilities = [];
         foreach (['jpeg', 'png', 'gif', 'webp', 'svg', 'unknown'] as $supportedFormat) {
             $formatCapabilities[$supportedFormat] = [
-                'inspect' => in_array($supportedFormat, ['jpeg', 'png', 'gif', 'webp'], true),
+                'inspect' => in_array($supportedFormat, ['jpeg', 'png', 'gif', 'webp'], true) || ($supportedFormat === 'svg' && $svgAvailable),
                 'decode' => false,
-                'sanitize' => false,
-                'reason' => in_array($supportedFormat, ['jpeg', 'png', 'gif', 'webp'], true)
-                    ? 'Limited byte-level container profile only; no decoder is bundled.'
-                    : 'No structural profile is available.',
+                'sanitize' => $supportedFormat === 'svg' && $svgAvailable,
+                'reason' => $supportedFormat === 'svg'
+                    ? ($svgAvailable ? 'A DOM-based static allowlist inspection/sanitizer is available separately; no general renderer is bundled.' : 'PHP ext-dom is unavailable.')
+                    : (in_array($supportedFormat, ['jpeg', 'png', 'gif', 'webp'], true)
+                        ? 'Limited byte-level container profile only; no decoder is bundled.'
+                        : 'No structural profile is available.'),
             ];
         }
         return [
@@ -90,9 +97,18 @@ final class Scanner
             ],
             'metadataInspection' => $metadataInspection,
             'binaryInspection' => $binaryInspection,
-            'limitations' => ['PHP v0.3.0 provides limited container checks for JPEG, PNG, GIF and WebP, bounded EXIF TIFF directory inspection for JPEG, PNG and WebP, and indicator-only signatures in selected format-defined ancillary regions. Metadata values, XMP and text are not parsed; no decoder, SVG handling, sanitizer, OCR, steganography, or process isolation is included. Binary signatures do not prove an embedded file or replace malware scanning. A valid result is not proof of safe decoding or rendering.'],
+            'limitations' => ['The current PHP profile provides limited container checks for JPEG, PNG, GIF and WebP, bounded EXIF TIFF directory inspection for JPEG, PNG and WebP, indicator-only signatures in selected format-defined auxiliary regions, and a static SVG allowlist sanitizer when ext-dom is available. Metadata values, XMP and text are not parsed; no raster decoder/sanitizer, OCR, steganography, or process isolation is included. Binary signatures do not prove an embedded file or replace malware scanning. A valid result is not proof of safe decoding or rendering.'],
             'inputBytes' => strlen($bytes),
         ];
+    }
+
+    /**
+     * Sanitize a standalone SVG into the documented static allowlist profile.
+     * @return array<string, mixed>
+     */
+    public function sanitizeSvg(string $bytes): array
+    {
+        return (new SvgGuard())->sanitize($bytes);
     }
 
     /** @return array{string,string,list<array<string,mixed>>} */
@@ -105,6 +121,10 @@ final class Scanner
             strlen($bytes) >= 12 && substr($bytes, 0, 4) === 'RIFF' && substr($bytes, 8, 4) === 'WEBP' => 'webp',
             default => 'unknown',
         };
+        if ($format === 'unknown' && SvgGuard::looksLikeSvg($bytes)) {
+            $svg = (new SvgGuard())->inspect($bytes, 2_097_152);
+            return ['svg', $svg['validity'], $svg['findings']];
+        }
         if ($format === 'unknown') {
             return [$format, 'unknown', []];
         }
