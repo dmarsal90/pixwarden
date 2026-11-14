@@ -16,6 +16,7 @@ The normative architecture, requirements, schema, and implementation plan are ma
 - [Backend schema](05-Backend-Schema.md) · [Implementation plan](06-Implementation-Plan.md)
 - [Threat catalog](security/01-Threat-Intelligence-Catalog.md) · [Format matrix](security/02-Format-Security-Matrix.md)
 - [Test corpus](security/03-Security-Test-Corpus.md) · [Detection coverage](security/04-Detection-Mitigation-Coverage.md)
+- [License evaluation](license-evaluation.md) · [Runnable file-ingress examples](integrations.md)
 
 ## Translation scaffold
 
