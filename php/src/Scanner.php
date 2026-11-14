@@ -324,6 +324,10 @@ final class Scanner
                     if ($cursor + 6 > $size || ord($bytes[$cursor]) !== 4 || ord($bytes[$cursor + 5]) !== 0) {
                         return null;
                     }
+                    if ((ord($bytes[$cursor + 1]) & 0xe0) !== 0) {
+                        $errorId = 'IMG-006';
+                        return null;
+                    }
                     $cursor += 6;
                 } else {
                     $next = $this->skipGifSubBlocks($bytes, $cursor);
