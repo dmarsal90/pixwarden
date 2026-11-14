@@ -38,6 +38,15 @@ final class SvgGuardTest extends TestCase
         (new Scanner())->sanitizeSvg('<svg xmlns="http://www.w3.org/2000/svg"><rect fill="url(#missing)"/></svg>');
     }
 
+    public function testDtdWordsInCommentsAndCdataAreNotTreatedAsDeclarations(): void
+    {
+        $source = '<svg xmlns="http://www.w3.org/2000/svg"><!-- <!DOCTYPE placeholder> --><text><![CDATA[<!ENTITY inert>]]></text></svg>';
+        $result = (new Scanner())->sanitizeSvg($source);
+
+        self::assertSame('<svg xmlns="http://www.w3.org/2000/svg"><text>&lt;!ENTITY inert&gt;</text></svg>', $result['bytes']);
+        self::assertSame('passed', $result['postCheckStatus']);
+    }
+
     public function testInputAndNestingLimitsAreEnforced(): void
     {
         $scanner = new Scanner();

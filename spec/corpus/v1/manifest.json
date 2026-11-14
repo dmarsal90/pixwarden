@@ -1,5 +1,5 @@
 {
-  "corpusVersion": "1.0.4",
+  "corpusVersion": "1.0.5",
   "source": "Synthetic, harmless fixtures authored for Pixwarden conformance tests.",
   "license": "CC0-1.0",
   "vectors": [
@@ -225,6 +225,13 @@
       "description": "Minimal static SVG using one allowed shape and no references or active content.",
       "inputHex": "3c73766720786d6c6e733d22687474703a2f2f7777772e77332e6f72672f323030302f737667223e3c726563742077696474683d223122206865696768743d2231222f3e3c2f7376673e",
       "sha256": "b131556c36b0323b4981999443b5b22f7e35032e604d152b2d6698fc072e88c1",
+      "expected": { "format": "svg", "validity": "valid", "verdict": "allow", "coverage": "partial", "findingIds": [] }
+    },
+    {
+      "id": "SVG-DTD-TOKENS-IN-COMMENT-CDATA-001",
+      "description": "SVG comment and CDATA text contain DTD-like words but no actual declaration.",
+      "inputHex": "3c73766720786d6c6e733d22687474703a2f2f7777772e77332e6f72672f323030302f737667223e3c212d2d203c21444f435459504520706c616365686f6c6465723e202d2d3e3c746578743e3c215b43444154415b3c21454e5449545920696e6572743e5d5d3e3c2f746578743e3c2f7376673e",
+      "sha256": "21002d71bbfd0671ec935c728ffd88c45a04ede8caf9dd9e3e90dd8fdf6f5bbb",
       "expected": { "format": "svg", "validity": "valid", "verdict": "allow", "coverage": "partial", "findingIds": [] }
     },
     {
