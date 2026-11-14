@@ -15,9 +15,9 @@ This catalog treats the supplied 82 identifiers as threat scenarios, not 82 conf
 
 * [OWASP GenAI LLM01:2025 Prompt Injection](https://genai.owasp.org/llmrisk/llm01-prompt-injection/), consulted 2026-11-14: explicitly includes multimodal injection and describes context-dependent impacts; filtering is a mitigation, not a complete prevention guarantee.
 * [OWASP Prompt Injection Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/LLM_Prompt_Injection_Prevention_Cheat_Sheet.html), consulted 2026-11-14: covers hidden image text, metadata, RAG poisoning and agent-specific attacks; recommends layered controls and treating model output as untrusted.
-* [Abusing Images and Sounds for Indirect Instruction Injection in Multi-Modal LLMs](https://arxiv.org/abs/2307.10490), consulted 2026-11-14: peer-reviewed research on embedding instructions in visual/audio input to influence multimodal systems.
+* [Abusing Images and Sounds for Indirect Instruction Injection in Multi-Modal LLMs](https://arxiv.org/abs/2307.10490), consulted 2026-11-14: research demonstration of adversarial instructions embedded in visual/audio input to influence multimodal systems.
 
-The source set is an initial baseline. It is not a complete implementation-time review. Before selecting any decoder, research must be expanded against NVD, CERT/CC, GitHub advisories, decoder vendor advisories and detailed format specifications; before selecting OCR/VLM methods, review the broader peer-reviewed multimodal security literature. Exact advisories and versions must be added per selected dependency; do not infer that a class-level reference proves a particular decoder is vulnerable.
+The source set is an initial baseline. It is not a complete implementation-time review. Before selecting any decoder, research must be expanded against NVD, CERT/CC, GitHub advisories, decoder vendor advisories and detailed format specifications; before selecting OCR/VLM methods, review the broader multimodal security literature and distinguish peer-reviewed studies, preprints and conference demonstrations. Exact advisories and versions must be added per selected dependency; do not infer that a class-level reference proves a particular decoder is vulnerable.
 
 ## Threat register and coverage map
 
