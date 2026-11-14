@@ -1,14 +1,16 @@
 # Security Test Corpus Plan
 
-**Document ID:** PW-CORPUS · **Version:** 0.1.0 · **Status:** Manifest design; samples not yet created · **Updated:** 2026-11-13
+**Document ID:** PW-CORPUS · **Version:** 0.1.1 · **Status:** Shared synthetic conformance manifest active; broader corpus planned · **Updated:** 2026-11-14
 
-No binary samples are present in this initial checkout. Corpus entries below are planned synthetic fixtures and do not claim test execution. `pixwarden-spec` will own versioned manifests and deterministic builders; runtime repositories consume the same fixture hashes. Do not commit operational malware or live exploit payloads.
+The shared `spec/corpus/v1/manifest.json` contains fourteen hash-pinned, harmless synthetic byte vectors consumed directly by JS and PHP tests. This initial corpus is a subset of the broader plan below; absent cases are planned, not tested. No operational malware or live exploit payloads are included. A separate `pixwarden-spec` repository is not yet created.
 
 ## Manifest contract
 
-Each case records: `caseId`, corpus version, category, input relative path, SHA-256, byte count, generator/source, license/provenance, benign/adversarial label, supported format/profile, expected finding IDs, expected control states, expected decision under named policy, expected validity/decodability/sanitization, applicable runtime capabilities, and rationale. Cases must be generated from minimal harmless bytes/markers, synthetic text and in-memory malformed structures. Every expected result is tied to implementation version and must be reviewed before changing.
+The current manifest records `id`, description, hex bytes, SHA-256, and expected format/validity/verdict/coverage/finding IDs; binary vectors also declare status and bytes scanned. The broader planned corpus schema will add category, source/license, labels, expected control states, policy, validity/decodability/sanitization, capabilities, and rationale. Cases must be minimal harmless bytes/markers, synthetic text and in-memory malformed structures. Every expected result is tied to implementation version and must be reviewed before changing.
 
 ## Planned corpus cases
+
+Implemented vector IDs in v1 include `FMT-UNKNOWN-001`, `STR-PNG-TRUNCATED-001`, `STR-PNG-VALID-001`, `STR-GIF-VALID-001`, `STR-JPEG-VALID-001`, `STR-WEBP-VALID-001`, `META-PNG-EXIF-GPS-TAG-001`, `META-PNG-EXIF-MALFORMED-001`, `BIN-PNG-ANCILLARY-SIGNATURE-001`, `BIN-GIF-EXTENSION-SIGNATURE-001`, `BIN-JPEG-APP-SIGNATURE-001`, `BIN-WEBP-XMP-SIGNATURE-001`, `SVG-STATIC-SAFE-001`, and `SVG-ACTIVE-CONTENT-001`. The exact hashes and expected outcomes are maintained in the manifest.
 
 | Case ID | Construction / benign purpose | Expected assertion | Trace |
 |---|---|---|---|

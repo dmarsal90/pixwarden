@@ -24,7 +24,7 @@ jobs:
         php: ['8.2', '8.3', '8.4']
     steps:
       - uses: actions/checkout@v7.0.1
-      - uses: shivammathur/setup-php@v2
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2
         with:
           php-version: ${{ matrix.php }}
           tools: composer:v2
@@ -37,4 +37,6 @@ jobs:
       - run: composer format-check
         working-directory: php
       - run: composer test
+        working-directory: php
+      - run: composer audit --no-interaction
         working-directory: php

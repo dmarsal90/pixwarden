@@ -37,4 +37,19 @@ final class SvgGuardTest extends TestCase
         $this->expectException(RuntimeException::class);
         (new Scanner())->sanitizeSvg('<svg xmlns="http://www.w3.org/2000/svg"><rect fill="url(#missing)"/></svg>');
     }
+
+    public function testInputAndNestingLimitsAreEnforced(): void
+    {
+        $scanner = new Scanner();
+        try {
+            $scanner->sanitizeSvg('<svg xmlns="http://www.w3.org/2000/svg">' . str_repeat(' ', 2_097_153) . '</svg>');
+            self::fail('Expected the SVG input cap to reject oversized input.');
+        } catch (RuntimeException $error) {
+            self::assertStringContainsString('limit', strtolower($error->getMessage()));
+        }
+
+        $deep = '<svg xmlns="http://www.w3.org/2000/svg">' . str_repeat('<g>', 65) . str_repeat('</g>', 65) . '</svg>';
+        $this->expectException(RuntimeException::class);
+        $scanner->sanitizeSvg($deep);
+    }
 }
