@@ -74,6 +74,27 @@
       "expected": { "format": "jpeg", "validity": "valid", "verdict": "allow", "coverage": "partial", "findingIds": [] }
     },
     {
+      "id": "STR-JPEG-SEGMENT-LENGTH-INVALID-001",
+      "description": "Minimal JPEG has a SOF segment length smaller than its required two-byte length field.",
+      "inputHex": "ffd8ffc00001080001000101ffda000211ffd9",
+      "sha256": "475b51b87af54b0ec01cae97fd8c1912f3402728b5e57b13aac2d8e31cf6e3b3",
+      "expected": { "format": "jpeg", "validity": "invalid", "verdict": "reject", "coverage": "partial", "findingIds": ["IMG-004"] }
+    },
+    {
+      "id": "STR-JPEG-SCAN-MISSING-001",
+      "description": "Marker-bounded JPEG has a frame header and EOI but no start-of-scan segment.",
+      "inputHex": "ffd8ffc00008080001000101ffd9",
+      "sha256": "a4bf024a6fbfade92a3fb161137ccbd89dc7122ccdfc673c7fbeb7ef2a3b6241",
+      "expected": { "format": "jpeg", "validity": "invalid", "verdict": "reject", "coverage": "partial", "findingIds": ["IMG-006"] }
+    },
+    {
+      "id": "STR-JPEG-TRAILING-DATA-001",
+      "description": "Minimal marker-valid JPEG has one inert byte after EOI.",
+      "inputHex": "ffd8ffc00008080001000101ffda000211ffd900",
+      "sha256": "563eaf1db7415e6acddb4d4c2af66fbe0155cc04315b043a177253124536517d",
+      "expected": { "format": "jpeg", "validity": "invalid", "verdict": "reject", "coverage": "partial", "findingIds": ["IMG-008"] }
+    },
+    {
       "id": "STR-WEBP-VALID-001",
       "description": "Minimal RIFF/WebP container with a non-empty VP8 chunk; codec decoding is not asserted.",
       "inputHex": "524946461000000057454250565038200400000000000000",
