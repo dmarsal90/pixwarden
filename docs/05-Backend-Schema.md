@@ -2,7 +2,7 @@
 
 **Document ID:** PW-SCHEMA · **Version:** 0.1.0 · **Status:** Draft contract baseline · **Updated:** 2026-11-13
 
-This is the normative semantic outline for JSON Schema Draft 2020-12 artifacts in `pixwarden-spec`. The repository is currently a single empty checkout, so these are specified contracts, not published schema files or runtime behavior. All objects use `additionalProperties: false` in the initial strict schemas unless an explicitly extensible evidence payload says otherwise. All sizes are non-negative integers in bytes; timestamps are RFC 3339 UTC. Schema `$id` convention: `https://pixwarden.dev/spec/v1/{Type}.schema.json` (domain ownership must be verified before publication).
+This is the normative semantic outline for JSON Schema Draft 2020-12 artifacts. A first combined schema is maintained at `spec/schemas/pixwarden-v1.schema.json` in this checkout; individual `$defs` are the public contract targets for the initial spec release. All objects use `additionalProperties: false` unless an explicitly extensible map says otherwise. All sizes are non-negative integers in bytes; timestamps are RFC 3339. Schema IDs use a local `urn:pixwarden:spec:0.1.0` namespace until the project controls a stable public schema domain.
 
 ## Shared enums
 
@@ -74,3 +74,5 @@ Required `resultVersion`, `scanId` UUID, `engineVersion`, `specVersion`, `starte
 ## Versioning, constraints and acceptance
 
 Schema validators must enforce bounds, enum values, conditional fields and exactly-one input variant. Golden JSON examples in spec are shared by PHP/JS tests. Additive optional fields: minor spec version; changed required semantics/enums: major. `specVersion` and `resultVersion` are independent. JSON Schema cannot express all cross-field security invariants; both libraries must run semantic validation in addition to schema validation. Requirements: PRD-002/009/010; TRD-7.
+
+The schema uses JSON Schema Draft 2020-12. Ajv validation imports the dedicated 2020-12 implementation because that draft is not interchangeable with the default draft-07 validator; see the [Ajv JSON Schema version guide](https://ajv.js.org/json-schema.html) and the [JSON Schema Draft 2020-12 specification](https://json-schema.org/draft/2020-12).

@@ -1,6 +1,6 @@
 # Pixwarden Implementation Plan
 
-**Document ID:** PW-PLAN · **Version:** 0.1.0 · **Status:** Phase 0/1 baseline · **Updated:** 2026-11-13
+**Document ID:** PW-PLAN · **Version:** 0.1.0 · **Status:** Phase 2 in progress · **Updated:** 2026-11-14
 
 ## Phase gates and work items
 
@@ -45,3 +45,5 @@ Initial repository inspection on 2026-11-13 found only `LICENSE` (MIT), no sourc
 The follow-up binary-region conformance PR also covers JPEG entropy/trailer boundaries and synthetic GIF extension and WebP metadata regions, with compressed data intentionally excluded.
 
 Package-name lookup for `pixwarden-js` and `dmarsal90/pixwarden-php` was attempted on 2026-11-13 through public search/direct listing pages, but registry records could not be retrieved reliably. Availability and namespace ownership are therefore **unverified**, not confirmed available. Repeat with the npm and Packagist registries immediately before repository/package creation and again before release; record timestamp and account ownership. Do not squat, transfer or publish a name as part of this check.
+
+Phase 2 has a first strict Draft 2020-12 contract artifact in `spec/schemas/pixwarden-v1.schema.json`. It defines the request, result, policy, finding/evidence, capability, resource, sanitization, binary, steganography, AI and error contracts in reusable `$defs`. Schema validation and golden examples are being added; PHP conformance remains pending.

@@ -37,7 +37,7 @@ function detectFormat(data: Uint8Array): ImageFormat {
 function finding(id: string, severity: Finding["severity"], stage: Finding["stage"], title: string, description: string, offset?: number, length?: number): Finding {
   const evidence: Evidence[] = offset === undefined
     ? [{ kind: "policy", summary: description }]
-    : [{ kind: "range", summary: description, offset, ...(length === undefined ? {} : { length }) }];
+    : [{ kind: length === undefined ? "offset" : "range", summary: description, offset, ...(length === undefined ? {} : { length }) }];
   return { id, severity, stage, title, description, status: "confirmed", controlStatus: "failed", evidence };
 }
 

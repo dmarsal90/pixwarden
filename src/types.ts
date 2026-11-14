@@ -54,6 +54,7 @@ export interface ControlResult {
 
 export interface CapabilityReport {
   readonly runtime: "node";
+  readonly runtimeVersion: string;
   readonly engineVersion: string;
   readonly specVersion: string;
   readonly formats: Readonly<Record<ImageFormat, {
@@ -63,6 +64,7 @@ export interface CapabilityReport {
     readonly reason: string;
   }>>;
   readonly networkAccess: false;
+  readonly optionalAdapters: Readonly<Record<string, boolean>>;
   readonly hardLimits: Readonly<Record<string, boolean>>;
 }
 
