@@ -81,6 +81,7 @@ function inspectPng(data: Uint8Array, limits: ResourceLimits): StructuralInspect
       const c = data[typeOffset + i]!;
       if (!((c >= 65 && c <= 90) || (c >= 97 && c <= 122))) return invalid("png", "IMG-001", "Invalid PNG chunk type", "Chunk type bytes must be ASCII letters.", typeOffset + i);
     }
+    if (data[typeOffset + 2]! >= 97 && data[typeOffset + 2]! <= 122) return invalid("png", "IMG-001", "Invalid PNG reserved chunk-type bit", "The third chunk-type letter must be uppercase in this PNG profile.", typeOffset + 2);
     const payloadOffset = offset + 8;
     const crcOffset = payloadOffset + size;
     const expectedCrc = readU32BE(data, crcOffset);

@@ -53,6 +53,27 @@
       "expected": { "format": "png", "validity": "invalid", "verdict": "reject", "coverage": "partial", "findingIds": ["IMG-006"] }
     },
     {
+      "id": "STR-PNG-UNKNOWN-CRITICAL-001",
+      "description": "PNG contains an unknown uppercase critical chunk with a correct CRC.",
+      "inputHex": "89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000000041424344db1720a500000001494441540028387de80000000049454e44ae426082",
+      "sha256": "af50877ee3cd6a2ef54a26d241b31844a1206b31bf698070704e92a387183b9a",
+      "expected": { "format": "png", "validity": "invalid", "verdict": "reject", "coverage": "partial", "findingIds": ["IMG-006"] }
+    },
+    {
+      "id": "STR-PNG-CHUNK-TYPE-NONLETTER-001",
+      "description": "PNG chunk type begins with a non-letter byte while its chunk CRC is correct.",
+      "inputHex": "89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c48900000000314441549b248e6d00000001494441540028387de80000000049454e44ae426082",
+      "sha256": "4b0b2e66df5ee475fe61ca4aafe631b44891eae027821fef483001ae7f4eb45c",
+      "expected": { "format": "png", "validity": "invalid", "verdict": "reject", "coverage": "partial", "findingIds": ["IMG-001"] }
+    },
+    {
+      "id": "STR-PNG-CHUNK-RESERVED-BIT-001",
+      "description": "PNG ancillary chunk uses a lowercase third type letter, setting the reserved chunk-type bit.",
+      "inputHex": "89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c489000000007465785400e5870f00000001494441540028387de80000000049454e44ae426082",
+      "sha256": "28881daf1324b0f6ab718edbbdfc0a379d8c6eecaf31a777c5d1756957512a0a",
+      "expected": { "format": "png", "validity": "invalid", "verdict": "reject", "coverage": "partial", "findingIds": ["IMG-001"] }
+    },
+    {
       "id": "STR-GIF-VALID-001",
       "description": "Minimal one-frame GIF with bounded data sub-blocks.",
       "inputHex": "474946383961010001000000002c000000000100010000020100003b",
