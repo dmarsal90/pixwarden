@@ -1,5 +1,5 @@
 {
-  "corpusVersion": "1.0.32",
+  "corpusVersion": "1.0.34",
   "source": "Synthetic, harmless fixtures authored for Pixwarden conformance tests.",
   "license": "CC0-1.0",
   "vectors": [
@@ -710,6 +710,22 @@
       "sha256": "ed04bbdbaa5df9bad03002c1a9a37a69aa8d4a55e223c396f4a5848c987b97f5",
       "scanOptions": { "aiInspection": { "enabled": true, "ocr": false } },
       "expected": { "format": "png", "validity": "valid", "verdict": "allow", "coverage": "partial", "findingIds": [], "aiStatus": "completed" }
+    }
+    ,{
+      "id": "AI-WEBP-EXIF-USERCOMMENT-OVERRIDE-001",
+      "description": "Synthetic WebP EXIF chunk contains an ASCII UserComment override phrase; the optional rule must emit a redacted AI-002 finding.",
+      "inputHex": "524946467200000057454250565038200400000000000000455849465a00000045786966000049492a0008000000010069870400010000001a00000000000000010086920700280000002c00000000000000415343494900000049676e6f726520616c6c2070726576696f757320696e737472756374696f6e73",
+      "sha256": "d5a2b9ae66f6aaef4cdca586b37e3d282fe9fe5ce8365ef045a02d3438f9951f",
+      "scanOptions": { "aiInspection": { "enabled": true, "ocr": false } },
+      "expected": { "format": "webp", "validity": "valid", "verdict": "review", "coverage": "partial", "findingIds": ["AI-002"], "aiStatus": "completed" }
+    }
+    ,{
+      "id": "AI-WEBP-EXIF-USERCOMMENT-BENIGN-001",
+      "description": "Synthetic WebP EXIF chunk contains benign ASCII UserComment text and should not trigger the narrow rule.",
+      "inputHex": "524946466e00000057454250565038200400000000000000455849465600000045786966000049492a0008000000010069870400010000001a00000000000000010086920700240000002c00000000000000415343494900000054686520706f7274726169742073686f7773206d6f756e7461696e73",
+      "sha256": "abd9c0b298ad48acdafa1325bc3cce7274dd1294bbd2f347c109b0d364324d42",
+      "scanOptions": { "aiInspection": { "enabled": true, "ocr": false } },
+      "expected": { "format": "webp", "validity": "valid", "verdict": "allow", "coverage": "partial", "findingIds": [], "aiStatus": "completed" }
     }
   ]
 }
