@@ -54,3 +54,5 @@ The native PHP package in `php/` consumes the same manifest. Its bounded PNG/GIF
 The JS and PHP suites include coverage-guided targets seeded from the shared synthetic corpus. Both targets exercise opt-in AI metadata parsing and assert that partial/unsupported inspection cannot mark its policy control as passed. Pull requests replay JS seeds and run a bounded PHP fuzz batch; weekly/manual runs fuzz for 90 seconds, with per-input and workflow deadlines and 14-day corpus/crash artifacts. A minimized GIF fixture discovered by the initial JS run now covers a truncated local color table and guards evidence offsets in both runtimes. Both harnesses execute in-process; native-decoder fuzzing and OS-enforced CPU/RSS isolation remain planned.
 
 PHP CI also runs capability smoke checks with optional extensions disabled: compressed PNG text must remain incomplete without `zlib_decode`, and SVG inspection/sanitization must remain explicitly unsupported without DOM.
+
+JS and PHP CI execute their documented file-ingress examples against the same hash-checked one-pixel PNG fixture and assert that partial coverage is retained for review.
