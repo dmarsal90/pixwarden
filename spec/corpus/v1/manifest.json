@@ -1,5 +1,5 @@
 {
-  "corpusVersion": "1.0.30",
+  "corpusVersion": "1.0.32",
   "source": "Synthetic, harmless fixtures authored for Pixwarden conformance tests.",
   "license": "CC0-1.0",
   "vectors": [
@@ -694,6 +694,22 @@
       "sha256": "b2c567b403a865a79c2d8908b016592ef0434e207dc90227287c1a201ecc93bb",
       "scanOptions": { "aiInspection": { "enabled": true, "ocr": false } },
       "expected": { "format": "jpeg", "validity": "valid", "verdict": "review", "coverage": "partial", "findingIds": ["AI-002"], "aiStatus": "completed" }
+    }
+    ,{
+      "id": "AI-PNG-EXIF-USERCOMMENT-OVERRIDE-001",
+      "description": "Synthetic PNG eXIf chunk contains an ASCII EXIF UserComment override phrase; the optional rule must flag it with redacted evidence.",
+      "inputHex": "89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c489000000546558496649492a0008000000010069870400010000001a00000000000000010086920700280000002c00000000000000415343494900000049676e6f726520616c6c2070726576696f757320696e737472756374696f6e731d0e035300000001494441540028387de80000000049454e44ae426082",
+      "sha256": "b62394bc1635f6713a7c75156561727ac68ca43f73d121a2363cebdc07313a5a",
+      "scanOptions": { "aiInspection": { "enabled": true, "ocr": false } },
+      "expected": { "format": "png", "validity": "valid", "verdict": "review", "coverage": "partial", "findingIds": ["AI-002"], "aiStatus": "completed" }
+    }
+    ,{
+      "id": "AI-PNG-EXIF-USERCOMMENT-BENIGN-001",
+      "description": "Synthetic PNG eXIf chunk contains benign ASCII EXIF UserComment text and should not trigger the narrow rule.",
+      "inputHex": "89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c489000000506558496649492a0008000000010069870400010000001a00000000000000010086920700240000002c00000000000000415343494900000054686520706f7274726169742073686f7773206d6f756e7461696e73d37d57df00000001494441540028387de80000000049454e44ae426082",
+      "sha256": "ed04bbdbaa5df9bad03002c1a9a37a69aa8d4a55e223c396f4a5848c987b97f5",
+      "scanOptions": { "aiInspection": { "enabled": true, "ocr": false } },
+      "expected": { "format": "png", "validity": "valid", "verdict": "allow", "coverage": "partial", "findingIds": [], "aiStatus": "completed" }
     }
   ]
 }

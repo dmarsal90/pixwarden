@@ -307,7 +307,7 @@ function inspectSnapshot(snapshot: Uint8Array, options: ScanOptions, limits: Res
         ? makeControl("error", "AI metadata inspection could not safely complete.")
       : aiInspection.status === "unsupported" || aiInspection.status === "partial" || options.aiInspection?.ocr
         ? makeControl("unsupported", "Only a bounded PNG metadata text rule set is available; requested OCR or format analysis is unsupported.")
-        : makeControl("passed", "Bounded PNG text metadata rules ran locally; this is advisory and does not inspect pixels.")
+        : makeControl("passed", "Bounded PNG/JPEG text and supported EXIF UserComment rules ran locally; this is advisory and does not inspect pixels.")
   };
   if (binaryInspection) findings.push(...binaryInspection.findings);
   for (const [name, maximum, observed] of [
