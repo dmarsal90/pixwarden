@@ -50,7 +50,7 @@ Initial policy prioritizes JPEG, PNG, GIF, WebP and SVG. Byte-level inspection s
 
 | Format family | Initial disposition |
 |---|---|
-| JPEG/PNG/GIF/WebP | Core inspection target; raster decode/sanitize only with available approved adapter |
+| JPEG/PNG/GIF/WebP | Core inspection target; initial raster reconstruction is restricted to static non-interlaced RGBA8 PNG, one million pixels maximum |
 | SVG | Secure XML inspection and allowlist sanitize; no general rasterization in core |
 | APNG/animated GIF/WebP | Inspect frame count/limits; sanitization must preserve or explicitly flatten/reject |
 | BMP | Optional structural recognition; no default decode promise |

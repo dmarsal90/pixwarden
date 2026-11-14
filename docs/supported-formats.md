@@ -5,7 +5,7 @@ Support is intentionally narrower than the roadmap. “Inspect” means a bounde
 | Format | Inspect | Decode | Transform | Current boundary |
 |---|---:|---:|---|---|
 | JPEG | Yes | No | None | Selected marker/segment profile; selective EXIF and auxiliary-region indicators |
-| PNG | Yes | No | Remove eXIf/tEXt/zTXt/iTXt | Chunk order/bounds/CRC/dimension profile; preserves ICC/unknown ancillary and pixel stream |
+| PNG | Yes | Restricted | Remove eXIf/tEXt/zTXt/iTXt; reconstruct RGBA8 | Raster transform supports static, non-interlaced 8-bit RGBA only, up to 1 million pixels and 10 MiB input; it drops all ancillary chunks including ICC and may change color appearance |
 | GIF | Yes | No | None | Block/frame structure; compressed LZW data is not decoded |
 | WebP | Yes | No | None | RIFF/chunk profile; no bitstream decode |
 | SVG | Yes | No | Static allowlist serialization | JS Saxes; PHP requires `ext-dom`; not a general renderer |

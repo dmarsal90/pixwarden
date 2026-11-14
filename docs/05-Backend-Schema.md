@@ -43,6 +43,8 @@ Required `kind` (`offset | range | signature | statistic | metadata_tag | text_s
 
 Required `status` (`not_requested | produced | failed | unsupported`), `sourceDigest` and, if produced, `artifactDigest`, `format`, `bytes`, `transformations` array and `postCheckStatus`. Original bytes are never represented as overwritten. If failed, artifact fields are absent.
 
+The standalone byte-oriented sanitizer methods currently return runtime-native objects/arrays rather than this persisted JSON report: SVG reports element/attribute removals; PNG metadata stripping reports removed chunk counts; RGBA8 reconstruction reports dimensions, removed ancillary chunk counts, byte sizes, and post-check status. Callers should hash/store artifacts outside Pixwarden and must not serialize raw image bytes into routine logs.
+
 ### BinaryInspectionResult
 
 Required `status` (`passed | findings | unsupported | error`), `bytesScanned`, `findings`, `trailingData` boolean, `recursiveInspection` fixed to `false` in core v1. Example evidence records offset/length and signature name without including bytes.

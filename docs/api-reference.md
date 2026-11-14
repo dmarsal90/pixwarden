@@ -9,6 +9,7 @@ This page documents the currently exported API surface. Generated declarations a
 - `scanImageStream(AsyncIterable<Uint8Array>, ScanOptions): Promise<ScanResult>` buffers to the byte cap.
 - `sanitizeSvg(Uint8Array): SvgSanitizationResult` applies the SVG static allowlist.
 - `stripPngExifAndTextMetadata(Uint8Array): PngMetadataSanitizationResult` removes four PNG metadata chunk types.
+- `sanitizePngRgba8(Uint8Array): PngRasterSanitizationResult` reconstructs static non-interlaced 8-bit RGBA PNGs up to one million pixels; it strips ancillary chunks and may alter color appearance.
 - `PixwardenError` carries a stable `code` such as `INVALID_OPTIONS`, `INPUT_TOO_LARGE`, `LIMIT_EXCEEDED`, `CANCELLED`, `MALFORMED_INPUT`, `SANITIZATION_FAILURE`, or `IO_FAILURE`.
 
 ## PHP
@@ -19,5 +20,6 @@ This page documents the currently exported API surface. Generated declarations a
 - `ScanOptions` can require named controls and choose `review`/`reject` for unsupported/incomplete required checks; PHP does not yet expose every JS scan option.
 - `Scanner::sanitizeSvg(string): array` (requires `ext-dom`)
 - `Scanner::stripPngExifAndTextMetadata(string): array`
+- `Scanner::sanitizePngRgba8(string): array` (requires `ext-zlib`; static non-interlaced RGBA8 only)
 
 Failures use `PixwardenException` subclasses. PHP options and control parity are narrower than JS at this stage. See source PHPDoc and shared JSON Schema for detailed shapes.

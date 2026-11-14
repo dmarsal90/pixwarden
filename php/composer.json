@@ -4,7 +4,10 @@
   "type": "library",
   "license": "MIT",
   "require": { "php": ">=8.2" },
-  "suggest": { "ext-dom": "Enables bounded static SVG inspection and allowlist sanitization." },
+  "suggest": {
+    "ext-dom": "Enables bounded static SVG inspection and allowlist sanitization.",
+    "ext-zlib": "Enables restricted RGBA8 PNG raster sanitization."
+  },
   "autoload": { "psr-4": { "Pixwarden\\": "src/" } },
   "autoload-dev": { "psr-4": { "Pixwarden\\Tests\\": "tests/" } },
   "require-dev": {

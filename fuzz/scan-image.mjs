@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { PixwardenError, sanitizeSvg, scanImage } from "../dist/index.js";
+import { PixwardenError, sanitizePngRgba8, sanitizeSvg, scanImage } from "../dist/index.js";
 
 const MAX_FUZZ_INPUT_BYTES = 65_536;
 const controlStatuses = new Set(["passed", "failed", "skipped", "unsupported", "error"]);
@@ -56,5 +56,24 @@ export async function fuzz(input) {
       assert.equal(repeated.removedAttributes, 0);
     }
     assert.deepEqual(input, original, "SVG sanitization must not mutate caller-owned bytes");
+  }
+
+  if (report.format === "png") {
+    let sanitized;
+    try {
+      sanitized = sanitizePngRgba8(input);
+    } catch (error) {
+      if (!(error instanceof PixwardenError) || !["MALFORMED_INPUT", "INPUT_TOO_LARGE", "LIMIT_EXCEEDED", "UNSUPPORTED_CAPABILITY", "SANITIZATION_FAILURE"].includes(error.code)) {
+        throw error;
+      }
+    }
+    if (sanitized) {
+      assert.equal(sanitized.inputBytes, input.byteLength);
+      assert.equal(sanitized.outputBytes, sanitized.bytes.byteLength);
+      assert.equal(sanitized.postCheckStatus, "passed");
+      const repeated = sanitizePngRgba8(sanitized.bytes);
+      assert.deepEqual(repeated.bytes, sanitized.bytes, "sanitized RGBA8 PNG must be idempotent");
+    }
+    assert.deepEqual(input, original, "PNG raster sanitization must not mutate caller-owned bytes");
   }
 }

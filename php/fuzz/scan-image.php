@@ -3,6 +3,10 @@
 declare(strict_types=1);
 
 use Pixwarden\PixwardenException;
+use Pixwarden\CapabilityUnavailableException;
+use Pixwarden\InvalidInputException;
+use Pixwarden\ResourceLimitExceededException;
+use Pixwarden\SanitizationFailureException;
 use Pixwarden\Scanner;
 
 require __DIR__ . '/../vendor/autoload.php';
@@ -83,6 +87,30 @@ $config->setTarget(static function (string $input) use ($scanner): void {
             || ($repeated['removedAttributes'] ?? null) !== 0
             || ($repeated['removedElements'] ?? null) !== []) {
             throw new Error('SVG sanitization is not idempotent.');
+        }
+    }
+
+    if (($report['format'] ?? null) === 'png') {
+        try {
+            $sanitized = $scanner->sanitizePngRgba8($input);
+        } catch (InvalidInputException|ResourceLimitExceededException|SanitizationFailureException|CapabilityUnavailableException) {
+            if ($input !== $original) {
+                throw new Error('Rejected PNG raster sanitization modified caller-owned input.');
+            }
+            return;
+        }
+        if (!is_string($sanitized['bytes'] ?? null)
+            || ($sanitized['postCheckStatus'] ?? null) !== 'passed'
+            || ($sanitized['inputBytes'] ?? null) !== strlen($input)
+            || ($sanitized['outputBytes'] ?? null) !== strlen($sanitized['bytes'])) {
+            throw new Error('PNG raster sanitizer returned inconsistent metadata.');
+        }
+        $repeated = $scanner->sanitizePngRgba8($sanitized['bytes']);
+        if (($repeated['bytes'] ?? null) !== $sanitized['bytes']) {
+            throw new Error('PNG raster sanitization is not idempotent.');
+        }
+        if ($input !== $original) {
+            throw new Error('PNG raster sanitization modified caller-owned input.');
         }
     }
 });

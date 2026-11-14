@@ -87,7 +87,7 @@ final class Scanner
                 ? ($svgAvailable
                     ? ['status' => 'skipped', 'summary' => 'The SVG sanitizer is available separately and was not invoked by scan().']
                     : ['status' => 'unsupported', 'summary' => 'PHP ext-dom is unavailable, so SVG inspection and sanitization cannot run.'])
-                : ['status' => 'unsupported', 'summary' => 'No raster sanitizer is implemented; input bytes are unchanged.'],
+                : ['status' => 'unsupported', 'summary' => 'No sanitizer is invoked by scan(); input bytes are unchanged. A restricted PNG raster transform is available separately.'],
         ];
         $evaluation = $this->evaluatePolicy($findings, $controls, $options);
         $verdict = $evaluation['verdict'];
@@ -100,12 +100,12 @@ final class Scanner
         foreach (['jpeg', 'png', 'gif', 'webp', 'svg', 'unknown'] as $supportedFormat) {
             $formatCapabilities[$supportedFormat] = [
                 'inspect' => in_array($supportedFormat, ['jpeg', 'png', 'gif', 'webp'], true) || ($supportedFormat === 'svg' && $svgAvailable),
-                'decode' => false,
+                'decode' => $supportedFormat === 'png',
                 'sanitize' => ($supportedFormat === 'svg' && $svgAvailable) || $supportedFormat === 'png',
                 'reason' => $supportedFormat === 'svg'
                     ? ($svgAvailable ? 'A DOM-based static allowlist inspection/sanitizer is available separately; no general renderer is bundled.' : 'PHP ext-dom is unavailable.')
                     : ($supportedFormat === 'png'
-                        ? 'A limited EXIF/text-chunk removal transform is available; it does not decode pixels or remove all metadata.'
+                        ? 'Only the explicit sanitizer decodes static non-interlaced 8-bit RGBA PNGs up to one million pixels; other profiles are unsupported.'
                         : (in_array($supportedFormat, ['jpeg', 'png', 'gif', 'webp'], true)
                         ? 'Limited byte-level container profile only; no decoder is bundled.'
                         : 'No structural profile is available.')),
@@ -137,7 +137,7 @@ final class Scanner
             ],
             'metadataInspection' => $metadataInspection,
             'binaryInspection' => $binaryInspection,
-            'limitations' => ['The current PHP profile provides limited container checks for JPEG, PNG, GIF and WebP, bounded EXIF TIFF directory inspection for JPEG, PNG and WebP, indicator-only signatures in selected format-defined auxiliary regions, and a static SVG allowlist sanitizer when ext-dom is available. Metadata values, XMP and text are not parsed; no raster decoder/sanitizer, OCR, steganography, or process isolation is included. Binary signatures do not prove an embedded file or replace malware scanning. A valid result is not proof of safe decoding or rendering.'],
+            'limitations' => ['The current PHP profile provides limited container checks for JPEG, PNG, GIF and WebP, bounded EXIF TIFF directory inspection for JPEG, PNG and WebP, indicator-only signatures in selected format-defined auxiliary regions, and a static SVG allowlist sanitizer when ext-dom is available. A separate PNG sanitizer decodes only static non-interlaced 8-bit RGBA inputs up to one million pixels; it drops ancillary chunks and color profiles, so visual appearance may change. No general raster decoder, OCR, steganography, or process isolation is included. Binary signatures do not prove an embedded file or replace malware scanning. A valid result is not proof of safe decoding or rendering.'],
             'inputBytes' => strlen($bytes),
         ];
     }
@@ -157,6 +157,14 @@ final class Scanner
     public function stripPngExifAndTextMetadata(string $bytes): array
     {
         return (new PngMetadataSanitizer())->sanitize($bytes);
+    }
+
+    /** Decode and reconstruct a static non-interlaced 8-bit RGBA PNG.
+     * @return array<string, mixed>
+     */
+    public function sanitizePngRgba8(string $bytes): array
+    {
+        return (new PngRgba8Sanitizer())->sanitize($bytes);
     }
 
     /**
