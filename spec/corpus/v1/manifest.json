@@ -60,6 +60,27 @@
       "expected": { "format": "webp", "validity": "valid", "verdict": "allow", "coverage": "partial", "findingIds": [] }
     },
     {
+      "id": "STR-WEBP-EXTENDED-VALID-001",
+      "description": "Synthetic 1x1 extended WebP container with a bounded VP8X canvas header and non-empty VP8 chunk; codec decoding is not asserted.",
+      "inputHex": "524946462200000057454250565038580a00000000000000000000000000565038200400000000000000",
+      "sha256": "6be389cb1702a17f490eb6eeba18b2b8179742c559fc7cb08da67eff9be9ca9d",
+      "expected": { "format": "webp", "validity": "valid", "verdict": "allow", "coverage": "partial", "findingIds": [] }
+    },
+    {
+      "id": "STR-WEBP-PADDING-NONZERO-001",
+      "description": "Synthetic WebP RIFF chunk with an odd payload length and a non-zero padding byte.",
+      "inputHex": "524946461a000000574542505650382004000000000000004a554e4b010000007801",
+      "sha256": "859c40d66482dc2be5a8372f4f69a67d7fd1498604dc90bc870013297a2d6d49",
+      "expected": { "format": "webp", "validity": "invalid", "verdict": "reject", "coverage": "partial", "findingIds": ["IMG-003"] }
+    },
+    {
+      "id": "STR-WEBP-VP8X-RESERVED-001",
+      "description": "Synthetic extended WebP container sets a reserved VP8X flag bit.",
+      "inputHex": "524946462200000057454250565038580a00000080000000000000000000565038200400000000000000",
+      "sha256": "1eca0de408c715584296cf0dcad9741e3e3ee600434addf6d13c3639d35aa6f6",
+      "expected": { "format": "webp", "validity": "invalid", "verdict": "reject", "coverage": "partial", "findingIds": ["IMG-006"] }
+    },
+    {
       "id": "META-PNG-EXIF-GPS-TAG-001",
       "description": "Synthetic PNG carrying a bounded TIFF EXIF directory with a GPS pointer tag; no private value is present.",
       "inputHex": "89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c489000000206558496649492a0008000000010025880400010000001a000000000000000000000000003379297300000001494441540028387de80000000049454e44ae426082",
