@@ -197,6 +197,9 @@ function inspectGif(data: Uint8Array, limits: ResourceLimits): StructuralInspect
       const label = data[offset++]!;
       if (label === 0xf9) {
         if (offset + 6 > data.length || data[offset] !== 4 || data[offset + 5] !== 0) return invalid("gif", "IMG-006", "Invalid GIF graphic control extension", "Graphic control extension has invalid size or terminator.", offset);
+        if ((data[offset + 1]! & 0xe0) !== 0) {
+          return invalid("gif", "IMG-006", "GIF graphic control reserved bits are set", "Reserved Graphic Control Extension bits must be zero.", offset + 1);
+        }
         offset += 6;
       } else {
         const blocks = readSubBlocks(offset);

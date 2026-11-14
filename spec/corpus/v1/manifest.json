@@ -1,5 +1,5 @@
 {
-  "corpusVersion": "1.0.2",
+  "corpusVersion": "1.0.3",
   "source": "Synthetic, harmless fixtures authored for Pixwarden conformance tests.",
   "license": "CC0-1.0",
   "vectors": [
@@ -92,6 +92,13 @@
       "description": "A bounded one-frame GIF sets a reserved image descriptor bit that the specification requires to be zero.",
       "inputHex": "474946383961010001000000002c000000000100010008020100003b",
       "sha256": "1940838696184342d3759bbc344c6909a3da5c7a9dc04678293c0909167bd5c9",
+      "expected": { "format": "gif", "validity": "invalid", "verdict": "reject", "coverage": "partial", "findingIds": ["IMG-006"] }
+    },
+    {
+      "id": "STR-GIF-GCE-RESERVED-001",
+      "description": "A one-frame GIF has a Graphic Control Extension with a set reserved bit.",
+      "inputHex": "4749463839610100010000000021f90420000000002c000000000100010000020100003b",
+      "sha256": "cff7be063a123f94b6c90171e958f0f354160c68c9f253fd315ee250a6ae13b3",
       "expected": { "format": "gif", "validity": "invalid", "verdict": "reject", "coverage": "partial", "findingIds": ["IMG-006"] }
     },
     {
