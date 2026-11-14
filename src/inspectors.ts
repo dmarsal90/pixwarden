@@ -244,6 +244,7 @@ function inspectWebp(data: Uint8Array, limits: ResourceLimits): StructuralInspec
   if (data.length < 12) return invalid("webp", "IMG-003", "Truncated WebP header", "RIFF and WEBP headers are incomplete.", data.length);
   const declaredEnd = readU32LE(data, 4) + 8;
   if (declaredEnd < 12 || declaredEnd > data.length) return invalid("webp", "IMG-004", "Invalid RIFF length", "Declared RIFF length exceeds available bytes.", 4);
+  if (declaredEnd < data.length) return { format: "webp", validity: "invalid", findings: [finding("IMG-008", "medium", "structural", "Data follows WebP RIFF container", "Bytes remain after the declared RIFF container.", declaredEnd, data.length - declaredEnd)], metadataBytes: 0 };
   const findings: Finding[] = [];
   let offset = 12;
   let frames = 0;
@@ -283,7 +284,6 @@ function inspectWebp(data: Uint8Array, limits: ResourceLimits): StructuralInspec
   }
   if (offset !== declaredEnd) return invalid("webp", "IMG-004", "WebP chunk boundary mismatch", "Chunks do not end at the declared RIFF boundary.", offset);
   if (!hasImagePayload) return invalid("webp", "IMG-006", "WebP image payload is missing", "No VP8, VP8L, or non-empty animated frame payload was found.", 12);
-  if (declaredEnd < data.length) findings.push(finding("IMG-008", "medium", "structural", "Data follows WebP RIFF container", "Bytes remain after the declared RIFF container.", declaredEnd, data.length - declaredEnd));
   return { format: "webp", validity: "valid", findings, metadataBytes, ...(width === undefined ? {} : { width }), ...(height === undefined ? {} : { height }), frameCount: frames };
 }
 

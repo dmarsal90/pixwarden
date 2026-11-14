@@ -1,5 +1,5 @@
 {
-  "corpusVersion": "1.0.15",
+  "corpusVersion": "1.0.16",
   "source": "Synthetic, harmless fixtures authored for Pixwarden conformance tests.",
   "license": "CC0-1.0",
   "vectors": [
@@ -418,6 +418,21 @@
       "sha256": "793c92f4216dde5f87b8deb568c8541875cab925ebcc20d46ba33b46ab823ea0",
       "expected": {
         "format": "png",
+        "validity": "invalid",
+        "verdict": "reject",
+        "coverage": "partial",
+        "findingIds": [
+          "IMG-008"
+        ]
+      }
+    },
+    {
+      "id": "STR-WEBP-TRAILING-DATA-001",
+      "description": "A valid minimal WebP has one byte after its declared RIFF container.",
+      "inputHex": "52494646100000005745425056503820040000000000000000",
+      "sha256": "ec3d13b37f4092546cd9577eb3d7fefa9237054c3ac68262efdffbb9c8234eae",
+      "expected": {
+        "format": "webp",
         "validity": "invalid",
         "verdict": "reject",
         "coverage": "partial",
