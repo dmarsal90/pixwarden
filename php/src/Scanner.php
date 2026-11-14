@@ -646,7 +646,8 @@ final class Scanner
     {
         $crcMismatchOffset = null;
         $errorId = null;
-        if (strlen($bytes) < 45 || substr($bytes, 12, 4) !== 'IHDR') {
+        if (strlen($bytes) < 45) {
+            $errorId = 'IMG-003';
             return false;
         }
         $offset = 8;
@@ -663,6 +664,7 @@ final class Scanner
             }
             $length = $unpackedLength['length'];
             if (!is_int($length) || $length > strlen($bytes) - $offset - 12) {
+                $errorId = 'IMG-004';
                 return false;
             }
             $type = substr($bytes, $offset + 4, 4);
@@ -678,10 +680,6 @@ final class Scanner
                 $errorId = 'IMG-001';
                 return false;
             }
-            if (ord($type[0]) >= 65 && ord($type[0]) <= 90 && !in_array($type, ['IHDR', 'PLTE', 'IDAT', 'IEND'], true)) {
-                $errorId = 'IMG-006';
-                return false;
-            }
             $checksum = hash_init('crc32b');
             hash_update($checksum, $type);
             hash_update($checksum, substr($bytes, $offset + 8, $length));
@@ -692,6 +690,11 @@ final class Scanner
                 return false;
             }
             if (!$seenHeader && $type !== 'IHDR') {
+                $errorId = 'IMG-005';
+                return false;
+            }
+            if (ord($type[0]) >= 65 && ord($type[0]) <= 90 && !in_array($type, ['IHDR', 'PLTE', 'IDAT', 'IEND'], true)) {
+                $errorId = 'IMG-006';
                 return false;
             }
             if ($type === 'IHDR') {
