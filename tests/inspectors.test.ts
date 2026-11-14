@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { scanImage } from "../src/index.js";
+import { scanImage, scanImageStream } from "../src/index.js";
 
 function pngChunk(type: string, payload: number[]): number[] {
   const bytes = [...type].map((char) => char.charCodeAt(0)).concat(payload);
@@ -72,5 +72,31 @@ describe("scanImage structural core", () => {
     const pending = scanImage(validPng, { signal: controller.signal });
     controller.abort();
     await expect(pending).rejects.toMatchObject({ code: "CANCELLED" });
+  });
+
+  it("scans bounded async byte chunks and snapshots them as they arrive", async () => {
+    const source = (async function* () {
+      const first = validPng.slice(0, 8);
+      yield first;
+      first.fill(0);
+      yield validPng.slice(8);
+    })();
+    const result = await scanImageStream(source);
+    expect(result.format).toBe("png");
+    expect(result.validity).toBe("valid");
+  });
+
+  it("stops reading a stream as soon as the byte cap is exceeded", async () => {
+    let yielded = 0;
+    const source = (async function* () {
+      yielded++;
+      yield new Uint8Array(5);
+      yielded++;
+      yield new Uint8Array(4);
+      yielded++;
+      yield new Uint8Array(1);
+    })();
+    await expect(scanImageStream(source, { limits: { maxBytes: 8 } })).rejects.toMatchObject({ code: "INPUT_TOO_LARGE" });
+    expect(yielded).toBe(2);
   });
 });
