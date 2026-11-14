@@ -265,6 +265,7 @@ final class Scanner
         $screenWidth = $this->u16le($bytes, 6);
         $screenHeight = $this->u16le($bytes, 8);
         if ($screenWidth < 1 || $screenHeight < 1) {
+            $errorId = 'IMG-006';
             return null;
         }
         $packed = ord($bytes[10]);
