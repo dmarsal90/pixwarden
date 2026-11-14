@@ -1,5 +1,5 @@
 {
-  "corpusVersion": "1.0.1",
+  "corpusVersion": "1.0.2",
   "source": "Synthetic, harmless fixtures authored for Pixwarden conformance tests.",
   "license": "CC0-1.0",
   "vectors": [
@@ -85,6 +85,13 @@
       "description": "A bounded one-frame GIF has an LZW minimum code size below the legal 2–8 range.",
       "inputHex": "474946383961010001000000002c000000000100010000010100003b",
       "sha256": "f5b435b564f77ee47e126e5b6dccee3fd9652155fd6352e5f00863ad73883681",
+      "expected": { "format": "gif", "validity": "invalid", "verdict": "reject", "coverage": "partial", "findingIds": ["IMG-006"] }
+    },
+    {
+      "id": "STR-GIF-IMAGE-DESCRIPTOR-RESERVED-001",
+      "description": "A bounded one-frame GIF sets a reserved image descriptor bit that the specification requires to be zero.",
+      "inputHex": "474946383961010001000000002c000000000100010008020100003b",
+      "sha256": "1940838696184342d3759bbc344c6909a3da5c7a9dc04678293c0909167bd5c9",
       "expected": { "format": "gif", "validity": "invalid", "verdict": "reject", "coverage": "partial", "findingIds": ["IMG-006"] }
     },
     {
