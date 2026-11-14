@@ -4,7 +4,7 @@ This repository currently contains the `pixwarden-js` implementation and a nativ
 
 ## PHP package status
 
-The initial Composer package in [`php/README.md`](php/README.md) is independent of Node.js and passes the shared v1 vectors. It is a limited structural baseline, not feature parity with JS: metadata, binary-region inspection, SVG, decoding, sanitization, steganography, OCR, and enforceable process isolation are not implemented there. Do not interpret its `allow` verdict as a complete security assessment; its coverage remains `partial`.
+The initial Composer package in [`php/README.md`](php/README.md) is independent of Node.js and passes the shared v1 vectors. It has limited structural profiles, partial EXIF directory inspection, and region-scoped signature indicators; it does not yet have feature parity with JS. SVG, decoding, sanitization, steganography, OCR, and enforceable process isolation are not implemented there. Do not interpret its `allow` verdict as a complete security assessment; its coverage remains `partial`.
 
 Pixwarden is an image security library. This initial package release provides bounded, read-only structural inspection for JPEG, PNG, GIF and WebP, selective EXIF TIFF directory checks, a static SVG inspection/sanitization profile, and embedded-signature indicators scoped to format-defined metadata/extension regions and container trailers. Compressed raster payloads are excluded from signature scanning to reduce incidental matches. These indicators are not malware verdicts. Raster formats are not decoded or sanitized.
 

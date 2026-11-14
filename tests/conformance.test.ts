@@ -13,6 +13,8 @@ interface ConformanceVector {
     readonly verdict: string;
     readonly coverage: string;
     readonly findingIds: readonly string[];
+    readonly binaryStatus?: string;
+    readonly binaryBytesScanned?: number;
   };
 }
 
@@ -28,5 +30,9 @@ describe("shared Pixwarden v1 corpus", () => {
     expect(result.verdict).toBe(vector.expected.verdict);
     expect(result.coverage).toBe(vector.expected.coverage);
     expect([...new Set(result.findings.map((finding) => finding.id))].sort()).toEqual([...vector.expected.findingIds].sort());
+    if (vector.expected.binaryStatus !== undefined) {
+      expect(result.binaryInspection?.status).toBe(vector.expected.binaryStatus);
+      expect(result.binaryInspection?.bytesScanned).toBe(vector.expected.binaryBytesScanned);
+    }
   });
 });
