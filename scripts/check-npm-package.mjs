@@ -14,7 +14,7 @@ const [packageInfo] = JSON.parse(execution.stdout);
 assert.equal(packageInfo.name, manifest.name);
 assert.equal(packageInfo.version, manifest.version);
 const files = new Set(packageInfo.files.map((file) => file.path));
-for (const path of ["package.json", "README.md", "LICENSE", "SECURITY.md", "dist/index.js", "dist/index.d.ts"]) {
+for (const path of ["package.json", "README.md", "LICENSE", "SECURITY.md", "dist/index.js", "dist/index.d.ts", "dist/cjs/index.js", "dist/cjs/package.json"]) {
   assert.ok(files.has(path), `npm archive must contain ${path}`);
 }
 for (const path of files) {

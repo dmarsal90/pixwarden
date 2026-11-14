@@ -103,7 +103,7 @@ Errors are stable `EngineError` codes with stage, retryability, safe message and
 
 JSON Schema Draft 2020-12 is the candidate shared schema dialect. Schema and semantic rules version independently via `specVersion` and `reportVersion`; additive optional fields are minor, changed meanings/removals are major. Unknown enum values are rejected by strict consumers or retained as opaque data by forward-compatible readers. PHP and JS serialize canonical enum strings and UTC RFC 3339 timestamps; evidence ordering and finding IDs are deterministic.
 
-JS: Node.js LTS, TypeScript strict, ESM first, CJS only if packaging and dependencies allow without semantic drift, Buffer/Uint8Array/Readable, AbortSignal. PHP: 8.2+, Composer PSR-4, strict types, framework-neutral objects, streams/resources and exceptions. Native decoder availability varies; no common capability may be advertised unless both implementations pass conformance or a documented runtime capability is emitted.
+JS: Node.js LTS, TypeScript strict, ESM and CommonJS package outputs, Buffer/Uint8Array/Readable, AbortSignal. The CommonJS output is built from the same TypeScript and exercises the isolated worker API in CI. PHP: 8.2+, Composer PSR-4, strict types, framework-neutral objects, streams/resources and exceptions. Native decoder availability varies; no common capability may be advertised unless both implementations pass conformance or a documented runtime capability is emitted.
 
 ## 8. ADRs
 
