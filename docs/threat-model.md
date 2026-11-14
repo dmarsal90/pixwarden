@@ -6,11 +6,11 @@ Assets include application availability, parser integrity, user privacy, stored 
 
 ## In scope
 
-Malformed and ambiguous structures in enabled JPEG/PNG/GIF/WebP profiles; selected metadata and auxiliary regions; SVG active features under the sanitizer profile; resource declarations; and misuse of findings or capability status.
+Malformed and ambiguous structures in enabled JPEG/PNG/GIF/WebP profiles; selected metadata and auxiliary regions; SVG active features under the sanitizer profile; bounded zlib expansion and PNG filter reconstruction; resource declarations; and misuse of findings or capability status.
 
 ## Out of scope today
 
-General malware detection, full format conformance, decoder exploitation (no raster decoder is invoked), universal polyglot detection, universal steganography detection, OCR/VLM prompt injection, adversarial model robustness, remote URL retrieval, and application deployment controls.
+General malware detection, full format conformance, native image-decoder exploitation, universal polyglot detection, universal steganography detection, OCR/VLM prompt injection, adversarial model robustness, remote URL retrieval, and application deployment controls. The restricted PNG transform does invoke zlib internally but limits output to the expected scanline length; it does not provide OS CPU/RSS isolation.
 
 ## Security assumptions
 

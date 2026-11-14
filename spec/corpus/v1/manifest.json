@@ -1,5 +1,5 @@
 {
-  "corpusVersion": "1.0.17",
+  "corpusVersion": "1.0.19",
   "source": "Synthetic, harmless fixtures authored for Pixwarden conformance tests.",
   "license": "CC0-1.0",
   "vectors": [
@@ -453,6 +453,54 @@
         "removedChunks": { "tEXt": 1 },
         "postCheckStatus": "passed"
       }
+    },
+    {
+      "id": "SAN-PNG-RGBA8-RECONSTRUCT-001",
+      "description": "A one-pixel static RGBA8 PNG with harmless iTXt metadata and known pixel bytes for bounded decode/reconstruction.",
+      "inputHex": "89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000002269545874436f6d6d656e740000000000707269766174652073796e74686574696320746578749ffc01930000000d49444154789c63105432fe0f000214016604e0de7f0000000049454e44ae426082",
+      "sha256": "dd400d2843a71c70ecd911c0ca23cfc57350aa2f75f983df944f5ae534227f45",
+      "expected": { "format": "png", "validity": "valid", "verdict": "allow", "coverage": "partial", "findingIds": [] },
+      "transform": {
+        "operation": "sanitizePngRgba8",
+        "width": 1,
+        "height": 1,
+        "rgbaHex": "112233ff",
+        "removedChunks": { "iTXt": 1 },
+        "outputChunkTypes": ["IHDR", "IDAT", "IEND"],
+        "postCheckStatus": "passed"
+      }
+    },
+    {
+      "id": "SAN-PNG-RGBA8-FILTERS-001",
+      "description": "A 1x5 RGBA8 PNG uses each of the five PNG filter types in sequence; reconstructed pixel bytes are known.",
+      "inputHex": "89504e470d0a1a0a0000000d49484452000000010000000508060000008484869f0000001e49444154789c63e01291d360e49754d6656265656565e61791946301b10014cd0169d379d7fa0000000049454e44ae426082",
+      "sha256": "42083bd0fbf328fd46266cc111ddcb022f6ccbf0d7b7883995ea820e3fc28c13",
+      "expected": { "format": "png", "validity": "valid", "verdict": "allow", "coverage": "partial", "findingIds": [] },
+      "transform": {
+        "operation": "sanitizePngRgba8",
+        "width": 1,
+        "height": 5,
+        "rgbaHex": "0a141e280f19232d141e283219232d371e28323c",
+        "removedChunks": {},
+        "outputChunkTypes": ["IHDR", "IDAT", "IEND"],
+        "postCheckStatus": "passed"
+      }
+    },
+    {
+      "id": "SAN-PNG-RGBA8-ZLIB-TRAILING-001",
+      "description": "A valid one-pixel RGBA8 PNG has a trailing byte after the end of the IDAT zlib stream; the raster transform must reject it.",
+      "inputHex": "89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000002269545874436f6d6d656e740000000000707269766174652073796e74686574696320746578749ffc01930000000e49444154789c63105432fe0f00021401660012bc63fe0000000049454e44ae426082",
+      "sha256": "e7fa95707f6d6baa71fd044b207c25f6fbebcacbbf897a3043cf8bec9b2b2109",
+      "expected": { "format": "png", "validity": "valid", "verdict": "allow", "coverage": "partial", "findingIds": [] },
+      "transform": { "operation": "sanitizePngRgba8", "expectedOutcome": "reject", "expectedErrorCode": "MALFORMED_INPUT" }
+    },
+    {
+      "id": "SAN-PNG-RGBA8-EXPANSION-001",
+      "description": "A one-pixel RGBA8 PNG inflates to more scanline bytes than its dimensions permit; the raster transform must reject it.",
+      "inputHex": "89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000002269545874436f6d6d656e740000000000707269766174652073796e74686574696320746578749ffc01930000000e49444154789c63105432feaf050003a40190b7d4ecca0000000049454e44ae426082",
+      "sha256": "189f019d716edaaea532254e270d5a5149379f5a6d18142fd7afda77029224c3",
+      "expected": { "format": "png", "validity": "valid", "verdict": "allow", "coverage": "partial", "findingIds": [] },
+      "transform": { "operation": "sanitizePngRgba8", "expectedOutcome": "reject", "expectedErrorCode": "MALFORMED_INPUT" }
     }
   ]
 }

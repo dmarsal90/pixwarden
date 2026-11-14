@@ -14,6 +14,7 @@ flowchart LR
   Resources --> Report
   Caller --> SVG[Standalone SVG allowlist transform]
   Caller --> PNG[Standalone PNG metadata transform]
+  Caller --> Raster[Restricted RGBA8 PNG decode and reconstruction]
 ```
 
 The JS and PHP packages are native runtime implementations. Shared JSON Schema, threat identifiers, fixtures, and expectations live under `spec/`. Byte inspectors do not invoke a decoder. Transformations are explicit standalone calls and do not mutate caller-owned input.

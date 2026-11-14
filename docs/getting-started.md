@@ -1,6 +1,6 @@
 # Getting started
 
-Pixwarden currently provides bounded byte-level inspection for selected JPEG, PNG, GIF, and WebP profiles, a static SVG allowlist sanitizer, and a limited PNG metadata transform. It does not decode raster pixels. Read [limitations](limitations.md) before making an allow decision.
+Pixwarden currently provides bounded byte-level inspection for selected JPEG, PNG, GIF, and WebP profiles, a static SVG allowlist sanitizer, a limited PNG metadata transform, and a restricted RGBA8 PNG raster reconstruction. Read [limitations](limitations.md) before making an allow decision.
 
 ## JavaScript
 

@@ -4,6 +4,7 @@ import { inspectBinaryIndicators, inspectStructure } from "./inspectors.js";
 import { inspectMetadata } from "./metadata-guard.js";
 import { sanitizeSvg } from "./svg-guard.js";
 import { stripPngExifAndTextMetadata } from "./png-metadata-sanitizer.js";
+import { sanitizePngRgba8 } from "./png-raster-sanitizer.js";
 import { PixwardenError, type BinaryInspectionResult, type CapabilityReport, type ControlResult, type Finding, type ImageFormat, type MetadataInspectionResult, type ResourceLimits, type ScanHints, type ScanIsolationOptions, type ScanOptions, type ScanResult, type Verdict } from "./types.js";
 
 export { PixwardenError } from "./types.js";
@@ -12,6 +13,8 @@ export type { SvgSanitizationResult } from "./svg-guard.js";
 export { sanitizeSvg } from "./svg-guard.js";
 export { stripPngExifAndTextMetadata } from "./png-metadata-sanitizer.js";
 export type { PngMetadataSanitizationResult } from "./png-metadata-sanitizer.js";
+export { sanitizePngRgba8 } from "./png-raster-sanitizer.js";
+export type { PngRasterSanitizationResult } from "./png-raster-sanitizer.js";
 
 export const ENGINE_VERSION = "0.1.0";
 export const SPEC_VERSION = "0.1.0";
@@ -27,7 +30,7 @@ const defaultLimits: ResourceLimits = Object.freeze({
 
 const formats: CapabilityReport["formats"] = Object.freeze({
   jpeg: { inspect: true, decode: false, sanitize: false, reason: "Bounded marker and segment structure inspection only; no decoder is bundled." },
-  png: { inspect: true, decode: false, sanitize: true, reason: "A limited EXIF/text-chunk removal transform is available; it does not decode pixels or remove all metadata." },
+  png: { inspect: true, decode: true, sanitize: true, reason: "Only the explicit sanitizer decodes static non-interlaced 8-bit RGBA PNGs up to one million pixels; other profiles are unsupported." },
   gif: { inspect: true, decode: false, sanitize: false, reason: "Block, sub-block and frame structure is inspected; LZW data is not decoded." },
   webp: { inspect: true, decode: false, sanitize: false, reason: "RIFF chunk bounds and selected dimensions/frame metadata are inspected; bitstreams are not decoded." },
   svg: { inspect: true, decode: false, sanitize: true, reason: "Saxes-backed XML profile and static allowlist sanitizer; unsupported active features are removed or reported." },
@@ -260,7 +263,7 @@ function inspectSnapshot(snapshot: Uint8Array, options: ScanOptions, limits: Res
     decode: makeControl("unsupported", "No image decoder is bundled or invoked."),
     sanitization: format === "svg"
       ? makeControl("skipped", "The SVG sanitizer is available separately and was not invoked by scanImage.")
-      : makeControl("unsupported", "No raster sanitizer is implemented; the original input is unchanged.")
+      : makeControl("unsupported", "No raster sanitizer is invoked by scanImage; the original input is unchanged.")
   };
   if (binaryInspection) findings.push(...binaryInspection.findings);
   for (const [name, maximum, observed] of [
@@ -289,7 +292,7 @@ function inspectSnapshot(snapshot: Uint8Array, options: ScanOptions, limits: Res
   const limitations = [
     "Structural validity is limited to the implemented byte-level profile; it is not proof of safe rendering or decoding.",
     "Metadata inspection validates bounded EXIF TIFF directory structure and reports selected sensitive tag identifiers only; it does not parse metadata values, XMP, or free text, and its control remains incomplete.",
-    "No raster decoder/sanitizer, OCR, steganography detector, or model analysis is bundled. The SVG sanitizer is a separate operation and is not invoked by scanImage.",
+    "A separate restricted PNG RGBA8 decoder/reconstructor exists; scanImage does not invoke it. There is no general raster decoder, OCR, steganography detector, or model analysis. The SVG sanitizer is also a separate operation and is not invoked by scanImage.",
     "scanImage parsing has no hard CPU, memory, or wall-clock enforcement. scanImageIsolated can enforce a worker wall-clock timeout and V8 old-generation heap ceiling, but not total RSS or OS CPU quotas; use a container or child process for hostile decoders.",
     "Binary signatures are indicators only; they neither prove a complete embedded file nor replace antivirus analysis."
   ];
