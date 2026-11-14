@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Pixwarden\Tests;
 
 use Pixwarden\Scanner;
+use Pixwarden\ResourceLimits;
+use Pixwarden\ScanOptions;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -30,18 +32,31 @@ final class ConformanceTest extends TestCase
         $bytes = hex2bin($vector['inputHex']);
         self::assertNotFalse($bytes);
         self::assertSame($vector['sha256'], hash('sha256', $bytes));
-        $result = (new Scanner())->scan($bytes, $vector['scanOptions'] ?? []);
+        $limitValues = $vector['scanOptions']['limits'] ?? [];
+        $limits = new ResourceLimits(
+            maxBytes: $limitValues['maxBytes'] ?? 10_485_760,
+            maxMetadataBytes: $limitValues['maxMetadataBytes'] ?? 1_048_576,
+            maxWidth: $limitValues['maxWidth'] ?? 40_000,
+            maxHeight: $limitValues['maxHeight'] ?? 40_000,
+            maxPixels: $limitValues['maxPixels'] ?? 40_000_000,
+            maxFrames: $limitValues['maxFrames'] ?? 200,
+        );
+        $result = (new Scanner())->scan($bytes, new ScanOptions($limits));
+        $report = $result->toArray();
+        self::assertSame($report, json_decode(json_encode($result, JSON_THROW_ON_ERROR), true, flags: JSON_THROW_ON_ERROR));
+        self::assertSame($report['format'], $result->format->value);
+        self::assertSame($report['verdict'], $result->verdict->value);
         foreach (['format', 'validity', 'verdict', 'coverage'] as $key) {
-            self::assertSame($vector['expected'][$key], $result[$key], $vector['id'] . ': ' . $key);
+            self::assertSame($vector['expected'][$key], $report[$key], $vector['id'] . ': ' . $key);
         }
-        $ids = array_values(array_unique(array_column($result['findings'], 'id')));
+        $ids = array_values(array_unique(array_column($result->findings(), 'id')));
         sort($ids);
         $expectedIds = $vector['expected']['findingIds'];
         sort($expectedIds);
         self::assertSame($expectedIds, $ids, $vector['id'] . ': findingIds');
         if (isset($vector['expected']['binaryStatus'])) {
-            self::assertSame($vector['expected']['binaryStatus'], $result['binaryInspection']['status']);
-            self::assertSame($vector['expected']['binaryBytesScanned'], $result['binaryInspection']['bytesScanned']);
+            self::assertSame($vector['expected']['binaryStatus'], $report['binaryInspection']['status']);
+            self::assertSame($vector['expected']['binaryBytesScanned'], $report['binaryInspection']['bytesScanned']);
         }
     }
 }
