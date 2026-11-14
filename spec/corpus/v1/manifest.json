@@ -1,5 +1,5 @@
 {
-  "corpusVersion": "1.0.16",
+  "corpusVersion": "1.0.17",
   "source": "Synthetic, harmless fixtures authored for Pixwarden conformance tests.",
   "license": "CC0-1.0",
   "vectors": [
@@ -439,6 +439,19 @@
         "findingIds": [
           "IMG-008"
         ]
+      }
+    },
+    {
+      "id": "SAN-PNG-TEXT-STRIP-001",
+      "description": "A minimal PNG carries a harmless synthetic tEXt chunk that the limited privacy transform must remove.",
+      "inputHex": "89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000000e744558744e6f74650073796e74686574696339fad68d00000001494441540028387de80000000049454e44ae426082",
+      "sha256": "ba4b0187319609573fc98fb264f54c137fe271cbd9f17d3d36253b404ddbbf81",
+      "expected": { "format": "png", "validity": "valid", "verdict": "allow", "coverage": "partial", "findingIds": [] },
+      "transform": {
+        "operation": "stripPngExifAndTextMetadata",
+        "expectedSha256": "4697c67f1c0f690df1ff3d8f44dd721faf5e72bdd99dd4e714079c2ee6cb94ed",
+        "removedChunks": { "tEXt": 1 },
+        "postCheckStatus": "passed"
       }
     }
   ]
