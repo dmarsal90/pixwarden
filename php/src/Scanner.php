@@ -447,12 +447,13 @@ final class Scanner
             return [$format, 'unknown', []];
         }
         $pngCrcMismatchOffset = null;
+        $pngTrailingDataOffset = null;
         $pngErrorId = null;
         $webpErrorId = null;
         $jpegErrorId = null;
         $gifErrorId = null;
         if ($format === 'png') {
-            $valid = $this->validPng($bytes, $pngCrcMismatchOffset, $pngErrorId);
+            $valid = $this->validPng($bytes, $pngCrcMismatchOffset, $pngTrailingDataOffset, $pngErrorId);
         } elseif ($format === 'gif') {
             $frames = strlen($bytes) >= 14 ? $this->countGifFrames($bytes, $gifErrorId) : null;
             $valid = $frames !== null && $frames > 0;
@@ -471,6 +472,15 @@ final class Scanner
                 'description' => 'A PNG chunk checksum does not match its type and payload bytes.',
                 'status' => 'confirmed', 'controlStatus' => 'failed',
                 'evidence' => [['kind' => 'range', 'summary' => 'Stored PNG chunk CRC differs from the computed checksum.', 'offset' => $pngCrcMismatchOffset, 'length' => 4]],
+            ]]];
+        }
+        if ($pngTrailingDataOffset !== null) {
+            return [$format, 'invalid', [[
+                'id' => 'IMG-008', 'severity' => 'medium', 'stage' => 'structural',
+                'title' => 'Data follows PNG IEND',
+                'description' => 'Bytes remain after the PNG end chunk.',
+                'status' => 'confirmed', 'controlStatus' => 'failed',
+                'evidence' => [['kind' => 'range', 'summary' => 'Bytes remain after the PNG end chunk.', 'offset' => $pngTrailingDataOffset, 'length' => strlen($bytes) - $pngTrailingDataOffset]],
             ]]];
         }
         return [$format, 'invalid', [[
@@ -655,9 +665,10 @@ final class Scanner
         return false;
     }
 
-    private function validPng(string $bytes, ?int &$crcMismatchOffset, ?string &$errorId = null): bool
+    private function validPng(string $bytes, ?int &$crcMismatchOffset, ?int &$trailingDataOffset = null, ?string &$errorId = null): bool
     {
         $crcMismatchOffset = null;
+        $trailingDataOffset = null;
         $errorId = null;
         if (strlen($bytes) < 45) {
             $errorId = 'IMG-003';
@@ -763,6 +774,11 @@ final class Scanner
         }
         if ($colorType === 3 && !$seenPalette) {
             $errorId = 'IMG-006';
+            return false;
+        }
+        if ($seenEnd && $offset < strlen($bytes)) {
+            $trailingDataOffset = $offset;
+            $errorId = 'IMG-008';
             return false;
         }
         return $seenHeader && $seenData && $seenEnd && $offset === strlen($bytes);
