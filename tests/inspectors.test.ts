@@ -40,6 +40,18 @@ const signatureInJpegEntropy = new Uint8Array([
   0xff, 0xd9,
   0x4d, 0x5a
 ]);
+const signatureInGifRegions = new Uint8Array([
+  ...new TextEncoder().encode("GIF89a"), 1, 0, 1, 0, 0, 0, 0,
+  0x21, 0xfe, 2, 0x4d, 0x5a, 0,
+  0x2c, 0, 0, 0, 0, 1, 0, 1, 0, 0,
+  2, 4, 0x50, 0x4b, 3, 4, 0,
+  0x3b
+]);
+const signatureInWebpRegions = new Uint8Array([
+  ...new TextEncoder().encode("RIFF"), 23, 0, 0, 0, ...new TextEncoder().encode("WEBP"),
+  ...new TextEncoder().encode("EXIF"), 2, 0, 0, 0, 0x4d, 0x5a,
+  ...new TextEncoder().encode("VP8 "), 1, 0, 0, 0, 0
+]);
 
 describe("scanImage structural core", () => {
   it("identifies and validates a structurally complete PNG without decoding it", async () => {
@@ -65,6 +77,20 @@ describe("scanImage structural core", () => {
     const indicators = result.findings.filter((item) => item.id === "BIN-009");
     expect(indicators).toHaveLength(1);
     expect(indicators[0]?.evidence[0]?.offset).toBe(signatureInJpegEntropy.length - 2);
+  });
+
+  it("checks GIF extension blocks while skipping compressed frame blocks", async () => {
+    const result = await scanImage(signatureInGifRegions);
+    const indicators = result.findings.filter((item) => item.id === "BIN-009");
+    expect(indicators).toHaveLength(1);
+    expect(indicators[0]?.evidence[0]?.offset).toBe(16);
+  });
+
+  it("checks WebP metadata chunks and skips image payload chunks", async () => {
+    const result = await scanImage(signatureInWebpRegions);
+    const indicators = result.findings.filter((item) => item.id === "BIN-009");
+    expect(indicators).toHaveLength(1);
+    expect(indicators[0]?.evidence[0]?.offset).toBe(20);
   });
 
   it("rejects a PNG chunk whose declared size exceeds the input", async () => {
