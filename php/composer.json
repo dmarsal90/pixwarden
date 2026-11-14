@@ -1,0 +1,12 @@
+{
+  "name": "dmarsal90/pixwarden-php",
+  "description": "Native PHP bounded structural inspection for untrusted image bytes",
+  "type": "library",
+  "license": "MIT",
+  "require": { "php": ">=8.2" },
+  "autoload": { "psr-4": { "Pixwarden\\": "src/" } },
+  "autoload-dev": { "psr-4": { "Pixwarden\\Tests\\": "tests/" } },
+  "require-dev": { "phpunit/phpunit": "^11.5", "phpstan/phpstan": "^2.1", "friendsofphp/php-cs-fixer": "^3.80" },
+  "scripts": { "test": "phpunit", "analyse": "phpstan analyse src tests --no-progress", "format-check": "php-cs-fixer fix --dry-run --diff" },
+  "config": { "sort-packages": true, "allow-plugins": {}, "platform": { "php": "8.2.0" } }
+}
