@@ -1,5 +1,5 @@
 {
-  "corpusVersion": "1.0.0",
+  "corpusVersion": "1.0.1",
   "source": "Synthetic, harmless fixtures authored for Pixwarden conformance tests.",
   "license": "CC0-1.0",
   "vectors": [
@@ -79,6 +79,13 @@
       "inputHex": "474946383961010001000000002c000000000100010000020100003b",
       "sha256": "65ee4d6f0308bf91e06298684e03c68326a2649e9473319c3b47cff55e6aec0c",
       "expected": { "format": "gif", "validity": "valid", "verdict": "allow", "coverage": "partial", "findingIds": [] }
+    },
+    {
+      "id": "STR-GIF-LZW-CODE-SIZE-INVALID-001",
+      "description": "A bounded one-frame GIF has an LZW minimum code size below the legal 2–8 range.",
+      "inputHex": "474946383961010001000000002c000000000100010000010100003b",
+      "sha256": "f5b435b564f77ee47e126e5b6dccee3fd9652155fd6352e5f00863ad73883681",
+      "expected": { "format": "gif", "validity": "invalid", "verdict": "reject", "coverage": "partial", "findingIds": ["IMG-006"] }
     },
     {
       "id": "STR-GIF-LOCAL-TABLE-TRUNCATED-001",

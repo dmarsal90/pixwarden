@@ -2,7 +2,7 @@
 
 **Document ID:** PW-CORPUS · **Version:** 0.2.1 · **Status:** Shared synthetic conformance and scheduled JS/PHP fuzzing active; broader corpus planned · **Updated:** 2026-11-14
 
-The shared `spec/corpus/v1/manifest.json` contains thirty hash-pinned, harmless synthetic byte vectors consumed directly by JS and PHP tests. This initial corpus is a subset of the broader plan below; absent cases are planned, not tested. No operational malware or live exploit payloads are included. A separate `pixwarden-spec` repository is not yet created.
+The shared `spec/corpus/v1/manifest.json` contains thirty-one hash-pinned, harmless synthetic byte vectors (corpus version 1.0.1) consumed directly by JS and PHP tests. This initial corpus is a subset of the broader plan below; absent cases are planned, not tested. No operational malware or live exploit payloads are included. A separate `pixwarden-spec` repository is not yet created.
 
 ## Manifest contract
 
@@ -14,7 +14,7 @@ The PHP scanner has a separate `nikic/php-fuzzer` 0.0.11 coverage-guided target,
 
 Initial local JS run record (2026-11-14): Jazzer.js 4.0.0 on Node 22.22.2 first found a 23-byte synthetic GIF whose descriptor advertised a missing local color table; the JS parser emitted evidence beyond the input boundary. Both parsers now check the table length before advancing, and the minimized bytes are a shared conformance vector plus a deterministic evidence-range regression. A subsequent 30-second run completed 238,449 executions without another target invariant failure.
 
-Initial local PHP run record (2026-11-14): `nikic/php-fuzzer` 0.0.11 on PHP 8.4.26 ran with a 10,000-execution cap from all 30 shared seeds for about one second, expanding the corpus to 130 inputs and reporting about 7.2 MB process memory. No target invariant failed. These bounded experiments are not protection metrics, comprehensive audits, or proof of parser safety.
+Initial local PHP run record (2026-11-14): `nikic/php-fuzzer` 0.0.11 on PHP 8.4.26 ran with a 10,000-execution cap from the 30 shared seeds then present, expanding the corpus to 130 inputs and reporting about 7.2 MB process memory. No target invariant failed. These bounded experiments are not protection metrics, comprehensive audits, or proof of parser safety.
 
 ## Planned corpus cases
 
