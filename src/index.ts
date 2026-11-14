@@ -199,7 +199,20 @@ export async function scanImageIsolated(
     | { readonly ok: false; readonly code: PixwardenError["code"]; readonly message: string };
   let worker: Worker;
   try {
-    worker = new Worker(new URL("./scan-worker.js", import.meta.url), {
+    const workerSource = `
+      const { parentPort, workerData } = require("node:worker_threads");
+      const { scanImage, PixwardenError } = require("pixwarden-js");
+      Promise.resolve().then(() => scanImage(workerData.input, workerData.options)).then(
+        (result) => parentPort.postMessage({ ok: true, result }),
+        (error) => {
+          const code = error instanceof PixwardenError ? error.code : "IO_FAILURE";
+          const message = error instanceof Error ? error.message : "Isolated scan failed.";
+          parentPort.postMessage({ ok: false, code, message });
+        }
+      );
+    `;
+    worker = new Worker(workerSource, {
+      eval: true,
       workerData: { input: snapshot, options: scanOptions },
       transferList: [snapshot.buffer],
       resourceLimits: { maxOldGenerationSizeMb }
