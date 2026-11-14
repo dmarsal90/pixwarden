@@ -1,6 +1,6 @@
 # Pixwarden Product Requirements Document
 
-**Document ID:** PW-PRD · **Version:** 0.1.0 · **Status:** Phase 0/1 baseline · **Updated:** 2026-11-13
+**Document ID:** PW-PRD · **Version:** 0.1.0 · **Status:** Phase 2 in progress · **Updated:** 2026-11-14
 
 ## 1. Vision and scope
 
@@ -70,7 +70,7 @@ Out of scope: general malware scanning, behavioral execution, universal steganog
 
 Default report stores hashes/metadata only when caller requests it; never log image bytes, extracted text, paths or EXIF values by default. Risks include decoder CVEs, parser differentials, format ambiguity, hostile native extensions, resource exhaustion, false positives/negatives, model prompt injection not recognized, transformation damage, and dependency supply chain exposure. Isolation belongs to the host or an explicit worker adapter; in-process limits cannot enforce OS memory/CPU ceilings.
 
-Acceptance aligns to project criteria: all ten phase documents; shared contracts/taxonomy/corpus; independent libraries; structural, binary and SVG controls; actual resource enforcement boundaries stated; sanitization post-validation; policy/report parity; tests and reproducible corpus; CI; integration examples; dependency/security review; published limitations. Phase status is tracked in `06-Implementation-Plan.md`; the current repo has no implementation, so these criteria are not yet met.
+Acceptance aligns to project criteria: all ten phase documents; shared contracts/taxonomy/corpus; independent libraries; structural, binary and SVG controls; actual resource enforcement boundaries stated; sanitization post-validation; policy/report parity; tests and reproducible corpus; CI; integration examples; dependency/security review; published limitations. Phase status and remaining gaps are tracked in `06-Implementation-Plan.md`; the current implementation covers only a subset of this acceptance list.
 
 ## 8. Roadmap
 

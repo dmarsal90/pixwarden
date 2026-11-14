@@ -1,11 +1,12 @@
 import { randomUUID } from "node:crypto";
 import { Worker } from "node:worker_threads";
 import { inspectBinaryIndicators, inspectStructure } from "./inspectors.js";
+import { inspectMetadata } from "./metadata-guard.js";
 import { sanitizeSvg } from "./svg-guard.js";
-import { PixwardenError, type BinaryInspectionResult, type CapabilityReport, type ControlResult, type Finding, type ImageFormat, type ResourceLimits, type ScanHints, type ScanIsolationOptions, type ScanOptions, type ScanResult, type Verdict } from "./types.js";
+import { PixwardenError, type BinaryInspectionResult, type CapabilityReport, type ControlResult, type Finding, type ImageFormat, type MetadataInspectionResult, type ResourceLimits, type ScanHints, type ScanIsolationOptions, type ScanOptions, type ScanResult, type Verdict } from "./types.js";
 
 export { PixwardenError } from "./types.js";
-export type { BinaryInspectionResult, CapabilityReport, ControlResult, Evidence, Finding, ImageFormat, ResourceLimits, ScanHints, ScanIsolationOptions, ScanOptions, ScanResult, Verdict } from "./types.js";
+export type { BinaryInspectionResult, CapabilityReport, ControlResult, Evidence, Finding, ImageFormat, MetadataInspectionResult, ResourceLimits, ScanHints, ScanIsolationOptions, ScanOptions, ScanResult, Verdict } from "./types.js";
 export type { SvgSanitizationResult } from "./svg-guard.js";
 export { sanitizeSvg } from "./svg-guard.js";
 
@@ -229,9 +230,11 @@ function inspectSnapshot(snapshot: Uint8Array, options: ScanOptions, limits: Res
   const binaryEnabled = options.binaryInspection ?? true;
   const metadataEnabled = options.metadata ?? true;
   const structural = structuralEnabled ? inspectStructure(snapshot, limits) : undefined;
-  const binaryInspection = binaryEnabled ? inspectBinaryIndicators(snapshot) : undefined;
   const format: ImageFormat = structural?.format ?? "unknown";
+  const binaryInspection = binaryEnabled ? inspectBinaryIndicators(snapshot) : undefined;
+  const metadataInspection = metadataEnabled ? inspectMetadata(snapshot, format, limits.maxMetadataBytes) : undefined;
   const findings: Finding[] = [...(structural?.findings ?? [])];
+  findings.push(...(metadataInspection?.findings ?? []));
   const hintInspection = inspectHints(format, options.hints);
   findings.push(...hintInspection.findings);
   const controls: Record<string, ControlResult> = {
@@ -241,7 +244,11 @@ function inspectSnapshot(snapshot: Uint8Array, options: ScanOptions, limits: Res
       : makeControl("skipped", "Structural inspection was disabled by the caller."),
     metadata: !metadataEnabled
       ? makeControl("skipped", "Metadata inspection was disabled by the caller.")
-      : ["jpeg", "png", "gif", "webp"].includes(format) ? makeControl("unsupported", "Metadata segment locations and aggregate byte counts are bounded, but metadata tags and values are not parsed.") : makeControl("unsupported", "Metadata inspection is not implemented for this format."),
+      : metadataInspection?.status === "unsupported"
+        ? makeControl("unsupported", "No metadata profile is available for this format.")
+        : metadataInspection?.status === "error"
+          ? makeControl("error", "Metadata inspection encountered an internal error.")
+          : makeControl("unsupported", "EXIF TIFF directory bounds and selected privacy-sensitive tag identifiers are checked; values, XMP and text metadata are not parsed."),
     binary: binaryEnabled
       ? binaryInspection?.status !== "unsupported"
         ? makeControl("passed", "Read-only signature indicators were scanned in format-defined metadata/extension regions and container trailers; this is not malware scanning.")
@@ -278,6 +285,7 @@ function inspectSnapshot(snapshot: Uint8Array, options: ScanOptions, limits: Res
   const completed = new Date().toISOString();
   const limitations = [
     "Structural validity is limited to the implemented byte-level profile; it is not proof of safe rendering or decoding.",
+    "Metadata inspection validates bounded EXIF TIFF directory structure and reports selected sensitive tag identifiers only; it does not parse metadata values, XMP, or free text, and its control remains incomplete.",
     "No raster decoder/sanitizer, OCR, steganography detector, or model analysis is bundled. The SVG sanitizer is a separate operation and is not invoked by scanImage.",
     "scanImage parsing has no hard CPU, memory, or wall-clock enforcement. scanImageIsolated can enforce a worker wall-clock timeout and V8 old-generation heap ceiling, but not total RSS or OS CPU quotas; use a container or child process for hostile decoders.",
     "Binary signatures are indicators only; they neither prove a complete embedded file nor replace antivirus analysis."
@@ -299,6 +307,7 @@ function inspectSnapshot(snapshot: Uint8Array, options: ScanOptions, limits: Res
     controls: Object.freeze(controls),
     findings: Object.freeze(findings),
     ...(binaryInspection === undefined ? {} : { binaryInspection }),
+    ...(metadataInspection === undefined ? {} : { metadataInspection }),
     capabilities: capabilityReport,
     limitations: Object.freeze(limitations),
     inputBytes: snapshot.byteLength

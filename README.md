@@ -1,6 +1,6 @@
 # Pixwarden JS
 
-Pixwarden is an image security library. This initial package release provides bounded, read-only structural inspection for JPEG, PNG, GIF and WebP, a static SVG inspection/sanitization profile, and embedded-signature indicators scoped to format-defined metadata/extension regions and container trailers. Compressed raster payloads are excluded from signature scanning to reduce incidental matches. These indicators are not malware verdicts. Raster formats are not decoded or sanitized.
+Pixwarden is an image security library. This initial package release provides bounded, read-only structural inspection for JPEG, PNG, GIF and WebP, selective EXIF TIFF directory checks, a static SVG inspection/sanitization profile, and embedded-signature indicators scoped to format-defined metadata/extension regions and container trailers. Compressed raster payloads are excluded from signature scanning to reduce incidental matches. These indicators are not malware verdicts. Raster formats are not decoded or sanitized.
 
 ## Status
 
@@ -29,6 +29,7 @@ const isolatedResult = await scanImageIsolated(imageBytes, {
 
 console.log(result.verdict, result.findings, result.controls);
 console.log(result.binaryInspection?.bytesScanned, result.binaryInspection?.trailingData);
+console.log(result.metadataInspection?.status, result.metadataInspection?.entriesInspected);
 console.log(isolatedResult.capabilities.hardLimits);
 ```
 
@@ -36,6 +37,6 @@ console.log(isolatedResult.capabilities.hardLimits);
 
 Hints are untrusted and are compared with the byte-derived format. Pixwarden does not store the supplied filename or media type in the report.
 
-Input to `scanImage` and `scanImageIsolated` must be a `Uint8Array` or Node.js `Buffer`. `scanImageStream` accepts an `AsyncIterable<Uint8Array>`, copies each yielded chunk, and stops reading once the byte cap is exceeded. The stream is buffered up to that cap before inspection; memory/RSS and stalled-source timeouts are not enforced. `sanitizeSvg` handles only the documented static allowlist; there is no raster decoder/sanitizer, OCR, steganography detection, remote fetching, or telemetry. `AbortSignal` cancels pending stream reads and requests iterator cleanup, but the source must cooperate to stop its own work; it cannot interrupt synchronous parsing. Byte, dimension, and frame thresholds are checked before any decoder (none is invoked). `scanImage` has no hard CPU, memory, or wall-clock limits. `scanImageIsolated` adds worker timeout and V8 heap controls, but does not provide OS quotas or RSS isolation. Limits may be tightened but not raised above built-in maxima.
+Input to `scanImage` and `scanImageIsolated` must be a `Uint8Array` or Node.js `Buffer`. `scanImageStream` accepts an `AsyncIterable<Uint8Array>`, copies each yielded chunk, and stops reading once the byte cap is exceeded. The stream is buffered up to that cap before inspection; memory/RSS and stalled-source timeouts are not enforced. `sanitizeSvg` handles only the documented static allowlist; the current metadata guard checks bounded EXIF TIFF directories and reports selected sensitive tag identifiers without extracting values. XMP and text metadata are not parsed. There is no raster decoder/sanitizer, OCR, steganography detection, remote fetching, or telemetry. `AbortSignal` cancels pending stream reads and requests iterator cleanup, but the source must cooperate to stop its own work; it cannot interrupt synchronous parsing. Byte, dimension, and frame thresholds are checked before any decoder (none is invoked). `scanImage` has no hard CPU, memory, or wall-clock limits. `scanImageIsolated` adds worker timeout and V8 heap controls, but does not provide OS quotas or RSS isolation. Limits may be tightened but not raised above built-in maxima.
 
 See [the product requirements](docs/01-PRD.md), [technical design](docs/02-TRD.md), [format matrix](docs/security/02-Format-Security-Matrix.md), [coverage limits](docs/security/04-Detection-Mitigation-Coverage.md), and [security policy](SECURITY.md).

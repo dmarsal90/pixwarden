@@ -62,6 +62,13 @@ export interface BinaryInspectionResult {
   readonly recursiveInspection: false;
 }
 
+export interface MetadataInspectionResult {
+  readonly status: "partial" | "unsupported" | "error";
+  readonly metadataBytes: number;
+  readonly entriesInspected: number;
+  readonly findings: readonly Finding[];
+}
+
 export interface ControlResult {
   readonly status: ControlStatus;
   readonly summary: string;
@@ -100,6 +107,7 @@ export interface ScanResult {
   readonly controls: Readonly<Record<string, ControlResult>>;
   readonly findings: readonly Finding[];
   readonly binaryInspection?: BinaryInspectionResult;
+  readonly metadataInspection?: MetadataInspectionResult;
   readonly capabilities: CapabilityReport;
   readonly limitations: readonly string[];
   readonly inputBytes: number;

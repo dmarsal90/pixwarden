@@ -47,6 +47,10 @@ Required `status` (`not_requested | produced | failed | unsupported`), `sourceDi
 
 Required `status` (`passed | findings | unsupported | error`), `bytesScanned`, `findings`, `trailingData` boolean, `recursiveInspection` fixed to `false` in core v1. Example evidence records offset/length and signature name without including bytes.
 
+### MetadataInspectionResult
+
+Required `status` (`partial | unsupported | error`), `metadataBytes`, `entriesInspected`, and `findings`. Partial results are explicit: the current JS profile bounds and walks selected EXIF TIFF IFD tables and reports selected sensitive tag identifiers without extracting values. It does not claim complete metadata coverage.
+
 ### SteganographyResult
 
 Required `status` (`passed | anomalous | inconclusive | unsupported | error`), `methods` array of `{id, applicable, status, samples?, score?}`, `limitations` array. `score` is algorithm-specific and cannot be compared across methods.

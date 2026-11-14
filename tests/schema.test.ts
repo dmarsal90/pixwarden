@@ -12,6 +12,7 @@ const contractExamples = [
   ["ResourceLimits", "resource-limits-v1.json"], ["Evidence", "evidence-v1.json"],
   ["Finding", "finding-v1.json"], ["SecurityPolicy", "security-policy-v1.json"],
   ["SanitizationResult", "sanitization-result-v1.json"], ["BinaryInspectionResult", "binary-inspection-result-v1.json"],
+  ["MetadataInspectionResult", "metadata-inspection-result-v1.json"],
   ["SteganographyResult", "steganography-result-v1.json"], ["AiInspectionResult", "ai-inspection-result-v1.json"],
   ["CapabilityReport", "capability-report-v1.json"], ["EngineError", "engine-error-v1.json"]
 ] as const;

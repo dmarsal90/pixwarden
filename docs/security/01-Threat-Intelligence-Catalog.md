@@ -53,13 +53,13 @@ Columns: **Exposure** (typical condition), **Impact/severity** (potential, conte
 | SVG-008 | Dangerous URL scheme | Script/resource execution or fetch; high | Remove active/external URL values; allow local fragment references only | SVG-008 / implemented-js, CI pending |
 | SVG-009 | Namespace/encoding ambiguity | Sanitizer/parser differential; high | Strict UTF-8 XML parse, namespace check, output reserialization | SVG-009 / implemented-js, CI pending |
 | SVG-010 | Renderer differences | One consumer's active interpretation; med-high | Narrow output profile and browser integration guidance; no universal equivalence | SVG-010 / partial-js, CI pending |
-| META-001 | Malformed EXIF | Parser crash/DoS; high | Bound tag count/offset/depth; strip or reject | META-001 / planned |
+| META-001 | Malformed EXIF | Parser crash/DoS; high | Bound TIFF IFD offsets/counts/depth; reject malformed tables | META-001 / partial JS TIFF directory parser |
 | META-002 | Malformed XMP | XML/parser exposure; high | Harden XML; cap bytes; strip/reject | META-002 / planned |
 | META-003 | Inconsistent ICC profile | Decoder behavior/resource issues; med-high | Bound profile size and validate adapter support; strip option | META-003 / planned |
 | META-004 | Active/comment payload | Downstream interpretation; med | Inspect bounded text/comment fields; strip policy | META-004 / planned |
 | META-005 | AI instructions in text metadata | Prompt injection in downstream model; med-high | Extract bounded text and classify advisory; strip metadata; classifier misses/false positives | AI-001 / planned |
 | META-006 | Excess metadata | Memory/CPU or privacy; med | Byte/count caps before parse; strip | META-005 / planned |
-| META-007 | Private location/device data | Privacy breach; high context-dependent | Detect known sensitive fields; strip default for sanitized derivative; unknown fields remain | META-006 / planned |
+| META-007 | Private location/device data | Privacy breach; high context-dependent | Detect selected GPS/owner/serial tag identifiers without extracting values; strip derivative remains unavailable | META-007 / partial JS tag-presence report |
 | META-008 | Proprietary unknown fields | Unanticipated data; med | Report field IDs/counts, strip unknown under strict policy | META-007 / planned |
 | STEG-001 | LSB anomaly | Hidden message; med | Named channel statistics; transforms mitigate some, detection incomplete | STEG-001 / planned |
 | STEG-002 | Alpha-channel data | Hidden payload in alpha; med | Analyze alpha distribution; flattening changes appearance | STEG-002 / planned |

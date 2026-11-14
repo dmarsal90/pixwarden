@@ -1,0 +1,15 @@
+{
+  "status": "partial",
+  "metadataBytes": 32,
+  "entriesInspected": 1,
+  "findings": [{
+    "id": "META-007",
+    "severity": "medium",
+    "stage": "metadata",
+    "title": "Potentially sensitive EXIF tag",
+    "description": "EXIF contains the GPSInfoIFDPointer tag; its value was not extracted.",
+    "status": "suspected",
+    "controlStatus": "passed",
+    "evidence": [{ "kind": "range", "summary": "Sensitive tag identifier", "offset": 22, "length": 12 }]
+  }]
+}
