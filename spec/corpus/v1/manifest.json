@@ -1,5 +1,5 @@
 {
-  "corpusVersion": "1.0.26",
+  "corpusVersion": "1.0.29",
   "source": "Synthetic, harmless fixtures authored for Pixwarden conformance tests.",
   "license": "CC0-1.0",
   "vectors": [
@@ -654,6 +654,38 @@
       "sha256": "7a1b564f5421ec09f19f139a6b7a1dcfc6eb2d295cda176d4a7c32fa16fefc14",
       "scanOptions": {"limits":{"maxMetadataBytes":1}},
       "expected": {"format":"webp","validity":"valid","verdict":"reject","coverage":"partial","findingIds":["BIN-009","META-006"],"binaryStatus":"findings","binaryBytesScanned":4}
+    }
+    ,{
+      "id": "AI-JPEG-EXIF-USERCOMMENT-OVERRIDE-001",
+      "description": "Synthetic JPEG EXIF ASCII UserComment contains a narrow instruction-override phrase; inspection must redact the value.",
+      "inputHex": "ffd8ffe1005c45786966000049492a0008000000010069870400010000001a00000000000000010086920700280000002c00000000000000415343494900000049676e6f726520616c6c2070726576696f757320696e737472756374696f6e73ffc00008080001000101ffda00020000ffd9",
+      "sha256": "931a53d264b7fa6150ade592a3904cc60118ded86b8d843a319d9cd3f8c6fe57",
+      "scanOptions": { "aiInspection": { "enabled": true, "ocr": false } },
+      "expected": { "format": "jpeg", "validity": "valid", "verdict": "review", "coverage": "partial", "findingIds": ["AI-002"], "aiStatus": "completed" }
+    }
+    ,{
+      "id": "AI-JPEG-EXIF-USERCOMMENT-BENIGN-001",
+      "description": "Synthetic JPEG EXIF ASCII UserComment contains benign description text and should not trigger the narrow rule.",
+      "inputHex": "ffd8ffe1005845786966000049492a0008000000010069870400010000001a00000000000000010086920700240000002c00000000000000415343494900000054686520706f7274726169742073686f7773206d6f756e7461696e73ffc00008080001000101ffda00020000ffd9",
+      "sha256": "3f04f04e7beeee9d7057d81766222542c44cbe543a49f0d30bce6398a97ab4c8",
+      "scanOptions": { "aiInspection": { "enabled": true, "ocr": false } },
+      "expected": { "format": "jpeg", "validity": "valid", "verdict": "allow", "coverage": "partial", "findingIds": [], "aiStatus": "completed" }
+    }
+    ,{
+      "id": "AI-JPEG-EXIF-USERCOMMENT-ENCODING-UNSUPPORTED-001",
+      "description": "Synthetic EXIF UserComment uses a non-ASCII encoding marker; the opt-in rule must report incomplete rather than pass its control.",
+      "inputHex": "ffd8ffe1005c45786966000049492a0008000000010069870400010000001a00000000000000010086920700280000002c00000000000000554e49434f44450049676e6f726520616c6c2070726576696f757320696e737472756374696f6e73ffc00008080001000101ffda00020000ffd9",
+      "sha256": "3ac1687452364819a5c168ad21ca5f15d899e5bd03d43e2f04e0ebfd82119eb6",
+      "scanOptions": { "aiInspection": { "enabled": true, "ocr": false } },
+      "expected": { "format": "jpeg", "validity": "valid", "verdict": "review", "coverage": "partial", "findingIds": [], "aiStatus": "partial" }
+    }
+    ,{
+      "id": "AI-JPEG-EXIF-USERCOMMENT-BOUNDS-001",
+      "description": "Synthetic EXIF UserComment offset escapes its APP1 segment; the advisory parser must report incomplete and never read out of bounds.",
+      "inputHex": "ffd8ffe1005c45786966000049492a0008000000010069870400010000001a0000000000000001008692070028000000ffffffff00000000415343494900000049676e6f726520616c6c2070726576696f757320696e737472756374696f6e73ffc00008080001000101ffda00020000ffd9",
+      "sha256": "ddb1507f7fb767f70281cd15025e352f25e73afd5ae067ef238e36ee51d13be4",
+      "scanOptions": { "aiInspection": { "enabled": true, "ocr": false } },
+      "expected": { "format": "jpeg", "validity": "valid", "verdict": "review", "coverage": "partial", "findingIds": [], "aiStatus": "partial" }
     }
   ]
 }

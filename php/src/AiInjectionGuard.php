@@ -27,7 +27,7 @@ final class AiInjectionGuard
             return ['status' => 'not_requested', 'dataEgress' => 'none', 'signals' => [], 'limitations' => $limitations];
         }
         if ($format === 'jpeg' && str_starts_with($bytes, "\xff\xd8")) {
-            return $this->inspectJpegComments($bytes, $maximum, $options);
+            return $this->inspectJpegTextMetadata($bytes, $maximum, $options);
         }
         if ($format !== 'png' || !str_starts_with($bytes, self::SIGNATURE)) {
             return ['status' => 'unsupported', 'dataEgress' => 'none', 'signals' => [], 'limitations' => [...$limitations, 'The input is not a PNG or JPEG comment profile supported by this metadata rule set.']];
@@ -96,10 +96,10 @@ final class AiInjectionGuard
     }
 
     /** @return array{status: string, dataEgress: string, signals: list<array<string, mixed>>, limitations: list<string>} */
-    private function inspectJpegComments(string $bytes, int $maximum, AiInspectionOptions $options): array
+    private function inspectJpegTextMetadata(string $bytes, int $maximum, AiInspectionOptions $options): array
     {
         $limitations = [
-            'Rules inspect JPEG COM comment segments only; visible pixels, EXIF/XMP text, OCR output and other formats are not inspected.',
+            'Rules inspect JPEG COM comment segments and ASCII-encoded EXIF UserComment values only; visible pixels, XMP text, OCR output and other formats are not inspected.',
             'Text matching is advisory and can miss paraphrased, encoded, multilingual, or visually embedded instructions; it cannot determine downstream model behavior.',
         ];
         $signals = [];
@@ -137,24 +137,24 @@ final class AiInjectionGuard
             }
             $start = $offset + 2;
             $payloadLength = $length - 2;
-            if ($marker === 0xfe) {
+            if ($marker === 0xfe || $marker === 0xe1) {
                 $allowed = max(0, $maximum - $consumed);
                 $inspectedLength = min($payloadLength, $allowed);
-                $text = substr($bytes, $start, $inspectedLength);
-                foreach (self::PATTERNS as $pattern) {
-                    if (preg_match($pattern, $text) === 1) {
-                        $signals[] = [
-                            'id' => 'AI-002', 'severity' => 'medium', 'stage' => 'ai',
-                            'title' => 'Instruction-like text in JPEG comment metadata',
-                            'description' => 'JPEG COM metadata matches a narrow rule for instruction override or system-prompt disclosure language. The text was not included in the report.',
-                            'status' => 'suspected', 'controlStatus' => 'passed',
-                            'evidence' => [[
-                                'kind' => 'range', 'summary' => 'A bounded JPEG COM field matched a prompt-risk rule; field contents are redacted.',
-                                'offset' => $start, 'length' => $inspectedLength,
-                            ]],
-                        ];
-                        break;
+                if ($marker === 0xfe) {
+                    $text = substr($bytes, $start, $inspectedLength);
+                    $signal = $this->makeJpegSignal($text, $start, $inspectedLength, 'JPEG COM comment');
+                    if ($signal !== null) {
+                        $signals[] = $signal;
                     }
+                } elseif (substr($bytes, $start, min(6, $inspectedLength)) === "Exif\0\0") {
+                    $comment = $this->inspectAsciiExifUserComment($bytes, $start, $start + $inspectedLength);
+                    if ($comment['text'] !== null && $comment['offset'] !== null && $comment['length'] !== null) {
+                        $signal = $this->makeJpegSignal($comment['text'], $comment['offset'], $comment['length'], 'JPEG EXIF UserComment');
+                        if ($signal !== null) {
+                            $signals[] = $signal;
+                        }
+                    }
+                    $partial = $partial || $comment['partial'];
                 }
                 $consumed += $inspectedLength;
                 if ($inspectedLength < $payloadLength) {
@@ -168,12 +168,116 @@ final class AiInjectionGuard
             $limitations[] = 'OCR was requested but is not implemented; only metadata text rules ran.';
         }
         if ($partial) {
-            $limitations[] = 'JPEG comment metadata was malformed or exceeded the configured inspection bound.';
+            $limitations[] = 'JPEG comment/EXIF metadata was malformed, used an unsupported UserComment encoding, or exceeded the configured inspection bound.';
         }
         return [
             'status' => $options->ocr || $partial ? 'partial' : 'completed',
             'dataEgress' => 'none', 'signals' => $signals, 'limitations' => $limitations,
         ];
+    }
+
+    /** @return array<string, mixed>|null */
+    private function makeJpegSignal(string $text, int $offset, int $length, string $source): ?array
+    {
+        foreach (self::PATTERNS as $pattern) {
+            if (preg_match($pattern, $text) === 1) {
+                return [
+                    'id' => 'AI-002', 'severity' => 'medium', 'stage' => 'ai',
+                    'title' => 'Instruction-like text in JPEG metadata',
+                    'description' => $source . ' metadata matches a narrow rule for instruction override or system-prompt disclosure language. The text was not included in the report.',
+                    'status' => 'suspected', 'controlStatus' => 'passed',
+                    'evidence' => [[
+                        'kind' => 'range', 'summary' => 'A bounded ' . $source . ' field matched a prompt-risk rule; field contents are redacted.',
+                        'offset' => $offset, 'length' => $length,
+                    ]],
+                ];
+            }
+        }
+        return null;
+    }
+
+    /** @return array{text: ?string, offset: ?int, length: ?int, partial: bool} */
+    private function inspectAsciiExifUserComment(string $bytes, int $app1Start, int $app1End): array
+    {
+        $tiff = $app1Start + 6;
+        if ($app1End - $tiff < 8) {
+            return ['text' => null, 'offset' => null, 'length' => null, 'partial' => true];
+        }
+        $little = substr($bytes, $tiff, 2) === 'II';
+        if (!$little && substr($bytes, $tiff, 2) !== 'MM') {
+            return ['text' => null, 'offset' => null, 'length' => null, 'partial' => true];
+        }
+        $read16 = static function (int $offset) use ($bytes, $app1End, $little): ?int {
+            if ($offset < 0 || $offset + 2 > $app1End) {
+                return null;
+            }
+            $unpacked = unpack($little ? 'vvalue' : 'nvalue', substr($bytes, $offset, 2));
+            return $unpacked === false ? null : $unpacked['value'];
+        };
+        $read32 = static function (int $offset) use ($bytes, $app1End, $little): ?int {
+            if ($offset < 0 || $offset + 4 > $app1End) {
+                return null;
+            }
+            $unpacked = unpack($little ? 'Vvalue' : 'Nvalue', substr($bytes, $offset, 4));
+            return $unpacked === false ? null : $unpacked['value'];
+        };
+        if ($read16($tiff + 2) !== 42) {
+            return ['text' => null, 'offset' => null, 'length' => null, 'partial' => true];
+        }
+        $readIfd = static function (int $relative) use ($tiff, $app1End, $read16): ?array {
+            if ($relative < 8 || $relative > $app1End - $tiff - 2) {
+                return null;
+            }
+            $start = $tiff + $relative;
+            $count = $read16($start);
+            if ($count === null || $count > 1024 || $start + 2 + $count * 12 + 4 > $app1End) {
+                return null;
+            }
+            return ['start' => $start + 2, 'count' => $count];
+        };
+        $ifd0Relative = $read32($tiff + 4);
+        $ifd0 = $ifd0Relative === null ? null : $readIfd($ifd0Relative);
+        if ($ifd0 === null) {
+            return ['text' => null, 'offset' => null, 'length' => null, 'partial' => true];
+        }
+        $exifRelative = null;
+        for ($index = 0; $index < $ifd0['count']; $index++) {
+            $entry = $ifd0['start'] + $index * 12;
+            if ($read16($entry) === 0x8769 && $read16($entry + 2) === 4 && $read32($entry + 4) === 1) {
+                $exifRelative = $read32($entry + 8);
+                break;
+            }
+        }
+        if ($exifRelative === null) {
+            return ['text' => null, 'offset' => null, 'length' => null, 'partial' => false];
+        }
+        $exifIfd = $readIfd($exifRelative);
+        if ($exifIfd === null) {
+            return ['text' => null, 'offset' => null, 'length' => null, 'partial' => true];
+        }
+        for ($index = 0; $index < $exifIfd['count']; $index++) {
+            $entry = $exifIfd['start'] + $index * 12;
+            if ($read16($entry) !== 0x9286) {
+                continue;
+            }
+            $byteCount = $read32($entry + 4);
+            if ($read16($entry + 2) !== 7 || $byteCount === null || $byteCount < 8) {
+                return ['text' => null, 'offset' => null, 'length' => null, 'partial' => true];
+            }
+            $relative = $read32($entry + 8);
+            if ($relative === null || $relative < 8 || $relative > $app1End - $tiff || $byteCount > $app1End - ($tiff + $relative)) {
+                return ['text' => null, 'offset' => null, 'length' => null, 'partial' => true];
+            }
+            $valueStart = $tiff + $relative;
+            if (substr($bytes, $valueStart, 8) !== "ASCII\0\0\0") {
+                return ['text' => null, 'offset' => null, 'length' => null, 'partial' => true];
+            }
+            return [
+                'text' => substr($bytes, $valueStart + 8, $byteCount - 8),
+                'offset' => $valueStart + 8, 'length' => $byteCount - 8, 'partial' => false,
+            ];
+        }
+        return ['text' => null, 'offset' => null, 'length' => null, 'partial' => false];
     }
 
     /** @return array{start: int, length: int, text: string, compressed: bool}|null */
