@@ -626,6 +626,22 @@ final class Scanner
                 return false;
             }
             $type = substr($bytes, $offset + 4, 4);
+            for ($typeIndex = 0; $typeIndex < 4; $typeIndex++) {
+                $typeByte = ord($type[$typeIndex]);
+                if (!(($typeByte >= 65 && $typeByte <= 90) || ($typeByte >= 97 && $typeByte <= 122))) {
+                    $errorId = 'IMG-001';
+                    return false;
+                }
+            }
+            $reservedTypeByte = ord($type[2]);
+            if ($reservedTypeByte >= 97 && $reservedTypeByte <= 122) {
+                $errorId = 'IMG-001';
+                return false;
+            }
+            if (ord($type[0]) >= 65 && ord($type[0]) <= 90 && !in_array($type, ['IHDR', 'PLTE', 'IDAT', 'IEND'], true)) {
+                $errorId = 'IMG-006';
+                return false;
+            }
             $checksum = hash_init('crc32b');
             hash_update($checksum, $type);
             hash_update($checksum, substr($bytes, $offset + 8, $length));
