@@ -268,6 +268,16 @@ describe("scanImage structural core", () => {
     expect(result.postCheckStatus).toBe("passed");
   });
 
+  it("removes CSS-escaped URL-like values from SVG paint attributes", () => {
+    const svg = new TextEncoder().encode('<svg xmlns="http://www.w3.org/2000/svg"><rect fill="u&#92;72 l(https://example.invalid/payload.svg)" stroke="u/**/rl(https://example.invalid/other.svg)"/></svg>');
+    const result = sanitizeSvg(svg);
+    const output = new TextDecoder().decode(result.bytes);
+
+    expect(output).toBe('<svg xmlns="http://www.w3.org/2000/svg"><rect></rect></svg>');
+    expect(output).not.toContain("example.invalid");
+    expect(result.removedAttributes).toBe(2);
+  });
+
   it("compares optional filename and MIME hints against byte-derived format without retaining them", async () => {
     const result = await scanImage(validPng, { hints: { filename: "/private/uploads/photo.jpg", mediaType: "image/jpeg" } });
     expect(result.findings.filter((finding) => finding.id === "IMG-010")).toHaveLength(1);

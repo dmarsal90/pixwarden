@@ -47,6 +47,16 @@ final class SvgGuardTest extends TestCase
         self::assertSame('passed', $result['postCheckStatus']);
     }
 
+    public function testCssEscapesInPaintAttributesAreRemoved(): void
+    {
+        $source = '<svg xmlns="http://www.w3.org/2000/svg"><rect fill="u&#92;72 l(https://example.invalid/payload.svg)" stroke="u/**/rl(https://example.invalid/other.svg)"/></svg>';
+        $result = (new Scanner())->sanitizeSvg($source);
+
+        self::assertSame('<svg xmlns="http://www.w3.org/2000/svg"><rect></rect></svg>', $result['bytes']);
+        self::assertSame(2, $result['removedAttributes']);
+        self::assertStringNotContainsString('example.invalid', $result['bytes']);
+    }
+
     public function testInputAndNestingLimitsAreEnforced(): void
     {
         $scanner = new Scanner();

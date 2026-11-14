@@ -1,5 +1,5 @@
 {
-  "corpusVersion": "1.0.5",
+  "corpusVersion": "1.0.6",
   "source": "Synthetic, harmless fixtures authored for Pixwarden conformance tests.",
   "license": "CC0-1.0",
   "vectors": [
@@ -240,6 +240,13 @@
       "inputHex": "3c73766720786d6c6e733d22687474703a2f2f7777772e77332e6f72672f323030302f737667223e3c7363726970743e616c6572742831293c2f7363726970743e3c72656374206f6e6c6f61643d2278222077696474683d2231222f3e3c2f7376673e",
       "sha256": "72e03dd4170d51a56a960801f37d2c007798282a010e2acab27d56eaee20386f",
       "expected": { "format": "svg", "validity": "valid", "verdict": "reject", "coverage": "partial", "findingIds": ["SVG-001", "SVG-002"] }
+    },
+    {
+      "id": "SVG-CSS-ESCAPE-PAINT-URL-001",
+      "description": "SVG fill and stroke values use CSS escapes and comments to form URL-like functions.",
+      "inputHex": "3c73766720786d6c6e733d22687474703a2f2f7777772e77332e6f72672f323030302f737667223e3c726563742066696c6c3d2275262339323b3732206c2868747470733a2f2f6578616d706c652e696e76616c69642f7061796c6f61642e7376672922207374726f6b653d22752f2a2a2f726c2868747470733a2f2f6578616d706c652e696e76616c69642f6f746865722e73766729222f3e3c2f7376673e",
+      "sha256": "50d90474c4b627ce5af55c338cdd983a1eee2fa65c459613dd601f00bf8a5057",
+      "expected": { "format": "svg", "validity": "valid", "verdict": "reject", "coverage": "partial", "findingIds": ["SVG-002"] }
     },
     {
       "id": "RES-PNG-WIDTH-LIMIT-001",

@@ -165,6 +165,11 @@ function parseAndSerializeSvg(bytes: Uint8Array, limits: ResourceLimits): Intern
         }
         ids.add(value);
       }
+      if ((attrName === "fill" || attrName === "stroke") && (value.includes("\\") || value.includes("/*"))) {
+        removedAttributes++;
+        unsafeAttributes++;
+        continue;
+      }
       if (/url\s*\(/i.test(value)) {
         if (!isSafeLocalReference(value)) {
           removedAttributes++;

@@ -198,6 +198,11 @@ final class SvgGuard
                         }
                         $state['ids'][$value] = true;
                     }
+                    if (in_array($attrName, ['fill', 'stroke'], true) && (str_contains($value, '\\') || str_contains($value, '/*'))) {
+                        $state['removedAttributes']++;
+                        $state['unsafeAttributes']++;
+                        continue;
+                    }
                     if (preg_match('/url\s*\(/i', $value) === 1) {
                         if (preg_match('/^url\(#[A-Za-z_][A-Za-z0-9_.:-]*\)$/D', $value) !== 1) {
                             $state['removedAttributes']++;
