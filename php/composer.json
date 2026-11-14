@@ -18,5 +18,22 @@
     "phpunit/phpunit": "^11.5"
   },
   "scripts": { "test": "phpunit", "test:no-zlib": "php -d disable_functions=zlib_decode tests/no-zlib-ai-smoke.php", "test:no-dom": "php -n tests/no-dom-svg-smoke.php", "test:examples": "php tests/example-smoke.php", "analyse": "phpstan analyse src tests --no-progress", "format-check": "php-cs-fixer fix --dry-run --diff" },
-  "config": { "sort-packages": true, "allow-plugins": {}, "platform": { "php": "8.2.0" } }
+  "config": { "sort-packages": true, "allow-plugins": {}, "platform": { "php": "8.2.0" } },
+  "archive": {
+    "exclude": [
+      "/.gitignore",
+      "/.php-cs-fixer.cache",
+      "/.php-cs-fixer.php",
+      "/.phpunit.cache/",
+      "/.phpunit.result.cache",
+      "/CONTRIBUTING.md",
+      "/composer.lock",
+      "/fuzz/",
+      "/phpstan.neon",
+      "/phpunit.xml",
+      "/scripts/",
+      "/tests/",
+      "/vendor/"
+    ]
+  }
 }

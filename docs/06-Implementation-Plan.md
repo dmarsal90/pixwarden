@@ -56,3 +56,5 @@ The JS and PHP suites include coverage-guided targets seeded from the shared syn
 PHP CI also runs capability smoke checks with optional extensions disabled: compressed PNG text must remain incomplete without `zlib_decode`, and SVG inspection/sanitization must remain explicitly unsupported without DOM.
 
 JS and PHP CI execute their documented file-ingress examples against the same hash-checked one-pixel PNG fixture and assert that partial coverage is retained for review.
+
+PHP CI builds the Composer archive and rejects vendor, test, fuzz, script, lockfile, and local cache contents. A local dry run initially exposed a 102 MB archive caused by the ignored `vendor/` directory; `archive.exclude` now constrains the package to its runtime source, documentation and example files.

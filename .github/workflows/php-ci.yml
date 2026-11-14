@@ -46,3 +46,17 @@ jobs:
         working-directory: php
       - run: composer audit --no-interaction
         working-directory: php
+      - name: Build and inspect Composer package archive
+        working-directory: php
+        run: |
+          archive_directory="$(mktemp -d)"
+          composer archive --format=zip --dir="$archive_directory"
+          archive_file="$(find "$archive_directory" -maxdepth 1 -name '*.zip' -print -quit)"
+          test -n "$archive_file"
+          archive_entries="$(unzip -Z1 "$archive_file")"
+          printf '%s\n' "$archive_entries" | grep -Fx 'src/Scanner.php'
+          printf '%s\n' "$archive_entries" | grep -Fx 'examples/scan-file.php'
+          if printf '%s\n' "$archive_entries" | grep -Eq '(^|/)(vendor|tests|fuzz|scripts)/|(^|/)(composer\.lock|\.phpunit\.result\.cache|\.php-cs-fixer\.cache)$'; then
+            echo 'The Composer archive contains development or local cache files.' >&2
+            exit 1
+          fi
