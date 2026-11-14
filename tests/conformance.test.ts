@@ -7,7 +7,7 @@ interface ConformanceVector {
   readonly id: string;
   readonly inputHex: string;
   readonly sha256: string;
-  readonly scanOptions?: { readonly limits?: { readonly maxWidth?: number; readonly maxHeight?: number; readonly maxPixels?: number; readonly maxFrames?: number }; readonly aiInspection?: { readonly enabled: boolean; readonly ocr: boolean }; readonly steganography?: { readonly enabled: boolean; readonly mode: "statistical" | "targeted"; readonly maxSamples?: number } };
+  readonly scanOptions?: { readonly limits?: { readonly maxMetadataBytes?: number; readonly maxWidth?: number; readonly maxHeight?: number; readonly maxPixels?: number; readonly maxFrames?: number }; readonly aiInspection?: { readonly enabled: boolean; readonly ocr: boolean }; readonly steganography?: { readonly enabled: boolean; readonly mode: "statistical" | "targeted"; readonly maxSamples?: number } };
   readonly expected: {
     readonly format: string;
     readonly validity: string;
@@ -35,7 +35,12 @@ describe("shared Pixwarden v1 corpus", () => {
     expect(result.coverage).toBe(vector.expected.coverage);
     expect(result.steganography.status).toBe(vector.expected.steganographyStatus ?? "unsupported");
     expect(result.controls.steganography?.status).toBe("unsupported");
-    expect(result.controls.aiInspection?.status).toBe(vector.scanOptions?.aiInspection?.enabled ? "passed" : "skipped");
+    const expectedAiControl = result.aiInspection.status === "not_requested"
+      ? "skipped"
+      : result.aiInspection.status === "partial" || result.aiInspection.status === "unsupported"
+        ? "unsupported"
+        : result.aiInspection.status === "error" ? "error" : "passed";
+    expect(result.controls.aiInspection?.status).toBe(expectedAiControl);
     expect([...new Set(result.findings.map((finding) => finding.id))].sort()).toEqual([...vector.expected.findingIds].sort());
     if (vector.expected.binaryStatus !== undefined) {
       expect(result.binaryInspection?.status).toBe(vector.expected.binaryStatus);

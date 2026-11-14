@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Pixwarden;
 
-/** Advisory, bounded prompt-risk rules for uncompressed PNG text metadata. */
+/** Advisory, bounded prompt-risk rules for PNG text metadata. */
 final class AiInjectionGuard
 {
     private const SIGNATURE = "\x89PNG\r\n\x1a\n";
@@ -20,7 +20,7 @@ final class AiInjectionGuard
     public function inspect(string $bytes, string $format, int $maximum, AiInspectionOptions $options): array
     {
         $limitations = [
-            'Rules inspect only uncompressed PNG tEXt and iTXt fields; visible pixels, OCR output, compressed metadata and other formats are not inspected.',
+            'Rules inspect PNG tEXt, zTXt and iTXt fields; compressed output is capped by the metadata budget. Visible pixels, OCR output and other formats are not inspected.',
             'Text matching is advisory and can miss paraphrased, encoded, multilingual, or visually embedded instructions; it cannot determine downstream model behavior.',
         ];
         if (!$options->enabled) {
@@ -47,22 +47,22 @@ final class AiInjectionGuard
             $kind = substr($bytes, $offset + 4, 4);
             $payloadStart = $offset + 8;
             $payloadEnd = $payloadStart + $length;
-            if ($kind === 'tEXt' || $kind === 'iTXt') {
+            if ($kind === 'tEXt' || $kind === 'zTXt' || $kind === 'iTXt') {
                 $remaining = $maximum - $consumed;
                 $allowed = $remaining > 0 ? $remaining : 0;
                 $entry = $this->extractText($bytes, $payloadStart, $payloadEnd, $kind, $allowed);
                 if ($entry !== null) {
-                    if ($length > $allowed) {
+                    if ($length + strlen($entry['text']) > $allowed || ($entry['compressed'] && strlen($entry['text']) >= $allowed)) {
                         $partial = true;
                     }
-                    $consumed += min($length, $allowed);
+                    $consumed += min($length + strlen($entry['text']), $allowed);
                     foreach (self::PATTERNS as $pattern) {
                         $matched = preg_match($pattern, $entry['text']);
                         if ($matched === 1) {
                             $signals[] = [
                                 'id' => 'AI-002', 'severity' => 'medium', 'stage' => 'ai',
                                 'title' => 'Instruction-like text in PNG metadata',
-                                'description' => 'Uncompressed PNG text metadata matches a narrow rule for instruction override or system-prompt disclosure language. The text was not included in the report.',
+                                'description' => ($entry['compressed'] ? 'Compressed' : 'Uncompressed') . ' PNG text metadata matches a narrow rule for instruction override or system-prompt disclosure language. The text was not included in the report.',
                                 'status' => 'suspected', 'controlStatus' => 'passed',
                                 'evidence' => [[
                                     'kind' => 'range', 'summary' => 'A bounded PNG text field matched a prompt-risk rule; field contents are redacted.',
@@ -75,8 +75,6 @@ final class AiInjectionGuard
                 } else {
                     $partial = true;
                 }
-            } elseif ($kind === 'zTXt') {
-                $partial = true;
             }
             $offset = $payloadEnd + 4;
             if ($kind === 'IEND') {
@@ -94,19 +92,27 @@ final class AiInjectionGuard
         return ['status' => $options->ocr || $partial ? 'partial' : 'completed', 'dataEgress' => 'none', 'signals' => $signals, 'limitations' => $limitations];
     }
 
-    /** @return array{start: int, length: int, text: string}|null */
+    /** @return array{start: int, length: int, text: string, compressed: bool}|null */
     private function extractText(string $bytes, int $start, int $end, string $kind, int $maximumTextBytes): ?array
     {
         $keywordEnd = strpos($bytes, "\0", $start);
         if ($keywordEnd === false || $keywordEnd >= $end) {
             return null;
         }
+        $compressed = false;
         if ($kind === 'tEXt') {
             $textStart = $keywordEnd + 1;
-        } else {
-            if ($keywordEnd + 3 > $end || ord($bytes[$keywordEnd + 1]) !== 0 || ord($bytes[$keywordEnd + 2]) !== 0) {
+        } elseif ($kind === 'zTXt') {
+            if ($keywordEnd + 2 > $end || ord($bytes[$keywordEnd + 1]) !== 0) {
                 return null;
             }
+            $textStart = $keywordEnd + 2;
+            $compressed = true;
+        } else {
+            if ($keywordEnd + 3 > $end || ord($bytes[$keywordEnd + 1]) > 1 || ord($bytes[$keywordEnd + 2]) !== 0) {
+                return null;
+            }
+            $compressed = ord($bytes[$keywordEnd + 1]) === 1;
             $languageEnd = strpos($bytes, "\0", $keywordEnd + 3);
             if ($languageEnd === false || $languageEnd >= $end) {
                 return null;
@@ -119,7 +125,17 @@ final class AiInjectionGuard
         }
         $length = $end - $textStart;
         $text = substr($bytes, $textStart, min($length, $maximumTextBytes));
+        if ($compressed) {
+            if ($maximumTextBytes < 1 || $length > $maximumTextBytes || !function_exists('zlib_decode')) {
+                return null;
+            }
+            $decoded = @zlib_decode($text, $maximumTextBytes);
+            if (!is_string($decoded)) {
+                return null;
+            }
+            $text = $decoded;
+        }
 
-        return ['start' => $textStart, 'length' => $length, 'text' => $text];
+        return ['start' => $textStart, 'length' => $length, 'text' => $text, 'compressed' => $compressed];
     }
 }

@@ -10,7 +10,7 @@ Malformed and ambiguous structures in enabled JPEG/PNG/GIF/WebP profiles; select
 
 ## Out of scope today
 
-General malware detection, full format conformance, native image-decoder exploitation, universal polyglot detection, universal steganography detection, OCR/VLM or pixel-level prompt-injection detection, adversarial model robustness, remote URL retrieval, and application deployment controls. A narrow opt-in rule set inspects uncompressed PNG text metadata only; it does not detect prompt injection generally. The restricted PNG transform does invoke zlib internally but limits output to the expected scanline length; it does not provide OS CPU/RSS isolation.
+General malware detection, full format conformance, native image-decoder exploitation, universal polyglot detection, universal steganography detection, OCR/VLM or pixel-level prompt-injection detection, adversarial model robustness, remote URL retrieval, and application deployment controls. A narrow opt-in rule set inspects bounded PNG tEXt/zTXt/iTXt metadata only; it does not detect prompt injection generally. The restricted PNG transform does invoke zlib internally but limits output to the expected scanline length; it does not provide OS CPU/RSS isolation.
 
 ## Security assumptions
 

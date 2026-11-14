@@ -112,7 +112,7 @@ final class Scanner
                     ? ['status' => 'error', 'summary' => 'PNG metadata instruction inspection could not safely read a chunk length.']
                 : (in_array($aiInspection['status'], ['unsupported', 'partial'], true)
                     ? ['status' => 'unsupported', 'summary' => 'Only bounded PNG metadata text rules are available; requested OCR or format analysis is unsupported.']
-                    : ['status' => 'passed', 'summary' => 'Bounded PNG uncompressed text metadata rules ran locally; this is advisory and does not inspect pixels.'])),
+                    : ['status' => 'passed', 'summary' => 'Bounded PNG text metadata rules ran locally; this is advisory and does not inspect pixels.'])),
         ];
         $evaluation = $this->evaluatePolicy($findings, $controls, $options);
         $verdict = $evaluation['verdict'];
