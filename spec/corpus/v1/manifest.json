@@ -1,5 +1,5 @@
 {
-  "corpusVersion": "1.0.14",
+  "corpusVersion": "1.0.15",
   "source": "Synthetic, harmless fixtures authored for Pixwarden conformance tests.",
   "license": "CC0-1.0",
   "vectors": [
@@ -408,6 +408,21 @@
         "coverage": "partial",
         "findingIds": [
           "IMG-006"
+        ]
+      }
+    },
+    {
+      "id": "STR-PNG-TRAILING-DATA-001",
+      "description": "A valid minimal PNG is followed by one byte after IEND.",
+      "inputHex": "89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c48900000001494441540028387de80000000049454e44ae42608200",
+      "sha256": "793c92f4216dde5f87b8deb568c8541875cab925ebcc20d46ba33b46ab823ea0",
+      "expected": {
+        "format": "png",
+        "validity": "invalid",
+        "verdict": "reject",
+        "coverage": "partial",
+        "findingIds": [
+          "IMG-008"
         ]
       }
     }
