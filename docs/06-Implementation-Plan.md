@@ -1,6 +1,6 @@
 # Pixwarden Implementation Plan
 
-**Document ID:** PW-PLAN · **Version:** 0.1.0 · **Status:** Phase 2 in progress · **Updated:** 2026-11-14
+**Document ID:** PW-PLAN · **Version:** 0.1.1 · **Status:** Phase 2 in progress · **Updated:** 2026-11-14
 
 ## Phase gates and work items
 
@@ -46,5 +46,7 @@ Initial repository inspection on 2026-11-13 found only `LICENSE` (MIT), no sourc
 Package-name lookup for `pixwarden-js` and `dmarsal90/pixwarden-php` was attempted on 2026-11-13 through public search/direct listing pages, but registry records could not be retrieved reliably. Availability and namespace ownership are therefore **unverified**, not confirmed available. Repeat with the npm and Packagist registries immediately before repository/package creation and again before release; record timestamp and account ownership. Do not squat, transfer or publish a name as part of this check.
 
 Phase 2 has a strict Draft 2020-12 contract artifact in `spec/schemas/pixwarden-v1.schema.json`. It defines the request, result, policy, finding/evidence, capability, resource, sanitization, binary, steganography, AI and error contracts in reusable `$defs`. Versioned golden examples are validated in JS CI; PHP conformance and shared executable vectors remain pending.
+
+The first shared executable corpus is now `spec/corpus/v1/manifest.json` (CC0-1.0, six hash-pinned synthetic vectors). The JS conformance test consumes that manifest directly and checks exact structural classification fields; the expected `partial` coverage is deliberate because codec decoding and broader controls are not asserted. PHP consumption and broader malformed/metadata/SVG/false-positive vectors remain pending.
 
 The JS test suite now includes a deterministic malformed-input smoke corpus for parser crash resistance and evidence-range bounds. It is regression coverage only; sustained coverage-guided fuzzing and minimized native-decoder corpora remain planned.
