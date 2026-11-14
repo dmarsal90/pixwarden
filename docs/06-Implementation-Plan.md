@@ -58,3 +58,5 @@ PHP CI also runs capability smoke checks with optional extensions disabled: comp
 JS and PHP CI execute their documented file-ingress examples against the same hash-checked one-pixel PNG fixture and assert that partial coverage is retained for review.
 
 PHP CI builds the Composer archive and rejects vendor, test, fuzz, script, lockfile, and local cache contents. A local dry run initially exposed a 102 MB archive caused by the ignored `vendor/` directory; `archive.exclude` now constrains the package to its runtime source, documentation and example files.
+
+JS CI runs `npm pack --dry-run --json` and verifies that the npm archive has the declared package identity, public entry points, license/security/readme files, and no tests, docs, fuzzing or sibling PHP files.

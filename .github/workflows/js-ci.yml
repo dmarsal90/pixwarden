@@ -32,6 +32,7 @@ jobs:
       - run: npm ci --ignore-scripts
       - run: npm run build
       - run: node scripts/smoke-js-example.mjs
+      - run: npm run check:package
       - run: npm run typecheck
       - run: npm test
       - name: Replay shared seed corpus with Jazzer.js
