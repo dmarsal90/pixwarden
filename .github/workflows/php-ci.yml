@@ -38,5 +38,7 @@ jobs:
         working-directory: php
       - run: composer test
         working-directory: php
+      - run: composer test:no-zlib
+        working-directory: php
       - run: composer audit --no-interaction
         working-directory: php

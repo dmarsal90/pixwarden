@@ -6,7 +6,7 @@
   "require": { "php": ">=8.2" },
   "suggest": {
     "ext-dom": "Enables bounded static SVG inspection and allowlist sanitization.",
-    "ext-zlib": "Enables restricted RGBA8 PNG raster sanitization."
+    "ext-zlib": "Enables compressed PNG text inspection and restricted RGBA8 PNG raster sanitization."
   },
   "autoload": { "psr-4": { "Pixwarden\\": "src/" } },
   "autoload-dev": { "psr-4": { "Pixwarden\\Tests\\": "tests/" } },
@@ -17,6 +17,6 @@
     "phpstan/phpstan": "^2.1",
     "phpunit/phpunit": "^11.5"
   },
-  "scripts": { "test": "phpunit", "analyse": "phpstan analyse src tests --no-progress", "format-check": "php-cs-fixer fix --dry-run --diff" },
+  "scripts": { "test": "phpunit", "test:no-zlib": "php -d disable_functions=zlib_decode tests/no-zlib-ai-smoke.php", "analyse": "phpstan analyse src tests --no-progress", "format-check": "php-cs-fixer fix --dry-run --diff" },
   "config": { "sort-packages": true, "allow-plugins": {}, "platform": { "php": "8.2.0" } }
 }
