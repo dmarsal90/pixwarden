@@ -74,6 +74,9 @@ final class ConformanceTest extends TestCase
             ),
         ));
         $report = $result->toArray();
+        $expected = !extension_loaded('zlib') && isset($vector['expectedWithoutZlib'])
+            ? $vector['expectedWithoutZlib']
+            : $vector['expected'];
         self::assertSame(json_encode($report, JSON_THROW_ON_ERROR), json_encode($result, JSON_THROW_ON_ERROR));
         $validation = self::validator()->validate(
             json_decode(json_encode($report, JSON_THROW_ON_ERROR), false, flags: JSON_THROW_ON_ERROR),
@@ -88,11 +91,17 @@ final class ConformanceTest extends TestCase
         self::assertSame($report['verdict'], $result->verdict->value);
         self::assertSame($vector['expected']['steganographyStatus'] ?? 'unsupported', $report['steganography']['status']);
         self::assertSame('unsupported', $report['controls']['steganography']['status']);
-        self::assertSame(($aiValues['enabled'] ?? false) ? 'passed' : 'skipped', $report['controls']['aiInspection']['status']);
-        if (isset($vector['expected']['aiStatus'])) {
-            self::assertSame($vector['expected']['aiStatus'], $report['aiInspection']['status']);
+        $expectedAiControl = match ($report['aiInspection']['status']) {
+            'not_requested' => 'skipped',
+            'unsupported', 'partial' => 'unsupported',
+            'error' => 'error',
+            default => 'passed',
+        };
+        self::assertSame($expectedAiControl, $report['controls']['aiInspection']['status']);
+        if (isset($expected['aiStatus'])) {
+            self::assertSame($expected['aiStatus'], $report['aiInspection']['status']);
             self::assertSame('none', $report['aiInspection']['dataEgress']);
-            if (in_array('AI-002', $vector['expected']['findingIds'], true)) {
+            if (in_array('AI-002', $expected['findingIds'], true)) {
                 self::assertStringNotContainsString('Ignore all previous instructions', json_encode($report, JSON_THROW_ON_ERROR));
             }
         }
@@ -110,11 +119,11 @@ final class ConformanceTest extends TestCase
             self::assertSame('unsupported', $report['controls']['steganography']['status']);
         }
         foreach (['format', 'validity', 'verdict', 'coverage'] as $key) {
-            self::assertSame($vector['expected'][$key], $report[$key], $vector['id'] . ': ' . $key);
+            self::assertSame($expected[$key], $report[$key], $vector['id'] . ': ' . $key);
         }
         $ids = array_values(array_unique(array_column($result->findings(), 'id')));
         sort($ids);
-        $expectedIds = $vector['expected']['findingIds'];
+        $expectedIds = $expected['findingIds'];
         sort($expectedIds);
         self::assertSame($expectedIds, $ids, $vector['id'] . ': findingIds');
         if (isset($vector['expected']['binaryStatus'])) {

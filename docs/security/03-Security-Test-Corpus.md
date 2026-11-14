@@ -2,7 +2,7 @@
 
 **Document ID:** PW-CORPUS · **Version:** 0.2.3 · **Status:** Shared synthetic conformance and scheduled JS/PHP fuzzing active; broader corpus planned · **Updated:** 2026-11-14
 
-The shared `spec/corpus/v1/manifest.json` contains sixty-one hash-pinned, harmless synthetic byte vectors (corpus version 1.0.21) consumed directly by JS and PHP tests. Cross-runtime CI also flips each individual bit in six bounded GIF, PNG, WebP, JPEG and EXIF seeds and compares format, validity, verdict and finding IDs. This deterministic mutation campaign complements, but does not replace, the broader corpus and fuzzers. No operational malware or live exploit payloads are included. A separate `pixwarden-spec` repository is not yet created.
+The shared `spec/corpus/v1/manifest.json` contains sixty-five hash-pinned, harmless synthetic byte vectors (corpus version 1.0.22) consumed directly by JS and PHP tests. Cross-runtime CI also flips each individual bit in six bounded GIF, PNG, WebP, JPEG and EXIF seeds and compares format, validity, verdict and finding IDs. This deterministic mutation campaign complements, but does not replace, the broader corpus and fuzzers. No operational malware or live exploit payloads are included. A separate `pixwarden-spec` repository is not yet created.
 
 ## Manifest contract
 
@@ -76,6 +76,6 @@ All samples use reserved names and harmless content. Corpus generation must be d
 
 No test results are claimed until fixtures, harnesses and runtime implementations exist and have been executed.
 
-The corpus also includes two opt-in AI-002 PNG metadata fixtures: a harmless simulated override phrase that must produce an advisory finding without disclosing its value, and benign imperative wording that must not trigger the narrow rules. These do not test OCR or visual prompt injection.
+The corpus includes opt-in AI-002 PNG text fixtures for uncompressed and compressed simulated override phrases, benign imperative wording, and a compressed expansion exceeding the metadata budget. Override phrases produce advisory findings without disclosing their value; benign text must not trigger the narrow rules; budget overflow leaves the AI control unsupported. These do not test OCR or visual prompt injection. PHP vectors also record expected partial results when `ext-zlib` is absent.
 
 The `STEG-PNG-RGBA8-STATISTICS-001` vector verifies that optional static RGBA8 statistics are bounded, reported as inconclusive, and never mark the required steganography policy control passed.

@@ -15,7 +15,7 @@
 9. **Resource gate:** check dimensions/pixels/frame counts and all known limits before decode. If hard native limits are required, route to isolated worker with enforceable quotas.
 10. **Decode (optional):** use explicitly configured adapter; timeout, cancellation or native failure becomes `error`/`skipped`, never implicit pass.
 11. **Sanitize (optional/decision):** create separate output via SVG allowlist or bounded raster decode/re-encode; record transformations and fidelity changes.
-12. **AI/multimodal (optional):** when enabled, the current local rule set scans bounded uncompressed PNG tEXt/iTXt metadata; OCR/VLM remains unsupported, no egress occurs, and text/instructions are never executed.
+12. **AI/multimodal (optional):** when enabled, the current local rule set scans bounded PNG tEXt/zTXt/iTXt metadata; a partial parse leaves the control unsupported. OCR/VLM remains unsupported, no egress occurs, and text/instructions are never executed.
 13. **Post-check:** repeat format, structure, binary and required policy checks on generated artifact; ensure artifact digest matches reported artifact bytes.
 14. **Policy:** evaluate required-control completion, findings and residual coverage. Missing/unsupported/error mandatory controls produce review/reject according to policy.
 15. **Report:** emit versioned report with controls, findings, evidence, capability map, decision and limitations.

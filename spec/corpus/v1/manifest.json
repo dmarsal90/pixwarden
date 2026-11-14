@@ -1,5 +1,5 @@
 {
-  "corpusVersion": "1.0.21",
+  "corpusVersion": "1.0.22",
   "source": "Synthetic, harmless fixtures authored for Pixwarden conformance tests.",
   "license": "CC0-1.0",
   "vectors": [
@@ -543,6 +543,42 @@
         "findingIds": [],
         "aiStatus": "completed"
       }
+    },
+    {
+      "id": "AI-PNG-ZTXT-COMPRESSED-OVERRIDE-001",
+      "description": "Synthetic zTXt metadata compresses a narrow instruction-override phrase; bounded decompression should emit a redacted advisory signal.",
+      "inputHex": "89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000004b7a545874436f6d6d656e740000789c0dcad109c0300805c055de04dda363482ba96034a82964fbe4fbee6ee6c120558ce05f7c26c4b2623e256e09b217079814f5317265713fd7fba86b03eccb17b8664b1c790000000d49444154789c63105432fe0f000214016604e0de7f0000000049454e44ae426082",
+      "sha256": "df4e9ec98b8227a6d30cf1f5e13e536d1fe082be6f3ad4091e5eff0ef8d551d0",
+      "scanOptions": { "aiInspection": { "enabled": true, "ocr": false } },
+      "expected": { "format": "png", "validity": "valid", "verdict": "review", "coverage": "partial", "findingIds": ["AI-002"], "aiStatus": "completed" },
+      "expectedWithoutZlib": { "format": "png", "validity": "valid", "verdict": "review", "coverage": "partial", "findingIds": [], "aiStatus": "partial" }
+    },
+    {
+      "id": "AI-PNG-ITXT-COMPRESSED-OVERRIDE-001",
+      "description": "Synthetic compressed iTXt metadata contains an instruction-override phrase; bounded decompression should emit a redacted advisory signal.",
+      "inputHex": "89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000005769545874436f6d6d656e74000100656e00436f6d6d656e7400789c0dcad109c0300805c055de04dda363482ba96034a82964fbe4fbee6ee6c120558ce05f7c26c4b2623e256e09b217079814f5317265713fd7fba86b03eccb17b879509afd0000000d49444154789c63105432fe0f000214016604e0de7f0000000049454e44ae426082",
+      "sha256": "b0f16162639a658046e92b5c8e9abfea7985e5304e62eafa834a0ca167fedd50",
+      "scanOptions": { "aiInspection": { "enabled": true, "ocr": false } },
+      "expected": { "format": "png", "validity": "valid", "verdict": "review", "coverage": "partial", "findingIds": ["AI-002"], "aiStatus": "completed" },
+      "expectedWithoutZlib": { "format": "png", "validity": "valid", "verdict": "review", "coverage": "partial", "findingIds": [], "aiStatus": "partial" }
+    },
+    {
+      "id": "AI-PNG-ITXT-COMPRESSED-BENIGN-001",
+      "description": "Synthetic compressed iTXt metadata contains benign imperative vocabulary without an override phrase; bounded decompression should not flag it.",
+      "inputHex": "89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000004169545874436f6d6d656e74000100656e00436f6d6d656e7400789cf3cc2b2e292a4d2ec9cccf2b5648cb2f52482c2e4ecd4dcac9cc4b57485448ce48cc2cd2030005600d984efd7b7f0000000d49444154789c63105432fe0f000214016604e0de7f0000000049454e44ae426082",
+      "sha256": "206934393270381aa9846f80d50f0a01058f6b523bc7953dcd08d9a6662a9302",
+      "scanOptions": { "aiInspection": { "enabled": true, "ocr": false } },
+      "expected": { "format": "png", "validity": "valid", "verdict": "allow", "coverage": "partial", "findingIds": [], "aiStatus": "completed" },
+      "expectedWithoutZlib": { "format": "png", "validity": "valid", "verdict": "review", "coverage": "partial", "findingIds": [], "aiStatus": "partial" }
+    },
+    {
+      "id": "AI-PNG-ZTXT-EXPANSION-LIMIT-001",
+      "description": "Highly repetitive compressed PNG text is smaller than the metadata input budget but expands beyond the bounded decompression output; the analyzer must return partial without a match claim.",
+      "inputHex": "89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c489000000437a545874436f6d6d656e740000789cf34ccfcb2f4a5548ccc95128284a2dcbcc2f2d56c8cc2b2e292a4d2ec9cccf2bd653f01c5531aa6254c5a88a5115a32a0644050020f089894fb2af640000000d49444154789c63105432fe0f000214016604e0de7f0000000049454e44ae426082",
+      "sha256": "3d80628d0a55a74f4939fd0bb3b6787a2dbeb4b7d661e6c77b6392ab5b836618",
+      "scanOptions": { "limits": { "maxMetadataBytes": 256 }, "aiInspection": { "enabled": true, "ocr": false } },
+      "expected": { "format": "png", "validity": "valid", "verdict": "review", "coverage": "partial", "findingIds": [], "aiStatus": "partial" },
+      "expectedWithoutZlib": { "format": "png", "validity": "valid", "verdict": "review", "coverage": "partial", "findingIds": [], "aiStatus": "partial" }
     },
     {
       "id": "STEG-PNG-RGBA8-STATISTICS-001",
