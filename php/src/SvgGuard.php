@@ -7,7 +7,6 @@ namespace Pixwarden;
 use DOMDocument;
 use DOMElement;
 use DOMNode;
-use RuntimeException;
 
 /** Secure static SVG profile and allowlist serializer using PHP's XML parser. */
 final class SvgGuard
@@ -67,7 +66,7 @@ final class SvgGuard
                 $findings[] = $this->finding('SVG-002', $unsafe ? 'Active SVG attribute removed' : 'Unsupported SVG attribute removed', $unsafe ? 'The document contains an event handler, active URL, or unsupported external reference.' : 'One or more attributes are outside the supported static SVG subset.', $unsafe ? 'high' : 'medium', $unsafe ? 'confirmed' : 'inconclusive', $unsafe ? 'failed' : 'passed');
             }
             return ['validity' => 'valid', 'findings' => $findings];
-        } catch (RuntimeException $error) {
+        } catch (\RuntimeException $error) {
             $limited = str_contains($error->getMessage(), 'limit');
             return [
                 'validity' => 'invalid',
@@ -82,7 +81,7 @@ final class SvgGuard
         $result = $this->parseAndSerialize($bytes, self::MAX_BYTES);
         $verification = $this->parseAndSerialize($result['output'], self::MAX_BYTES);
         if ($verification['output'] !== $result['output'] || $verification['removedAttributes'] !== 0 || $verification['removedElements'] !== []) {
-            throw new RuntimeException('Sanitized SVG did not pass its post-sanitization check.');
+            throw new SvgRejectedException('Sanitized SVG did not pass its post-sanitization check.');
         }
         return [
             'bytes' => $result['output'],
@@ -98,22 +97,22 @@ final class SvgGuard
     private function parseAndSerialize(string $bytes, int $maxBytes): array
     {
         if (!class_exists(DOMDocument::class)) {
-            throw new RuntimeException('PHP ext-dom is required for SVG inspection.');
+            throw new CapabilityUnavailableException('PHP ext-dom is required for SVG inspection.');
         }
         if (strlen($bytes) > $maxBytes) {
-            throw new RuntimeException('SVG input limit exceeded.');
+            throw new ResourceLimitExceededException('SVG input limit exceeded.');
         }
         if (preg_match('//u', $bytes) !== 1) {
-            throw new RuntimeException('SVG input must be well-formed UTF-8.');
+            throw new SvgRejectedException('SVG input must be well-formed UTF-8.');
         }
 
         $source = preg_replace('/^\xEF\xBB\xBF/', '', $bytes) ?? $bytes;
         $sourceWithoutDeclaration = preg_replace('/^\s*<\?xml\s+[^?]*\?>/i', '', $source, 1) ?? $source;
         if (stripos($sourceWithoutDeclaration, '<!DOCTYPE') !== false || stripos($sourceWithoutDeclaration, '<!ENTITY') !== false) {
-            throw new RuntimeException('SVG document types and entities are not accepted.');
+            throw new SvgRejectedException('SVG document types and entities are not accepted.');
         }
         if (str_contains($sourceWithoutDeclaration, '<?')) {
-            throw new RuntimeException('SVG processing instructions are not accepted.');
+            throw new SvgRejectedException('SVG processing instructions are not accepted.');
         }
 
         $document = new DOMDocument();
@@ -131,10 +130,10 @@ final class SvgGuard
             libxml_use_internal_errors($previous);
         }
         if (!$loaded || $errors !== [] || $document->doctype !== null || !$document->documentElement instanceof DOMElement) {
-            throw new RuntimeException('SVG XML is not well-formed under the selected profile.');
+            throw new SvgRejectedException('SVG XML is not well-formed under the selected profile.');
         }
         if ($document->documentElement->localName !== 'svg' || $document->documentElement->namespaceURI !== self::SVG_NS) {
-            throw new RuntimeException('SVG root must be one element in the SVG namespace.');
+            throw new SvgRejectedException('SVG root must be one element in the SVG namespace.');
         }
 
         $state = [
@@ -145,7 +144,7 @@ final class SvgGuard
         $this->serializeNode($document->documentElement, 1, false, true, $state);
         foreach ($state['references'] as $reference) {
             if (!isset($state['ids'][$reference])) {
-                throw new RuntimeException('SVG contains a local reference to an unknown identifier.');
+                throw new SvgRejectedException('SVG contains a local reference to an unknown identifier.');
             }
         }
         return $state;
@@ -157,10 +156,10 @@ final class SvgGuard
         if ($node instanceof DOMElement) {
             $state['nodeCount']++;
             if ($state['nodeCount'] > self::MAX_NODES) {
-                throw new RuntimeException('SVG node limit exceeded.');
+                throw new ResourceLimitExceededException('SVG node limit exceeded.');
             }
             if ($depth > self::MAX_DEPTH) {
-                throw new RuntimeException('SVG depth limit exceeded.');
+                throw new ResourceLimitExceededException('SVG depth limit exceeded.');
             }
             $name = $node->localName;
             $allowed = !$blocked && $node->namespaceURI === self::SVG_NS && in_array($name, self::ELEMENTS, true);
@@ -177,7 +176,7 @@ final class SvgGuard
                 foreach ($node->attributes as $attribute) {
                     $state['attributeCount']++;
                     if ($state['attributeCount'] > self::MAX_ATTRIBUTES) {
-                        throw new RuntimeException('SVG attribute limit exceeded.');
+                        throw new ResourceLimitExceededException('SVG attribute limit exceeded.');
                     }
                     if ($attribute->namespaceURI === self::XMLNS_NS || $attribute->nodeName === 'xmlns' || $attribute->prefix === 'xmlns') {
                         continue;
@@ -227,7 +226,7 @@ final class SvgGuard
             $this->append($state, $this->escapeText($node->nodeValue ?? ''));
         }
         if ($node->nodeType === XML_PI_NODE) {
-            throw new RuntimeException('SVG processing instructions are not accepted.');
+            throw new SvgRejectedException('SVG processing instructions are not accepted.');
         }
     }
 
@@ -235,7 +234,7 @@ final class SvgGuard
     private function append(array &$state, string $text): void
     {
         if (strlen($state['output']) + strlen($text) > self::MAX_OUTPUT_BYTES) {
-            throw new RuntimeException('SVG output limit exceeded.');
+            throw new ResourceLimitExceededException('SVG output limit exceeded.');
         }
         $state['output'] .= $text;
     }

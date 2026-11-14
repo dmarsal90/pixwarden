@@ -4,34 +4,22 @@ declare(strict_types=1);
 
 namespace Pixwarden;
 
-use InvalidArgumentException;
-
 /** Native PHP byte-level profile. It never invokes a decoder or external process. */
 final class Scanner
 {
-    /**
-     * @param array<string, mixed> $options
-     * @return array<string, mixed>
-     */
-    public function scan(string $bytes, array $options = []): array
+    public function scan(string $bytes, ?ScanOptions $options = null): ScanResult
     {
-        $limits = $options['limits'] ?? [];
-        if (!is_array($limits)) {
-            throw new InvalidArgumentException('limits must be an associative array.');
-        }
-        $defaults = ['maxBytes' => 10_485_760, 'maxMetadataBytes' => 1_048_576, 'maxWidth' => 40_000, 'maxHeight' => 40_000, 'maxPixels' => 40_000_000, 'maxFrames' => 200];
-        $resourceLimits = [];
-        foreach ($defaults as $name => $maximum) {
-            $value = $limits[$name] ?? $options[$name] ?? $maximum;
-            if (!is_int($value) || $value < 1 || $value > $maximum) {
-                throw new InvalidArgumentException($name . ' must be a positive integer no greater than the built-in maximum.');
-            }
-            $resourceLimits[$name] = $value;
-        }
+        return ScanResult::fromReport($this->scanReport($bytes, $options ?? new ScanOptions()));
+    }
+
+    /** @return array<string, mixed> */
+    private function scanReport(string $bytes, ScanOptions $options): array
+    {
+        $resourceLimits = $options->limits->toArray();
         $maxBytes = $resourceLimits['maxBytes'];
         $maxMetadataBytes = $resourceLimits['maxMetadataBytes'];
         if (strlen($bytes) > $maxBytes) {
-            throw new InvalidArgumentException('Input exceeds the configured byte limit.');
+            throw new ResourceLimitExceededException('Input exceeds the configured byte limit.');
         }
 
         [$format, $validity, $findings] = $this->inspect($bytes, $maxBytes);
