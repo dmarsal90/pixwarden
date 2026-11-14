@@ -258,6 +258,14 @@ final class Scanner
     private function countGifFrames(string $bytes): ?int
     {
         $size = strlen($bytes);
+        if ($size < 13) {
+            return null;
+        }
+        $screenWidth = $this->u16le($bytes, 6);
+        $screenHeight = $this->u16le($bytes, 8);
+        if ($screenWidth < 1 || $screenHeight < 1) {
+            return null;
+        }
         $packed = ord($bytes[10]);
         $cursor = 13 + (($packed & 0x80) !== 0 ? 3 * (1 << (($packed & 7) + 1)) : 0);
         if ($cursor > $size) {
@@ -267,18 +275,31 @@ final class Scanner
         while ($cursor < $size) {
             $marker = ord($bytes[$cursor++]);
             if ($marker === 0x3b) {
-                return $frames;
+                return $cursor === $size && $frames > 0 ? $frames : null;
             }
             if ($marker === 0x2c) {
                 if ($cursor + 9 > $size) {
                     return null;
                 }
+                $left = $this->u16le($bytes, $cursor);
+                $top = $this->u16le($bytes, $cursor + 2);
+                $frameWidth = $this->u16le($bytes, $cursor + 4);
+                $frameHeight = $this->u16le($bytes, $cursor + 6);
+                if ($frameWidth < 1 || $frameHeight < 1 || $left + $frameWidth > $screenWidth || $top + $frameHeight > $screenHeight) {
+                    return null;
+                }
                 $imagePacked = ord($bytes[$cursor + 8]);
                 $cursor += 9;
-                if (($imagePacked & 0x80) !== 0) {
-                    $cursor += 3 * (1 << (($imagePacked & 7) + 1));
+                $localColorTableBytes = ($imagePacked & 0x80) !== 0 ? 3 * (1 << (($imagePacked & 7) + 1)) : 0;
+                if ($localColorTableBytes > $size - $cursor) {
+                    return null;
                 }
+                $cursor += $localColorTableBytes;
                 if ($cursor >= $size) {
+                    return null;
+                }
+                $minimumCodeSize = ord($bytes[$cursor]);
+                if ($minimumCodeSize < 2 || $minimumCodeSize > 8) {
                     return null;
                 }
                 $cursor++;
@@ -294,7 +315,7 @@ final class Scanner
                 }
                 $label = ord($bytes[$cursor++]);
                 if ($label === 0xf9) {
-                    if ($cursor + 6 > $size) {
+                    if ($cursor + 6 > $size || ord($bytes[$cursor]) !== 4 || ord($bytes[$cursor + 5]) !== 0) {
                         return null;
                     }
                     $cursor += 6;
@@ -389,7 +410,8 @@ final class Scanner
         if ($format === 'png') {
             $valid = $this->validPng($bytes);
         } elseif ($format === 'gif') {
-            $valid = strlen($bytes) >= 14 && str_ends_with($bytes, "\x3b");
+            $frames = strlen($bytes) >= 14 ? $this->countGifFrames($bytes) : null;
+            $valid = $frames !== null && $frames > 0;
         } elseif ($format === 'jpeg') {
             $valid = strlen($bytes) >= 4 && str_ends_with($bytes, "\xff\xd9") && str_contains(substr($bytes, 2), "\xff\xc0");
         } else {
