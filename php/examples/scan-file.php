@@ -26,9 +26,12 @@ try {
     ));
 } catch (Throwable $error) {
     fwrite(STDERR, 'Pixwarden scan failed: ' . $error->getMessage() . "\n");
-    exit(1);
+    $scanFailed = true;
 } finally {
     fclose($stream);
+}
+if ($scanFailed ?? false) {
+    exit(1);
 }
 
 $report = json_encode($result, JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR);
