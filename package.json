@@ -24,7 +24,8 @@
     "typecheck": "tsc -p tsconfig.tests.json",
     "pretest": "npm run build",
     "test": "vitest run",
-    "test:differential": "node scripts/differential-mutation-smoke.mjs"
+    "test:differential": "node scripts/differential-mutation-smoke.mjs",
+    "check:package": "node scripts/check-npm-package.mjs"
   },
   "devDependencies": {
     "@jazzer.js/core": "^4.0.0",
