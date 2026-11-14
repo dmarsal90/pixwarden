@@ -1,10 +1,11 @@
 import { randomUUID } from "node:crypto";
+import { Worker } from "node:worker_threads";
 import { inspectBinaryIndicators, inspectStructure } from "./inspectors.js";
 import { sanitizeSvg } from "./svg-guard.js";
-import { PixwardenError, type CapabilityReport, type ControlResult, type Finding, type ImageFormat, type ResourceLimits, type ScanHints, type ScanOptions, type ScanResult, type Verdict } from "./types.js";
+import { PixwardenError, type CapabilityReport, type ControlResult, type Finding, type ImageFormat, type ResourceLimits, type ScanHints, type ScanIsolationOptions, type ScanOptions, type ScanResult, type Verdict } from "./types.js";
 
 export { PixwardenError } from "./types.js";
-export type { CapabilityReport, ControlResult, Evidence, Finding, ImageFormat, ResourceLimits, ScanHints, ScanOptions, ScanResult, Verdict } from "./types.js";
+export type { CapabilityReport, ControlResult, Evidence, Finding, ImageFormat, ResourceLimits, ScanHints, ScanIsolationOptions, ScanOptions, ScanResult, Verdict } from "./types.js";
 export type { SvgSanitizationResult } from "./svg-guard.js";
 export { sanitizeSvg } from "./svg-guard.js";
 
@@ -141,6 +142,85 @@ export async function scanImage(input: Uint8Array, options: ScanOptions = {}): P
   return inspectSnapshot(snapshot, options, limits, started);
 }
 
+/**
+ * Scan bytes in a killable worker. The parent event loop enforces a wall-clock
+ * timeout; the worker heap has a V8 old-generation ceiling. This is not an OS
+ * process or an RSS limit and does not replace container-level isolation.
+ */
+export async function scanImageIsolated(
+  input: Uint8Array,
+  options: ScanOptions = {},
+  isolation: ScanIsolationOptions = {}
+): Promise<ScanResult> {
+  if (!(input instanceof Uint8Array)) throw new PixwardenError("INVALID_OPTIONS", "Input must be a Uint8Array or Node.js Buffer.");
+  const limits = mergeLimits(options.limits);
+  if (input.byteLength > limits.maxBytes) throw new PixwardenError("INPUT_TOO_LARGE", "Input exceeds the configured byte limit.");
+  const timeoutMs = isolation.timeoutMs ?? 10_000;
+  const maxOldGenerationSizeMb = isolation.maxOldGenerationSizeMb ?? 64;
+  if (!Number.isSafeInteger(timeoutMs) || timeoutMs < 25 || timeoutMs > 60_000) {
+    throw new PixwardenError("INVALID_OPTIONS", "Worker timeout must be an integer from 25 to 60000 milliseconds.");
+  }
+  if (!Number.isSafeInteger(maxOldGenerationSizeMb) || maxOldGenerationSizeMb < 16 || maxOldGenerationSizeMb > 256) {
+    throw new PixwardenError("INVALID_OPTIONS", "Worker old-generation heap limit must be an integer from 16 to 256 MiB.");
+  }
+  if (options.signal?.aborted) throw new PixwardenError("CANCELLED", "Isolated scan was cancelled before worker startup.");
+  const { signal, ...scanOptions } = options;
+  const snapshot = Uint8Array.from(input);
+  type WorkerMessage =
+    | { readonly ok: true; readonly result: ScanResult }
+    | { readonly ok: false; readonly code: PixwardenError["code"]; readonly message: string };
+  let worker: Worker;
+  try {
+    worker = new Worker(new URL("./scan-worker.js", import.meta.url), {
+      workerData: { input: snapshot, options: scanOptions },
+      transferList: [snapshot.buffer],
+      resourceLimits: { maxOldGenerationSizeMb }
+    });
+  } catch {
+    throw new PixwardenError("IO_FAILURE", "Isolated scan worker could not be started.");
+  }
+  return new Promise<ScanResult>((resolve, reject) => {
+    let settled = false;
+    const finish = (callback: () => void): void => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      signal?.removeEventListener("abort", onAbort);
+      callback();
+    };
+    const onAbort = (): void => {
+      void worker.terminate();
+      finish(() => reject(new PixwardenError("CANCELLED", "Isolated scan was cancelled.")));
+    };
+    const timer = setTimeout(() => {
+      void worker.terminate();
+      finish(() => reject(new PixwardenError("LIMIT_EXCEEDED", "Isolated scan exceeded its wall-clock timeout.")));
+    }, timeoutMs);
+    signal?.addEventListener("abort", onAbort, { once: true });
+    if (signal?.aborted) { onAbort(); return; }
+    worker.once("message", (message: WorkerMessage) => {
+      if (!message || typeof message !== "object" || typeof message.ok !== "boolean") {
+        void worker.terminate();
+        finish(() => reject(new PixwardenError("IO_FAILURE", "Isolated scan worker returned an invalid response.")));
+        return;
+      }
+      if (!message.ok) {
+        void worker.terminate();
+        finish(() => reject(new PixwardenError(message.code, message.message)));
+        return;
+      }
+      void worker.terminate();
+      const capabilities = Object.freeze({
+        ...message.result.capabilities,
+        hardLimits: Object.freeze({ ...message.result.capabilities.hardLimits, wallTime: true })
+      });
+      finish(() => resolve(Object.freeze({ ...message.result, capabilities })));
+    });
+    worker.once("error", () => finish(() => reject(new PixwardenError("IO_FAILURE", "Isolated scan worker failed."))));
+    worker.once("exit", () => finish(() => reject(new PixwardenError("IO_FAILURE", "Isolated scan worker exited before returning a result."))));
+  });
+}
+
 function inspectSnapshot(snapshot: Uint8Array, options: ScanOptions, limits: ResourceLimits, started: string): ScanResult {
   validateHints(options.hints);
   const structuralEnabled = options.structural ?? true;
@@ -196,7 +276,7 @@ function inspectSnapshot(snapshot: Uint8Array, options: ScanOptions, limits: Res
   const limitations = [
     "Structural validity is limited to the implemented byte-level profile; it is not proof of safe rendering or decoding.",
     "No raster decoder/sanitizer, OCR, steganography detector, or model analysis is bundled. The SVG sanitizer is a separate operation and is not invoked by scanImage.",
-    "In-process parsing has no hard CPU, memory, or wall-clock enforcement. Use a killable worker/container for hostile workloads.",
+    "scanImage parsing has no hard CPU, memory, or wall-clock enforcement. scanImageIsolated can enforce a worker wall-clock timeout and V8 old-generation heap ceiling, but not total RSS or OS CPU quotas; use a container or child process for hostile decoders.",
     "Binary signatures are indicators only; they neither prove a complete embedded file nor replace antivirus analysis."
   ];
   return Object.freeze({

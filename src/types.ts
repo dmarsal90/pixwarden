@@ -24,6 +24,13 @@ export interface ScanOptions {
   readonly incompleteAnalysis?: "review" | "reject";
 }
 
+export interface ScanIsolationOptions {
+  /** Maximum time before the worker is terminated (default 10 seconds, maximum 60 seconds). */
+  readonly timeoutMs?: number;
+  /** V8 old-generation heap ceiling for the worker (default 64 MiB, maximum 256 MiB). */
+  readonly maxOldGenerationSizeMb?: number;
+}
+
 export interface ScanHints {
   readonly filename?: string;
   readonly mediaType?: string;
