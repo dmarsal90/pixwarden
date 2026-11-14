@@ -295,6 +295,10 @@ final class Scanner
                 if ($localColorTableBytes > $size - $cursor) {
                     return null;
                 }
+                if (($imagePacked & 0x18) !== 0) {
+                    $errorId = 'IMG-006';
+                    return null;
+                }
                 $cursor += $localColorTableBytes;
                 if ($cursor >= $size) {
                     return null;
