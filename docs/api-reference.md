@@ -16,6 +16,7 @@ This page documents the currently exported API surface. Generated declarations a
 - `Scanner::scan(string, ?ScanOptions): ScanResult`
 - `Scanner::scanStream(mixed, ?ScanOptions): ScanResult`
 - `new ScanHints(?string $filename, ?string $mediaType)` for optional type-hint comparison through `ScanOptions`
+- `ScanOptions` can require named controls and choose `review`/`reject` for unsupported/incomplete required checks; PHP does not yet expose every JS scan option.
 - `Scanner::sanitizeSvg(string): array` (requires `ext-dom`)
 - `Scanner::stripPngExifAndTextMetadata(string): array`
 

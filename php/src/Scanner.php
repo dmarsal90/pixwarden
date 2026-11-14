@@ -89,9 +89,8 @@ final class Scanner
                     : ['status' => 'unsupported', 'summary' => 'PHP ext-dom is unavailable, so SVG inspection and sanitization cannot run.'])
                 : ['status' => 'unsupported', 'summary' => 'No raster sanitizer is implemented; input bytes are unchanged.'],
         ];
-        $hasBlockingFinding = array_filter($findings, static fn (array $finding): bool => in_array($finding['severity'], ['high', 'critical'], true) || $finding['controlStatus'] === 'failed') !== [];
-        $hasReviewFinding = array_filter($findings, static fn (array $finding): bool => in_array($finding['status'], ['suspected', 'inconclusive'], true)) !== [];
-        $verdict = $hasBlockingFinding ? 'reject' : ($validity !== 'valid' || $hasReviewFinding ? 'review' : 'allow');
+        $evaluation = $this->evaluatePolicy($findings, $controls, $options);
+        $verdict = $evaluation['verdict'];
 
         $scanIdBytes = random_bytes(16);
         $scanIdBytes[6] = chr((ord($scanIdBytes[6]) & 0x0f) | 0x40);
@@ -123,7 +122,7 @@ final class Scanner
             'validity' => $validity,
             'decodability' => 'not_attempted',
             'sanitized' => false,
-            'policyCompliant' => $verdict === 'allow',
+            'policyCompliant' => $evaluation['compliant'],
             'coverage' => 'partial',
             'verdict' => $verdict,
             'controls' => $controls,
@@ -867,5 +866,40 @@ final class Scanner
             return false;
         }
         return $seenHeader && $seenData && $seenEnd && $offset === strlen($bytes);
+    }
+
+    /** @param list<array<string, mixed>> $findings
+     * @param array<string, array{status: string, summary: string}> $controls
+     * @return array{verdict: string, compliant: bool}
+     */
+    private function evaluatePolicy(array $findings, array $controls, ScanOptions $options): array
+    {
+        foreach ($findings as $finding) {
+            if (in_array($finding['severity'], ['critical', 'high'], true) || $finding['controlStatus'] === 'failed') {
+                return ['verdict' => 'reject', 'compliant' => false];
+            }
+        }
+        $incomplete = false;
+        $hasUnsupported = false;
+        foreach ($options->requiredControls as $controlId) {
+            $status = $controls[$controlId]['status'] ?? 'skipped';
+            if ($status !== 'passed') {
+                $incomplete = true;
+                $hasUnsupported = $hasUnsupported || in_array($status, ['unsupported', 'skipped'], true);
+            }
+        }
+        if ($incomplete) {
+            return [
+                'verdict' => $hasUnsupported ? $options->unsupportedFormat : $options->incompleteAnalysis,
+                'compliant' => false,
+            ];
+        }
+        foreach ($findings as $finding) {
+            if (in_array($finding['status'], ['suspected', 'inconclusive'], true)) {
+                return ['verdict' => 'review', 'compliant' => false];
+            }
+        }
+
+        return ['verdict' => 'allow', 'compliant' => true];
     }
 }
