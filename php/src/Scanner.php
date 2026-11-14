@@ -69,9 +69,11 @@ final class Scanner
         $binaryInspection = (new BinaryGuard())->inspect($bytes, $format);
         $findings = array_merge($findings, $binaryInspection['findings']);
         $findings = array_merge($findings, $this->resourceFindings($bytes, $format, $resourceLimits));
+        $hintInspection = $this->inspectHints($format, $options->hints);
+        $findings = array_merge($findings, $hintInspection['findings']);
         $svgAvailable = class_exists(\DOMDocument::class);
         $controls = [
-            'hints' => ['status' => 'skipped', 'summary' => 'No filename or media-type hints were supplied.'],
+            'hints' => $hintInspection['control'],
             'structural' => ['status' => $validity === 'valid' ? 'passed' : ($validity === 'invalid' ? 'failed' : 'unsupported'), 'summary' => 'A bounded byte-level profile ran; no decoder was invoked.'],
             'metadata' => ['status' => 'unsupported', 'summary' => 'Only bounded EXIF TIFF directory structure and selected sensitive tag identifiers are inspected; values, XMP and text metadata are not parsed.'],
             'binary' => [
@@ -190,6 +192,58 @@ final class Scanner
             ];
         }
         return $findings;
+    }
+
+    /** @return array{control: array{status: string, summary: string}, findings: list<array<string, mixed>>} */
+    private function inspectHints(string $format, ?ScanHints $hints): array
+    {
+        if ($hints === null) {
+            return ['control' => ['status' => 'skipped', 'summary' => 'No filename or media-type hints were supplied.'], 'findings' => []];
+        }
+        $types = ['jpg' => 'jpeg', 'jpeg' => 'jpeg', 'png' => 'png', 'gif' => 'gif', 'webp' => 'webp', 'svg' => 'svg'];
+        $mediaTypes = [
+            'image/jpeg' => 'jpeg', 'image/png' => 'png', 'image/gif' => 'gif',
+            'image/webp' => 'webp', 'image/svg+xml' => 'svg',
+        ];
+        $candidates = [];
+        $unsupported = false;
+        if ($hints->filename !== null) {
+            $basename = basename(str_replace('\\', '/', $hints->filename));
+            $dot = strrpos($basename, '.');
+            $extension = $dot === false ? '' : strtolower(substr($basename, $dot + 1));
+            if (isset($types[$extension])) {
+                $candidates[] = $types[$extension];
+            } else {
+                $unsupported = true;
+            }
+        }
+        if ($hints->mediaType !== null) {
+            $mediaType = strtolower(trim(explode(';', $hints->mediaType, 2)[0]));
+            if (isset($mediaTypes[$mediaType])) {
+                $candidates[] = $mediaTypes[$mediaType];
+            } else {
+                $unsupported = true;
+            }
+        }
+        $findings = [];
+        if ($format !== 'unknown') {
+            foreach (array_unique($candidates) as $candidate) {
+                if ($candidate !== $format) {
+                    $findings[] = [
+                        'id' => 'IMG-010', 'severity' => 'medium', 'stage' => 'identify',
+                        'title' => 'Declared type disagrees with image bytes',
+                        'description' => 'A recognized filename extension or media type does not match the format detected from the input bytes.',
+                        'status' => 'suspected', 'controlStatus' => 'passed',
+                        'evidence' => [['kind' => 'policy', 'summary' => 'Caller-provided type hint differs from byte-derived format.']],
+                    ];
+                }
+            }
+        }
+        if ($format === 'unknown' || $unsupported) {
+            return ['control' => ['status' => 'unsupported', 'summary' => 'One or more type hints or the detected format could not be compared using a supported profile.'], 'findings' => $findings];
+        }
+
+        return ['control' => ['status' => 'passed', 'summary' => 'Recognized caller hints were compared with the byte-derived format.'], 'findings' => $findings];
     }
 
     /** @return array{width: ?int, height: ?int, frames: ?int} */
