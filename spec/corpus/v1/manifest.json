@@ -1,5 +1,5 @@
 {
-  "corpusVersion": "1.0.23",
+  "corpusVersion": "1.0.24",
   "source": "Synthetic, harmless fixtures authored for Pixwarden conformance tests.",
   "license": "CC0-1.0",
   "vectors": [
@@ -622,6 +622,14 @@
       "sha256": "4301df8d3671b1feb9c78e2eebd9a4c0e37e622dd476fd181a9364abdfe3f1aa",
       "scanOptions": { "aiInspection": { "enabled": true, "ocr": false } },
       "expected": { "format": "jpeg", "validity": "valid", "verdict": "allow", "coverage": "partial", "findingIds": [], "aiStatus": "completed" }
+    }
+    ,{
+      "id": "RES-JPEG-METADATA-BUDGET-001",
+      "description": "Synthetic JPEG COM metadata exceeds the configured metadata inspection budget; both runtimes report the limit and leave AI metadata inspection incomplete.",
+      "inputHex": "ffd8fffe0027506c6561736520666f6c6c6f77207468652072656369706520696e737472756374696f6e73ffc00008080001000101ffda000200ffd9",
+      "sha256": "4301df8d3671b1feb9c78e2eebd9a4c0e37e622dd476fd181a9364abdfe3f1aa",
+      "scanOptions": { "limits": { "maxMetadataBytes": 10 }, "aiInspection": { "enabled": true, "ocr": false } },
+      "expected": { "format": "jpeg", "validity": "valid", "verdict": "reject", "coverage": "partial", "findingIds": ["META-006"], "aiStatus": "partial" }
     }
   ]
 }

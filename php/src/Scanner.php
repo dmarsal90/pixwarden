@@ -63,7 +63,7 @@ final class Scanner
             throw new ResourceLimitExceededException('Input exceeds the configured byte limit.');
         }
 
-        [$format, $validity, $findings] = $this->inspect($bytes, $maxBytes);
+        [$format, $validity, $findings] = $this->inspect($bytes, $maxBytes, $maxMetadataBytes);
         $metadataInspection = (new MetadataGuard())->inspect($bytes, $format, $maxMetadataBytes);
         $findings = array_merge($findings, $metadataInspection['findings']);
         $aiInspection = (new AiInjectionGuard())->inspect($bytes, $validity === 'valid' ? $format : 'unknown', $maxMetadataBytes, $options->aiInspection);
@@ -528,7 +528,7 @@ final class Scanner
     }
 
     /** @return array{string,string,list<array<string,mixed>>} */
-    private function inspect(string $bytes, int $maxBytes): array
+    private function inspect(string $bytes, int $maxBytes, int $maxMetadataBytes): array
     {
         $format = match (true) {
             str_starts_with($bytes, "\x89PNG\r\n\x1a\n") => 'png',
@@ -550,6 +550,7 @@ final class Scanner
         $pngErrorId = null;
         $webpErrorId = null;
         $jpegErrorId = null;
+        $jpegMetadataExceededOffset = null;
         $gifErrorId = null;
         if ($format === 'png') {
             $valid = $this->validPng($bytes, $pngCrcMismatchOffset, $pngTrailingDataOffset, $pngErrorId);
@@ -557,11 +558,20 @@ final class Scanner
             $frames = strlen($bytes) >= 14 ? $this->countGifFrames($bytes, $gifErrorId) : null;
             $valid = $frames !== null && $frames > 0;
         } elseif ($format === 'jpeg') {
-            $valid = $this->validJpeg($bytes, $jpegErrorId);
+            $valid = $this->validJpeg($bytes, $jpegErrorId, $maxMetadataBytes, $jpegMetadataExceededOffset);
         } else {
             $valid = $this->validWebp($bytes, $webpTrailingDataOffset, $webpErrorId);
         }
         if ($valid) {
+            if ($jpegMetadataExceededOffset !== null) {
+                return [$format, 'valid', [[
+                    'id' => 'META-006', 'severity' => 'medium', 'stage' => 'metadata',
+                    'title' => 'JPEG metadata limit exceeded',
+                    'description' => 'Metadata segment bytes exceed configured limit.',
+                    'status' => 'confirmed', 'controlStatus' => 'failed',
+                    'evidence' => [['kind' => 'range', 'summary' => 'JPEG metadata segment exceeds configured byte budget.', 'offset' => $jpegMetadataExceededOffset['offset'], 'length' => $jpegMetadataExceededOffset['length']]],
+                ]]];
+            }
             return [$format, 'valid', []];
         }
         if ($pngCrcMismatchOffset !== null) {
@@ -691,9 +701,12 @@ final class Scanner
         return true;
     }
 
-    private function validJpeg(string $bytes, ?string &$errorId = null): bool
+    /** @param array{offset: int, length: int}|null $metadataExceeded */
+    private function validJpeg(string $bytes, ?string &$errorId = null, int $maximumMetadataBytes = PHP_INT_MAX, ?array &$metadataExceeded = null): bool
     {
         $errorId = null;
+        $metadataExceeded = null;
+        $metadataBytes = 0;
         $size = strlen($bytes);
         if ($size < 4 || substr($bytes, 0, 2) !== "\xff\xd8") {
             return false;
@@ -766,6 +779,12 @@ final class Scanner
                 return false;
             }
             $payloadLength = $segmentLength - 2;
+            if (in_array($marker, [0xe1, 0xe2, 0xed, 0xfe], true)) {
+                $metadataBytes += $payloadLength;
+                if ($metadataBytes > $maximumMetadataBytes && $metadataExceeded === null) {
+                    $metadataExceeded = ['offset' => $offset, 'length' => $segmentLength];
+                }
+            }
             if (in_array($marker, $sofMarkers, true)) {
                 if ($payloadLength < 6) {
                     $errorId = 'IMG-003';
