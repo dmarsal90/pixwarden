@@ -1,6 +1,6 @@
 # Pixwarden Technical Requirements and Design
 
-**Document ID:** PW-TRD · **Version:** 0.1.0 · **Status:** Phase 0/1 baseline · **Updated:** 2026-11-13
+**Document ID:** PW-TRD · **Version:** 0.1.0 · **Status:** Phase 2 in progress · **Updated:** 2026-11-14
 
 ## 1. Architecture and trust boundaries
 

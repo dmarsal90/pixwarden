@@ -122,6 +122,10 @@
       "type": "object", "additionalProperties": false, "required": ["status", "bytesScanned", "findings", "trailingData", "recursiveInspection"],
       "properties": { "status": { "type": "string", "enum": ["passed", "findings", "unsupported", "error"] }, "bytesScanned": { "type": "integer", "minimum": 0 }, "findings": { "type": "array", "items": { "$ref": "#/$defs/Finding" } }, "trailingData": { "type": "boolean" }, "recursiveInspection": { "const": false } }
     },
+    "MetadataInspectionResult": {
+      "type": "object", "additionalProperties": false, "required": ["status", "metadataBytes", "entriesInspected", "findings"],
+      "properties": { "status": { "type": "string", "enum": ["partial", "unsupported", "error"] }, "metadataBytes": { "type": "integer", "minimum": 0 }, "entriesInspected": { "type": "integer", "minimum": 0 }, "findings": { "type": "array", "items": { "$ref": "#/$defs/Finding" } } }
+    },
     "SteganographyResult": {
       "type": "object", "additionalProperties": false, "required": ["status", "methods", "limitations"],
       "properties": {
@@ -158,7 +162,7 @@
         "controls": { "type": "object", "minProperties": 1, "additionalProperties": { "$ref": "#/$defs/ControlResult" } }, "findings": { "type": "array", "items": { "$ref": "#/$defs/Finding" } },
         "capabilities": { "$ref": "#/$defs/CapabilityReport" }, "limitations": { "type": "array", "items": { "type": "string", "maxLength": 1000 } },
         "inputBytes": { "type": "integer", "minimum": 0 }, "inputDigest": { "$ref": "#/$defs/Digest" }, "sanitization": { "$ref": "#/$defs/SanitizationResult" },
-        "binaryInspection": { "$ref": "#/$defs/BinaryInspectionResult" }, "steganography": { "$ref": "#/$defs/SteganographyResult" }, "aiInspection": { "$ref": "#/$defs/AiInspectionResult" }
+        "binaryInspection": { "$ref": "#/$defs/BinaryInspectionResult" }, "metadataInspection": { "$ref": "#/$defs/MetadataInspectionResult" }, "steganography": { "$ref": "#/$defs/SteganographyResult" }, "aiInspection": { "$ref": "#/$defs/AiInspectionResult" }
       }
     }
   }

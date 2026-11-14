@@ -52,6 +52,16 @@ const signatureInWebpRegions = new Uint8Array([
   ...new TextEncoder().encode("EXIF"), 2, 0, 0, 0, 0x4d, 0x5a,
   ...new TextEncoder().encode("VP8 "), 1, 0, 0, 0, 0
 ]);
+const jpegWithGpsExif = new Uint8Array([
+  0xff, 0xd8,
+  0xff, 0xe1, 0, 40,
+  ...new TextEncoder().encode("Exif\0\0"),
+  0x49, 0x49, 42, 0, 8, 0, 0, 0,
+  1, 0, 0x25, 0x88, 4, 0, 1, 0, 0, 0, 26, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0xff, 0xc0, 0, 8, 8, 0, 1, 0, 1, 1,
+  0xff, 0xda, 0, 2, 0x11, 0xff, 0xd9
+]);
 
 describe("scanImage structural core", () => {
   it("identifies and validates a structurally complete PNG without decoding it", async () => {
@@ -95,6 +105,26 @@ describe("scanImage structural core", () => {
     const indicators = result.findings.filter((item) => item.id === "BIN-009");
     expect(indicators).toHaveLength(1);
     expect(indicators[0]?.evidence[0]?.offset).toBe(20);
+  });
+
+  it("reports GPS tag presence without extracting EXIF values", async () => {
+    const result = await scanImage(jpegWithGpsExif);
+    expect(result.validity).toBe("valid");
+    expect(result.metadataInspection).toMatchObject({ status: "partial", metadataBytes: 32, entriesInspected: 1 });
+    const finding = result.findings.find((item) => item.id === "META-007");
+    expect(finding?.description).toContain("GPSInfoIFDPointer");
+    expect(finding?.description).not.toContain("latitude");
+    expect(finding?.status).toBe("suspected");
+    expect(result.verdict).toBe("review");
+    expect(result.controls.metadata?.status).toBe("unsupported");
+  });
+
+  it("rejects an EXIF IFD pointer that escapes its metadata segment", async () => {
+    const malformed = Uint8Array.from(jpegWithGpsExif);
+    malformed.set([0xff, 0xff, 0xff, 0xff], 30);
+    const result = await scanImage(malformed);
+    expect(result.findings.some((item) => item.id === "META-001" && item.controlStatus === "failed")).toBe(true);
+    expect(result.verdict).toBe("reject");
   });
 
   it("rejects a PNG chunk whose declared size exceeds the input", async () => {
