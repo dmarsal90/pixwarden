@@ -518,7 +518,10 @@ final class Scanner
         $offset = 8;
         $seenHeader = false;
         $seenData = false;
+        $dataSequenceEnded = false;
+        $seenPalette = false;
         $seenEnd = false;
+        $colorType = null;
         while ($offset + 12 <= strlen($bytes)) {
             $unpackedLength = unpack('Nlength', substr($bytes, $offset, 4));
             if ($unpackedLength === false) {
@@ -563,21 +566,38 @@ final class Scanner
                     return false;
                 }
                 $seenHeader = true;
+                $colorType = ord($bytes[$offset + 17]);
+            } elseif ($type === 'PLTE') {
+                if (!$seenHeader || $seenData || $seenPalette || in_array($colorType, [0, 4], true)
+                    || $length === 0 || $length > 768 || $length % 3 !== 0) {
+                    $errorId = 'IMG-006';
+                    return false;
+                }
+                $seenPalette = true;
             } elseif ($type === 'IDAT') {
-                if (!$seenHeader) {
+                if (!$seenHeader || $dataSequenceEnded) {
+                    $errorId = 'IMG-006';
                     return false;
                 }
                 $seenData = true;
             } elseif ($type === 'IEND') {
                 if ($length !== 0 || !$seenData) {
+                    $errorId = 'IMG-006';
                     return false;
                 }
                 $seenEnd = true;
+            }
+            if ($seenData && $type !== 'IDAT' && $type !== 'IEND') {
+                $dataSequenceEnded = true;
             }
             $offset += 12 + $length;
             if ($seenEnd) {
                 break;
             }
+        }
+        if ($colorType === 3 && !$seenPalette) {
+            $errorId = 'IMG-006';
+            return false;
         }
         return $seenHeader && $seenData && $seenEnd && $offset === strlen($bytes);
     }
