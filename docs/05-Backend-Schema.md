@@ -21,7 +21,7 @@ Required: `requestVersion` (const `1`), `input` (exactly one of inline base64 by
 
 ### ScanOptions
 
-Fields: booleans `structural`, `metadata`, `binaryInspection`, `sanitize`; optional JS convenience field `hints` (`ScanHints` below; serialized as `ScanRequest.hints`); object `steganography` `{enabled:boolean,mode:"statistical"|"targeted",maxSamples?:integer}`; `aiInspection` `{enabled:boolean,ocr:boolean,adapterId?:string}`; `limits` (`ResourceLimits`); `policyId` string; `requiredControls` array of control IDs. Defaults are explicit in versioned policy, not hidden in schema. Unknown adapter IDs fail configuration validation.
+Fields: booleans `structural`, `metadata`, `binaryInspection`, `sanitize`; optional JS convenience field `hints` (`ScanHints` below; serialized as `ScanRequest.hints`); object `steganography` `{enabled:boolean,mode:"statistical"|"targeted",maxSamples?:integer}`; `aiInspection` `{enabled:boolean,ocr:boolean,adapterId?:string}`; `limits` (`ResourceLimits`); `policyId` string; `requiredControls` array of control IDs. AI inspection is opt-in; the current `enabled:true, ocr:false` profile runs only local narrow rules on uncompressed PNG tEXt/iTXt metadata. `ocr:true` remains unsupported and fails the required AI control. No remote adapter is currently registered. Defaults are explicit in versioned policy, not hidden in schema. Unknown adapter IDs fail configuration validation.
 
 ### ScanHints
 

@@ -7,6 +7,7 @@ namespace Pixwarden\Tests;
 use Pixwarden\InvalidScanOptionsException;
 use Pixwarden\ScanOptions;
 use Pixwarden\Scanner;
+use Pixwarden\AiInspectionOptions;
 use PHPUnit\Framework\TestCase;
 
 final class PolicyOptionsTest extends TestCase
@@ -40,5 +41,16 @@ final class PolicyOptionsTest extends TestCase
 
         self::assertSame('review', $result->verdict->value);
         self::assertSame('unsupported', $result->controls['steganography']['status']);
+    }
+
+    public function testRequestedUnavailableOcrCannotPassTheAiControl(): void
+    {
+        $png = hex2bin('89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c48900000001494441540028387de80000000049454e44ae426082');
+        self::assertNotFalse($png);
+        $result = (new Scanner())->scan($png, new ScanOptions(aiInspection: new AiInspectionOptions(enabled: true, ocr: true)));
+
+        self::assertSame('partial', $result->toArray()['aiInspection']['status']);
+        self::assertSame('unsupported', $result->controls['aiInspection']['status']);
+        self::assertSame('review', $result->verdict->value);
     }
 }

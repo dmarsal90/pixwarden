@@ -2,7 +2,7 @@
 
 **Document ID:** PW-CORPUS · **Version:** 0.2.3 · **Status:** Shared synthetic conformance and scheduled JS/PHP fuzzing active; broader corpus planned · **Updated:** 2026-11-14
 
-The shared `spec/corpus/v1/manifest.json` contains fifty-eight hash-pinned, harmless synthetic byte vectors (corpus version 1.0.19) consumed directly by JS and PHP tests. Cross-runtime CI also flips each individual bit in six bounded GIF, PNG, WebP, JPEG and EXIF seeds and compares format, validity, verdict and finding IDs. This deterministic mutation campaign complements, but does not replace, the broader corpus and fuzzers. No operational malware or live exploit payloads are included. A separate `pixwarden-spec` repository is not yet created.
+The shared `spec/corpus/v1/manifest.json` contains sixty hash-pinned, harmless synthetic byte vectors (corpus version 1.0.20) consumed directly by JS and PHP tests. Cross-runtime CI also flips each individual bit in six bounded GIF, PNG, WebP, JPEG and EXIF seeds and compares format, validity, verdict and finding IDs. This deterministic mutation campaign complements, but does not replace, the broader corpus and fuzzers. No operational malware or live exploit payloads are included. A separate `pixwarden-spec` repository is not yet created.
 
 ## Manifest contract
 
@@ -75,3 +75,5 @@ Implemented vector IDs in v1 include `SAN-PNG-TEXT-STRIP-001`, `SAN-PNG-RGBA8-RE
 All samples use reserved names and harmless content. Corpus generation must be deterministic with pinned generator version and seed. Store binary fixtures via Git LFS only if needed; otherwise keep small fixtures directly in Git. Hash changes require review and changelog. Fuzzing uses time/memory budgets and isolated workers; minimized cases enter regression corpus after triage. License every third-party-derived sample; prefer original synthetic samples. Train/tune/evaluate partitions must be disjoint and generated before model calibration. Keep expected false positives and negative cases, not only attack-labelled samples.
 
 No test results are claimed until fixtures, harnesses and runtime implementations exist and have been executed.
+
+The corpus also includes two opt-in AI-002 PNG metadata fixtures: a harmless simulated override phrase that must produce an advisory finding without disclosing its value, and benign imperative wording that must not trigger the narrow rules. These do not test OCR or visual prompt injection.

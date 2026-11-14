@@ -66,6 +66,8 @@ final class Scanner
         [$format, $validity, $findings] = $this->inspect($bytes, $maxBytes);
         $metadataInspection = (new MetadataGuard())->inspect($bytes, $format, $maxMetadataBytes);
         $findings = array_merge($findings, $metadataInspection['findings']);
+        $aiInspection = (new AiInjectionGuard())->inspect($bytes, $validity === 'valid' ? $format : 'unknown', $maxMetadataBytes, $options->aiInspection);
+        $findings = array_merge($findings, $aiInspection['signals']);
         $binaryInspection = (new BinaryGuard())->inspect($bytes, $format);
         $findings = array_merge($findings, $binaryInspection['findings']);
         $findings = array_merge($findings, $this->resourceFindings($bytes, $format, $resourceLimits));
@@ -89,7 +91,13 @@ final class Scanner
                     : ['status' => 'unsupported', 'summary' => 'PHP ext-dom is unavailable, so SVG inspection and sanitization cannot run.'])
                 : ['status' => 'unsupported', 'summary' => 'No sanitizer is invoked by scan(); input bytes are unchanged. A restricted PNG raster transform is available separately.'],
             'steganography' => ['status' => 'unsupported', 'summary' => 'No steganography detector is implemented; hidden pixel data has not been evaluated.'],
-            'aiInspection' => ['status' => 'skipped', 'summary' => 'AI/OCR inspection was not requested and no built-in OCR or multimodal adapter is available.'],
+            'aiInspection' => $aiInspection['status'] === 'not_requested'
+                ? ['status' => 'skipped', 'summary' => 'AI/OCR inspection was not requested.']
+                : ($aiInspection['status'] === 'error'
+                    ? ['status' => 'error', 'summary' => 'PNG metadata instruction inspection could not safely read a chunk length.']
+                : (in_array($aiInspection['status'], ['unsupported', 'partial'], true)
+                    ? ['status' => 'unsupported', 'summary' => 'Only bounded PNG metadata text rules are available; requested OCR or format analysis is unsupported.']
+                    : ['status' => 'passed', 'summary' => 'Bounded PNG uncompressed text metadata rules ran locally; this is advisory and does not inspect pixels.'])),
         ];
         $evaluation = $this->evaluatePolicy($findings, $controls, $options);
         $verdict = $evaluation['verdict'];
@@ -144,12 +152,7 @@ final class Scanner
                 'methods' => [],
                 'limitations' => ['No steganography analysis ran; pixel channels, palettes and transform coefficients were not evaluated.'],
             ],
-            'aiInspection' => [
-                'status' => 'not_requested',
-                'dataEgress' => 'none',
-                'signals' => [],
-                'limitations' => ['No OCR or multimodal inspection ran. No text was extracted or sent to a model.'],
-            ],
+            'aiInspection' => $aiInspection,
             'limitations' => ['The current PHP profile provides limited container checks for JPEG, PNG, GIF and WebP, bounded EXIF TIFF directory inspection for JPEG, PNG and WebP, indicator-only signatures in selected format-defined auxiliary regions, and a static SVG allowlist sanitizer when ext-dom is available. A separate PNG sanitizer decodes only static non-interlaced 8-bit RGBA inputs up to one million pixels; it drops ancillary chunks and color profiles, so visual appearance may change. No general raster decoder, OCR, steganography, or process isolation is included. Binary signatures do not prove an embedded file or replace malware scanning. A valid result is not proof of safe decoding or rendering.'],
             'inputBytes' => strlen($bytes),
         ];

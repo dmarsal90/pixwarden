@@ -204,6 +204,13 @@ describe("scanImage structural core", () => {
     expect(result.verdict).toBe("review");
   });
 
+  it("does not claim an OCR request passed when no OCR adapter exists", async () => {
+    const result = await scanImage(validPng, { aiInspection: { enabled: true, ocr: true } });
+    expect(result.aiInspection.status).toBe("partial");
+    expect(result.controls.aiInspection?.status).toBe("unsupported");
+    expect(result.verdict).toBe("review");
+  });
+
   it("can cancel before synchronous inspection begins", async () => {
     const controller = new AbortController();
     const pending = scanImage(validPng, { signal: controller.signal });

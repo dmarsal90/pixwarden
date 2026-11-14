@@ -8,6 +8,7 @@ final readonly class ScanOptions
 {
     public ResourceLimits $limits;
     public ?ScanHints $hints;
+    public AiInspectionOptions $aiInspection;
     /** @var list<string> */
     public array $requiredControls;
     public string $unsupportedFormat;
@@ -20,9 +21,11 @@ final readonly class ScanOptions
         array $requiredControls = ['structural'],
         string $unsupportedFormat = 'review',
         string $incompleteAnalysis = 'review',
+        ?AiInspectionOptions $aiInspection = null,
     ) {
         $this->limits = $limits ?? new ResourceLimits();
         $this->hints = $hints;
+        $this->aiInspection = $aiInspection ?? new AiInspectionOptions();
         $knownControls = ['hints', 'structural', 'metadata', 'binary', 'decode', 'sanitization', 'steganography', 'aiInspection'];
         if ($requiredControls === [] || array_diff($requiredControls, $knownControls) !== []) {
             throw new InvalidScanOptionsException('Required controls must be a non-empty list of known control identifiers.');
@@ -32,6 +35,9 @@ final readonly class ScanOptions
         }
         if (!in_array($incompleteAnalysis, ['review', 'reject'], true)) {
             throw new InvalidScanOptionsException('Incomplete-analysis action must be review or reject.');
+        }
+        if ($aiInspection?->enabled === true) {
+            $requiredControls[] = 'aiInspection';
         }
         $this->requiredControls = array_values(array_unique($requiredControls));
         $this->unsupportedFormat = $unsupportedFormat;

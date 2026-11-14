@@ -8,6 +8,7 @@ use Opis\JsonSchema\CompliantValidator;
 use Opis\JsonSchema\Errors\ErrorFormatter;
 use Pixwarden\Scanner;
 use Pixwarden\ResourceLimits;
+use Pixwarden\AiInspectionOptions;
 use Pixwarden\ScanOptions;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -57,7 +58,14 @@ final class ConformanceTest extends TestCase
             maxPixels: $limitValues['maxPixels'] ?? 40_000_000,
             maxFrames: $limitValues['maxFrames'] ?? 200,
         );
-        $result = (new Scanner())->scan($bytes, new ScanOptions($limits));
+        $aiValues = $vector['scanOptions']['aiInspection'] ?? [];
+        $result = (new Scanner())->scan($bytes, new ScanOptions(
+            $limits,
+            aiInspection: new AiInspectionOptions(
+                enabled: $aiValues['enabled'] ?? false,
+                ocr: $aiValues['ocr'] ?? false,
+            ),
+        ));
         $report = $result->toArray();
         self::assertSame(json_encode($report, JSON_THROW_ON_ERROR), json_encode($result, JSON_THROW_ON_ERROR));
         $validation = self::validator()->validate(
@@ -72,9 +80,15 @@ final class ConformanceTest extends TestCase
         self::assertSame($report['format'], $result->format->value);
         self::assertSame($report['verdict'], $result->verdict->value);
         self::assertSame('unsupported', $report['steganography']['status']);
-        self::assertSame('not_requested', $report['aiInspection']['status']);
         self::assertSame('unsupported', $report['controls']['steganography']['status']);
-        self::assertSame('skipped', $report['controls']['aiInspection']['status']);
+        self::assertSame(($aiValues['enabled'] ?? false) ? 'passed' : 'skipped', $report['controls']['aiInspection']['status']);
+        if (isset($vector['expected']['aiStatus'])) {
+            self::assertSame($vector['expected']['aiStatus'], $report['aiInspection']['status']);
+            self::assertSame('none', $report['aiInspection']['dataEgress']);
+            if (in_array('AI-002', $vector['expected']['findingIds'], true)) {
+                self::assertStringNotContainsString('Ignore all previous instructions', json_encode($report, JSON_THROW_ON_ERROR));
+            }
+        }
         foreach (['format', 'validity', 'verdict', 'coverage'] as $key) {
             self::assertSame($vector['expected'][$key], $report[$key], $vector['id'] . ': ' . $key);
         }
