@@ -20,7 +20,10 @@
         "filename": { "type": "string", "maxLength": 255, "pattern": "^[^\\u0000-\\u001f\\u007f]*$" },
         "mediaType": { "type": "string", "maxLength": 127, "pattern": "^[^\\u0000-\\u001f\\u007f]*$" }
       },
-      "anyOf": [{ "required": ["filename"] }, { "required": ["mediaType"] }]
+      "anyOf": [
+        { "properties": { "filename": { "type": "string" } }, "required": ["filename"] },
+        { "properties": { "mediaType": { "type": "string" } }, "required": ["mediaType"] }
+      ]
     },
     "ResourceLimits": {
       "type": "object", "additionalProperties": false,
@@ -81,7 +84,7 @@
         "redactedValue": { "type": "string", "maxLength": 500 },
         "attributes": { "type": "object", "maxProperties": 16, "additionalProperties": { "type": ["string", "number", "integer", "boolean", "null"] } }
       },
-      "allOf": [{ "if": { "properties": { "kind": { "const": "range" } }, "required": ["kind"] }, "then": { "required": ["offset", "length"] } }]
+      "allOf": [{ "if": { "properties": { "kind": { "const": "range" } }, "required": ["kind"] }, "then": { "properties": { "offset": { "type": "integer", "minimum": 0 }, "length": { "type": "integer", "minimum": 0 } }, "required": ["offset", "length"] } }]
     },
     "Finding": {
       "type": "object", "additionalProperties": false,
