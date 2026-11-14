@@ -1,6 +1,6 @@
 # Threat Intelligence Catalog
 
-**Document ID:** PW-THREAT · **Version:** 0.1.0 · **Status:** Initial research baseline, not exhaustive · **Consulted:** 2026-11-13
+**Document ID:** PW-THREAT · **Version:** 0.1.1 · **Status:** Initial research baseline, not exhaustive · **Consulted:** 2026-11-14
 
 This catalog treats the supplied 82 identifiers as threat scenarios, not 82 confirmed vulnerabilities. Detection is conditional on parsers, enabled controls and format applicability. Public evidence is class-level unless a direct advisory is linked; no CVE is asserted here without source verification. State `planned` means no implementation exists in this checkout.
 
@@ -13,11 +13,15 @@ This catalog treats the supplied 82 identifiers as threat scenarios, not 82 conf
 * [JSON Schema 2020-12 specification](https://json-schema.org/specification), consulted 2026-11-13: proposed contract dialect.
 * [PHP GD documentation](https://www.php.net/manual/en/book.image.php) and [imagecreatefromstring](https://www.php.net/manual/en/function.imagecreatefromstring.php), consulted 2026-11-13: available formats depend on build.
 
-The source set is an initial baseline. Before implementation, research must be expanded against NVD, CERT/CC, GitHub advisories, decoder vendor advisories, format specifications and peer-reviewed multimodal security literature. Exact advisories and versions must be added per selected dependency; do not infer that a class-level reference proves a particular decoder is vulnerable.
+* [OWASP GenAI LLM01:2025 Prompt Injection](https://genai.owasp.org/llmrisk/llm01-prompt-injection/), consulted 2026-11-14: explicitly includes multimodal injection and describes context-dependent impacts; filtering is a mitigation, not a complete prevention guarantee.
+* [OWASP Prompt Injection Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/LLM_Prompt_Injection_Prevention_Cheat_Sheet.html), consulted 2026-11-14: covers hidden image text, metadata, RAG poisoning and agent-specific attacks; recommends layered controls and treating model output as untrusted.
+* [Abusing Images and Sounds for Indirect Instruction Injection in Multi-Modal LLMs](https://arxiv.org/abs/2307.10490), consulted 2026-11-14: peer-reviewed research on embedding instructions in visual/audio input to influence multimodal systems.
+
+The source set is an initial baseline. It is not a complete implementation-time review. Before selecting any decoder, research must be expanded against NVD, CERT/CC, GitHub advisories, decoder vendor advisories and detailed format specifications; before selecting OCR/VLM methods, review the broader peer-reviewed multimodal security literature. Exact advisories and versions must be added per selected dependency; do not infer that a class-level reference proves a particular decoder is vulnerable.
 
 ## Threat register and coverage map
 
-Columns: **Exposure** (typical condition), **Impact/severity** (potential, context-dependent), **Detection / mitigation** (proposed), **test** (synthetic corpus ID), **status** (planned unless marked otherwise). `CWE` references identify related weakness classes, not exact equivalence. The JS implementation is evolving; status does not mean CI or independent security review has completed.
+Columns: **Exposure** (typical condition), **Impact/severity** (potential, context-dependent), **Detection / mitigation** (proposed), **test** (synthetic corpus ID), **status** (initial research baseline). `CWE` references identify related weakness classes, not exact equivalence. Runtime implementation status is maintained in [Detection and Mitigation Coverage](04-Detection-Mitigation-Coverage.md), which supersedes the baseline statuses in this table. Neither status means independent security review has completed.
 
 | ID | Scenario / affected surface | Exposure; impact / severity | Detection, mitigation and limitation | Test / status |
 |---|---|---|---|---|
