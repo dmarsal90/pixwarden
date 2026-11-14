@@ -1,0 +1,38 @@
+name: Seeded parser fuzzing
+
+on:
+  schedule:
+    - cron: '41 4 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fuzz:
+    name: Seeded parser fuzz (${{ github.event_name }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 22
+          package-manager-cache: false
+      - name: Pin npm for lockfile consistency
+        run: npm install --global npm@10.9.2
+      - run: npm ci --ignore-scripts
+      - run: npm run build
+      - name: Prepare hash-checked synthetic corpus
+        run: |
+          mkdir -p "$RUNNER_TEMP/pixwarden-fuzz/corpus" "$RUNNER_TEMP/pixwarden-fuzz/artifacts"
+          node scripts/prepare-fuzz-corpus.mjs "$RUNNER_TEMP/pixwarden-fuzz/corpus"
+      - name: Run 90-second coverage-guided fuzzing
+        run: npx jazzer fuzz/scan-image.mjs "$RUNNER_TEMP/pixwarden-fuzz/corpus" --timeout=1000 -- -max_total_time=90 -max_len=65536 -artifact_prefix="$RUNNER_TEMP/pixwarden-fuzz/artifacts/"
+      - uses: actions/upload-artifact@v7.0.2
+        if: always()
+        with:
+          name: pixwarden-fuzz-corpus-${{ github.run_id }}
+          path: ${{ runner.temp }}/pixwarden-fuzz/
+          if-no-files-found: warn
+          retention-days: 14

@@ -33,4 +33,10 @@ jobs:
       - run: npm run build
       - run: npm run typecheck
       - run: npm test
+      - name: Replay shared seed corpus with Jazzer.js
+        run: |
+          fuzz_corpus="$RUNNER_TEMP/pixwarden-fuzz-regression"
+          mkdir -p "$fuzz_corpus"
+          node scripts/prepare-fuzz-corpus.mjs "$fuzz_corpus"
+          npx jazzer fuzz/scan-image.mjs "$fuzz_corpus" --timeout=1000 --mode=regression
       - run: npm audit --audit-level=high

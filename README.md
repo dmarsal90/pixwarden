@@ -46,3 +46,15 @@ Hints are untrusted and are compared with the byte-derived format. Pixwarden doe
 Input to `scanImage` and `scanImageIsolated` must be a `Uint8Array` or Node.js `Buffer`. `scanImageStream` accepts an `AsyncIterable<Uint8Array>`, copies each yielded chunk, and stops reading once the byte cap is exceeded. The stream is buffered up to that cap before inspection; memory/RSS and stalled-source timeouts are not enforced. `sanitizeSvg` handles only the documented static allowlist; the current metadata guard checks bounded EXIF TIFF directories and reports selected sensitive tag identifiers without extracting values. XMP and text metadata are not parsed. There is no raster decoder/sanitizer, OCR, steganography detection, remote fetching, or telemetry. `AbortSignal` cancels pending stream reads and requests iterator cleanup, but the source must cooperate to stop its own work; it cannot interrupt synchronous parsing. Byte, dimension, and frame thresholds are checked before any decoder (none is invoked). `scanImage` has no hard CPU, memory, or wall-clock limits. `scanImageIsolated` adds worker timeout and V8 heap controls, but does not provide OS quotas or RSS isolation. Limits may be tightened but not raised above built-in maxima.
 
 See [the product requirements](docs/01-PRD.md), [technical design](docs/02-TRD.md), [format matrix](docs/security/02-Format-Security-Matrix.md), [coverage limits](docs/security/04-Detection-Mitigation-Coverage.md), and [security policy](SECURITY.md).
+
+## Parser fuzzing
+
+The development-only Jazzer.js target uses the hash-checked synthetic fixtures. To replay the seed corpus locally:
+
+```sh
+fuzz_corpus="$(mktemp -d)"
+node scripts/prepare-fuzz-corpus.mjs "$fuzz_corpus"
+npx jazzer fuzz/scan-image.mjs "$fuzz_corpus" --timeout=1000 --mode=regression
+```
+
+The scheduled workflow runs coverage-guided fuzzing for 90 seconds and uploads the evolving corpus and crash artifacts. This in-process target is not an OS CPU or memory boundary and covers the byte-level JS parser only.

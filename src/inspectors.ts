@@ -172,7 +172,9 @@ function inspectGif(data: Uint8Array, limits: ResourceLimits): StructuralInspect
       if (exceedsDimensions(frameWidth, frameHeight, limits)) findings.push(finding("DEC-007", "high", "resource", "GIF frame dimensions exceed policy", "Frame dimensions exceed configured image limits.", offset + 4, 4));
       const imagePacked = data[offset + 8]!;
       offset += 9;
-      if (imagePacked & 0x80) offset += 3 * (1 << ((imagePacked & 7) + 1));
+      const localColorTableBytes = imagePacked & 0x80 ? 3 * (1 << ((imagePacked & 7) + 1)) : 0;
+      if (localColorTableBytes > data.length - offset) return invalid("gif", "IMG-003", "Truncated GIF local color table", "Local color table exceeds the input boundary.", offset);
+      offset += localColorTableBytes;
       if (offset >= data.length) return invalid("gif", "IMG-003", "Truncated GIF image data", "Missing LZW minimum code size.", offset);
       offset++;
       const blocks = readSubBlocks(offset);
