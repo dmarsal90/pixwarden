@@ -2,7 +2,7 @@
 
 **Document ID:** PW-CORPUS · **Version:** 0.1.2 · **Status:** Shared synthetic conformance and scheduled JS fuzzing active; broader corpus planned · **Updated:** 2026-11-14
 
-The shared `spec/corpus/v1/manifest.json` contains seventeen hash-pinned, harmless synthetic byte vectors consumed directly by JS and PHP tests. This initial corpus is a subset of the broader plan below; absent cases are planned, not tested. No operational malware or live exploit payloads are included. A separate `pixwarden-spec` repository is not yet created.
+The shared `spec/corpus/v1/manifest.json` contains eighteen hash-pinned, harmless synthetic byte vectors consumed directly by JS and PHP tests. This initial corpus is a subset of the broader plan below; absent cases are planned, not tested. No operational malware or live exploit payloads are included. A separate `pixwarden-spec` repository is not yet created.
 
 ## Manifest contract
 
@@ -14,7 +14,7 @@ Initial local run record (2026-11-14): Jazzer.js 4.0.0 on Node 22.22.2 first fou
 
 ## Planned corpus cases
 
-Implemented vector IDs in v1 include `FMT-UNKNOWN-001`, `STR-PNG-TRUNCATED-001`, `STR-PNG-VALID-001`, `STR-GIF-VALID-001`, `STR-JPEG-VALID-001`, `STR-WEBP-VALID-001`, `META-PNG-EXIF-GPS-TAG-001`, `META-PNG-EXIF-MALFORMED-001`, `BIN-PNG-ANCILLARY-SIGNATURE-001`, `BIN-GIF-EXTENSION-SIGNATURE-001`, `BIN-JPEG-APP-SIGNATURE-001`, `BIN-WEBP-XMP-SIGNATURE-001`, `SVG-STATIC-SAFE-001`, `SVG-ACTIVE-CONTENT-001`, `RES-PNG-WIDTH-LIMIT-001`, and `RES-GIF-FRAME-LIMIT-001`. The exact hashes and expected outcomes are maintained in the manifest.
+Implemented vector IDs in v1 include `FMT-UNKNOWN-001`, `STR-PNG-TRUNCATED-001`, `STR-PNG-VALID-001`, `STR-PNG-CRC-MISMATCH-001`, `STR-GIF-VALID-001`, `STR-GIF-LOCAL-TABLE-TRUNCATED-001`, `STR-JPEG-VALID-001`, `STR-WEBP-VALID-001`, `META-PNG-EXIF-GPS-TAG-001`, `META-PNG-EXIF-MALFORMED-001`, `BIN-PNG-ANCILLARY-SIGNATURE-001`, `BIN-GIF-EXTENSION-SIGNATURE-001`, `BIN-JPEG-APP-SIGNATURE-001`, `BIN-WEBP-XMP-SIGNATURE-001`, `SVG-STATIC-SAFE-001`, `SVG-ACTIVE-CONTENT-001`, `RES-PNG-WIDTH-LIMIT-001`, and `RES-GIF-FRAME-LIMIT-001`. The exact hashes and expected outcomes are maintained in the manifest.
 
 | Case ID | Construction / benign purpose | Expected assertion | Trace |
 |---|---|---|---|
@@ -25,6 +25,7 @@ Implemented vector IDs in v1 include `FMT-UNKNOWN-001`, `STR-PNG-TRUNCATED-001`,
 | STR-005 | Oversized declared length within tiny fixture | Limit/malformed result without allocation | IMG-004 |
 | STR-006 | Reordered/duplicate chunks in synthetic PNG profile | Specific ordering finding | IMG-005/006 |
 | STR-007 | Two benign signatures concatenated in synthetic bytes | Multiple-candidate/polyglot signal | IMG-007/009 |
+| STR-008 | Minimal PNG with one changed CRC byte | CRC mismatch reported at a bounded offset | IMG-002 |
 | BIN-001 | Benign marker bytes in legal metadata segment | Metadata region reported, no malware claim | BIN-002 |
 | BIN-002 | Harmless ASCII trailer after image terminator | Trailing-data finding and offset | IMG-008/BIN-001 |
 | BIN-003 | Harmless known file magic token in ancillary data | Embedded signature indicator only | BIN-003/009 |
