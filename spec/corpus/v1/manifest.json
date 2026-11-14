@@ -86,6 +86,20 @@
       "inputHex": "524946461c00000057454250565038200400000000000000584d502004000000504b0304",
       "sha256": "7a1b564f5421ec09f19f139a6b7a1dcfc6eb2d295cda176d4a7c32fa16fefc14",
       "expected": { "format": "webp", "validity": "valid", "verdict": "review", "coverage": "partial", "findingIds": ["BIN-009"], "binaryStatus": "findings", "binaryBytesScanned": 4 }
+    },
+    {
+      "id": "SVG-STATIC-SAFE-001",
+      "description": "Minimal static SVG using one allowed shape and no references or active content.",
+      "inputHex": "3c73766720786d6c6e733d22687474703a2f2f7777772e77332e6f72672f323030302f737667223e3c726563742077696474683d223122206865696768743d2231222f3e3c2f7376673e",
+      "sha256": "b131556c36b0323b4981999443b5b22f7e35032e604d152b2d6698fc072e88c1",
+      "expected": { "format": "svg", "validity": "valid", "verdict": "allow", "coverage": "partial", "findingIds": [] }
+    },
+    {
+      "id": "SVG-ACTIVE-CONTENT-001",
+      "description": "Synthetic SVG with script and event-handler content; instructions are inert and never executed.",
+      "inputHex": "3c73766720786d6c6e733d22687474703a2f2f7777772e77332e6f72672f323030302f737667223e3c7363726970743e616c6572742831293c2f7363726970743e3c72656374206f6e6c6f61643d2278222077696474683d2231222f3e3c2f7376673e",
+      "sha256": "72e03dd4170d51a56a960801f37d2c007798282a010e2acab27d56eaee20386f",
+      "expected": { "format": "svg", "validity": "valid", "verdict": "reject", "coverage": "partial", "findingIds": ["SVG-001", "SVG-002"] }
     }
   ]
 }

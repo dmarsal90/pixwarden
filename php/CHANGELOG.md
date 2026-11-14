@@ -8,3 +8,5 @@
 - Add shared synthetic EXIF vectors for privacy-tag detection and malformed TIFF structure.
 - Add region-scoped binary signature indicators for PNG, JPEG, GIF, and WebP; these are not malware verdicts.
 - Add shared inert synthetic ancillary-region signature vectors.
+- Add optional ext-dom static SVG inspection and allowlist sanitization with post-check.
+- Add safe and active-content SVG vectors to shared conformance.

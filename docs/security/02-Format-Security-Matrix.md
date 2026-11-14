@@ -1,6 +1,6 @@
 # Format Security Matrix
 
-**Document ID:** PW-FORMAT · **Version:** 0.1.2 · **Status:** Initial profile; no decoders enabled · **Reviewed:** 2026-11-14
+**Document ID:** PW-FORMAT · **Version:** 0.1.3 · **Status:** Initial profile; no decoders enabled · **Reviewed:** 2026-11-14
 
 This is a planning matrix, not a promise of support. Exact specifications and decoder versions must be researched and pinned before implementation. File signatures are partial identifiers and must be combined with structure parsing and policy. All formats default to no automatic native decoder enablement. `Core` means initial byte-inspection priority only.
 
@@ -10,7 +10,7 @@ This is a planning matrix, not a promise of support. Exact specifications and de
 | PNG | ISO/IEC 15948; 8-byte PNG signature, chunks/CRC/IEND | Ancillary/text/ICC chunks, animation extensions | libpng, GD, libvips | JS checks selected chunk structure/order/CRC and dimensions; PHP checks bounded chunk ordering/lengths but not CRC. JS binary indicators scan selected ancillary areas; both inspect bounded eXIf TIFF. No raster decode. | Inspect profile only; decode opt-in |
 | GIF | GIF89a/87a signatures, blocks/trailer | Comments, extensions, palettes, frame sequence | giflib, GD, libvips | JS performs bounded block/sub-block/frame inspection and scoped binary indicators; PHP currently checks only signature and trailer. No LZW decode. | Inspect profile only; decode opt-in |
 | WebP | RIFF/WEBP container | VP8/VP8L/VP8X, EXIF/XMP/ICC, ANIM/ANMF | libwebp, libvips | JS inspects bounded RIFF chunks/selected dimensions and metadata; PHP checks RIFF size/VP8 prefix and bounded EXIF TIFF directories. No bitstream decode. | Inspect profile only; decode opt-in |
-| SVG | W3C SVG XML vocabulary; XML root/namespace | Script, event attributes, CSS/URL refs, foreignObject, data URLs | hardened XML parser; sanitizer adapter | JS has Saxes-based namespace-aware allowlist inspection/sanitization; PHP is unsupported. Renderer differences remain. | JS static profile only; PHP unsupported |
+| SVG | W3C SVG XML vocabulary; XML root/namespace | Script, event attributes, CSS/URL refs, foreignObject, data URLs | JS Saxes; PHP ext-dom when available | JS and PHP use namespace-aware static allowlists, reject DTD/PIs, remove active nodes/attributes, verify local refs and post-check output; PHP capability is conditional on ext-dom. Renderer differentials remain. | Static allowlist only; no general renderer |
 | BMP | Microsoft/OS2 DIB headers; `BM` commonly | Header variants, palettes, masks, possible gaps | platform codecs, libvips | Header-size variants, offsets, overflow; optional raster conversion | Unsupported by default |
 | AVIF | ISO BMFF / AV1 image item; `ftyp` brands | Item/property boxes, metadata, sequences | libavif, libheif, libvips | Box lengths, profiles, auxiliary images, native decoder exposure | Unsupported; adapter review |
 | HEIF | ISO BMFF / HEIF brands | Items, sequences, EXIF/XMP, auxiliary content | libheif, platform frameworks | Complex box/item references, codec dependencies, resource use | Unsupported; adapter review |
@@ -40,7 +40,7 @@ This is a planning matrix, not a promise of support. Exact specifications and de
 
 ## Policy and adapter gate
 
-Current implementation note: the matrix describes an incomplete profile, not full-format support. JS covers bounded structural profiles for JPEG, PNG, GIF, WebP, plus SVG static-profile processing. PHP is independently native and currently covers limited JPEG/PNG/GIF/WebP structure, partial EXIF TIFF directory inspection on JPEG/PNG/WebP, and indicator-only signatures in selected metadata/extension/trailer regions. Neither runtime includes a raster decoder; PHP SVG handling remains unsupported. Capability reports and partial coverage are authoritative for each runtime.
+Current implementation note: the matrix describes an incomplete profile, not full-format support. JS covers bounded structural profiles for JPEG, PNG, GIF, WebP, plus SVG static-profile processing. PHP is independently native and currently covers limited JPEG/PNG/GIF/WebP structure, partial EXIF TIFF directory inspection on JPEG/PNG/WebP, indicator-only signatures in selected metadata/extension/trailer regions, and an ext-dom-based static SVG profile. Neither runtime includes a raster decoder. Capability reports and partial coverage are authoritative for each runtime.
 
 An adapter proposal must name exact parser/decoder, versions and transitive native libraries; upstream security policy; supported subfeatures; format corpus; fuzz target; resource enforcement; license; platform/build matrix; sanitization fidelity; and whether its capability is equal in PHP and JS. A PHP GD decoder is build-dependent (PHP docs enumerate supported types conditionally); ImageMagick requires an explicit restrictive policy. These are candidates only, not dependencies selected by this baseline.
 
