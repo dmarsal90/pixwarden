@@ -1,5 +1,7 @@
 # Pixwarden
 
+Read the [documentation index](docs/README.md) for getting started, API details, format support, security policies, and explicit limitations.
+
 This repository currently contains the `pixwarden-js` implementation and a native PHP package under [`php/`](php/). Shared contracts and versioned synthetic conformance fixtures live under [`spec/`](spec/).
 
 ## PHP package status
