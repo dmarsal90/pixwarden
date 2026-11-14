@@ -12,6 +12,7 @@ Pixwarden is a library, so the interface is its API, types, errors, examples and
 4. **Visible uncertainty:** result surfaces `unsupported`, `skipped`, `error`, confidence semantics and residual risk.
 5. **Typed integration:** TypeScript discriminated unions and PHP enums/value objects; stable machine-readable error codes.
 6. **Reviewable transformations:** sanitizer returns a new artifact and transformation summary; never mutates caller input.
+7. **Privacy-safe hints:** filename and MIME hints can be compared with detected bytes, but raw values are not retained in scan reports.
 
 ## API shape
 

@@ -17,10 +17,16 @@ export interface ScanOptions {
   readonly binaryInspection?: boolean;
   readonly metadata?: boolean;
   readonly signal?: AbortSignal;
+  readonly hints?: ScanHints;
   readonly limits?: Partial<ResourceLimits>;
   readonly requiredControls?: readonly string[];
   readonly unsupportedFormat?: "review" | "reject";
   readonly incompleteAnalysis?: "review" | "reject";
+}
+
+export interface ScanHints {
+  readonly filename?: string;
+  readonly mediaType?: string;
 }
 
 export interface Evidence {

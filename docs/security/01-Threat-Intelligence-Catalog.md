@@ -30,7 +30,7 @@ Columns: **Exposure** (typical condition), **Impact/severity** (potential, conte
 | IMG-007 | Polyglot file | Different consumers interpret different payload; high | Candidate signatures, strict allowlist, raster reconstruction; cannot prove no parser differential | BIN-001 / planned |
 | IMG-008 | Appended data | Hidden payload or downstream mismatch; med-high | Format terminator/tail scan; allowable trailing bytes vary | BIN-002 / planned |
 | IMG-009 | False declared format | Decoder selection confusion; med | Byte-derived format and hint mismatch finding | STR-007 / planned |
-| IMG-010 | MIME/extension contradiction | Serving or decoder confusion; med | Treat hints as untrusted, report mismatch | INT-001 / planned |
+| IMG-010 | MIME/extension contradiction | Serving or decoder confusion; med | Treat hints as untrusted, report mismatch without retaining raw values | INT-001 / implemented-js, CI pending |
 | IMG-011 | Unexpected nested structures | Recursive parsing/DoS; high | Depth/count bounds; no recursive extraction default | STR-008 / planned |
 | IMG-012 | Parser differential | Different consumers disagree; high | Strict profile plus cross-parser checks where justified; cannot cover every consumer | STR-009 / planned |
 | BIN-001 | Trailing binary content | Payload hidden after image terminator; high | Bounded tail scan/signatures; false positives possible | BIN-002 / planned |
