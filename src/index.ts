@@ -5,10 +5,10 @@ import { inspectMetadata } from "./metadata-guard.js";
 import { sanitizeSvg } from "./svg-guard.js";
 import { stripPngExifAndTextMetadata } from "./png-metadata-sanitizer.js";
 import { sanitizePngRgba8 } from "./png-raster-sanitizer.js";
-import { PixwardenError, type BinaryInspectionResult, type CapabilityReport, type ControlResult, type Finding, type ImageFormat, type MetadataInspectionResult, type ResourceLimits, type ScanHints, type ScanIsolationOptions, type ScanOptions, type ScanResult, type Verdict } from "./types.js";
+import { PixwardenError, type AiInspectionResult, type BinaryInspectionResult, type CapabilityReport, type ControlResult, type Finding, type ImageFormat, type MetadataInspectionResult, type ResourceLimits, type ScanHints, type ScanIsolationOptions, type ScanOptions, type ScanResult, type SteganographyResult, type Verdict } from "./types.js";
 
 export { PixwardenError } from "./types.js";
-export type { BinaryInspectionResult, CapabilityReport, ControlResult, Evidence, Finding, ImageFormat, MetadataInspectionResult, ResourceLimits, ScanHints, ScanIsolationOptions, ScanOptions, ScanResult, Verdict } from "./types.js";
+export type { AiInspectionResult, BinaryInspectionResult, CapabilityReport, ControlResult, Evidence, Finding, ImageFormat, MetadataInspectionResult, ResourceLimits, ScanHints, ScanIsolationOptions, ScanOptions, ScanResult, SteganographyResult, Verdict } from "./types.js";
 export type { SvgSanitizationResult } from "./svg-guard.js";
 export { sanitizeSvg } from "./svg-guard.js";
 export { stripPngExifAndTextMetadata } from "./png-metadata-sanitizer.js";
@@ -263,7 +263,9 @@ function inspectSnapshot(snapshot: Uint8Array, options: ScanOptions, limits: Res
     decode: makeControl("unsupported", "No image decoder is bundled or invoked."),
     sanitization: format === "svg"
       ? makeControl("skipped", "The SVG sanitizer is available separately and was not invoked by scanImage.")
-      : makeControl("unsupported", "No raster sanitizer is invoked by scanImage; the original input is unchanged.")
+      : makeControl("unsupported", "No raster sanitizer is invoked by scanImage; the original input is unchanged."),
+    steganography: makeControl("unsupported", "No steganography detector is implemented; hidden pixel data has not been evaluated."),
+    aiInspection: makeControl("skipped", "AI/OCR inspection was not requested and no built-in OCR or multimodal adapter is available.")
   };
   if (binaryInspection) findings.push(...binaryInspection.findings);
   for (const [name, maximum, observed] of [
@@ -314,6 +316,8 @@ function inspectSnapshot(snapshot: Uint8Array, options: ScanOptions, limits: Res
     findings: Object.freeze(findings),
     ...(binaryInspection === undefined ? {} : { binaryInspection }),
     ...(metadataInspection === undefined ? {} : { metadataInspection }),
+    steganography: Object.freeze({ status: "unsupported", methods: Object.freeze([]), limitations: Object.freeze(["No steganography analysis ran; pixel channels, palettes and transform coefficients were not evaluated."]) }) satisfies SteganographyResult,
+    aiInspection: Object.freeze({ status: "not_requested", dataEgress: "none", signals: Object.freeze([]), limitations: Object.freeze(["No OCR or multimodal inspection ran. No text was extracted or sent to a model."]) }) satisfies AiInspectionResult,
     capabilities: capabilityReport,
     limitations: Object.freeze(limitations),
     inputBytes: snapshot.byteLength

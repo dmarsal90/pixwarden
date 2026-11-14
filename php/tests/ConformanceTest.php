@@ -71,6 +71,10 @@ final class ConformanceTest extends TestCase
         }
         self::assertSame($report['format'], $result->format->value);
         self::assertSame($report['verdict'], $result->verdict->value);
+        self::assertSame('unsupported', $report['steganography']['status']);
+        self::assertSame('not_requested', $report['aiInspection']['status']);
+        self::assertSame('unsupported', $report['controls']['steganography']['status']);
+        self::assertSame('skipped', $report['controls']['aiInspection']['status']);
         foreach (['format', 'validity', 'verdict', 'coverage'] as $key) {
             self::assertSame($vector['expected'][$key], $report[$key], $vector['id'] . ': ' . $key);
         }

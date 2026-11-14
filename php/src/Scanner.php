@@ -88,6 +88,8 @@ final class Scanner
                     ? ['status' => 'skipped', 'summary' => 'The SVG sanitizer is available separately and was not invoked by scan().']
                     : ['status' => 'unsupported', 'summary' => 'PHP ext-dom is unavailable, so SVG inspection and sanitization cannot run.'])
                 : ['status' => 'unsupported', 'summary' => 'No sanitizer is invoked by scan(); input bytes are unchanged. A restricted PNG raster transform is available separately.'],
+            'steganography' => ['status' => 'unsupported', 'summary' => 'No steganography detector is implemented; hidden pixel data has not been evaluated.'],
+            'aiInspection' => ['status' => 'skipped', 'summary' => 'AI/OCR inspection was not requested and no built-in OCR or multimodal adapter is available.'],
         ];
         $evaluation = $this->evaluatePolicy($findings, $controls, $options);
         $verdict = $evaluation['verdict'];
@@ -137,6 +139,17 @@ final class Scanner
             ],
             'metadataInspection' => $metadataInspection,
             'binaryInspection' => $binaryInspection,
+            'steganography' => [
+                'status' => 'unsupported',
+                'methods' => [],
+                'limitations' => ['No steganography analysis ran; pixel channels, palettes and transform coefficients were not evaluated.'],
+            ],
+            'aiInspection' => [
+                'status' => 'not_requested',
+                'dataEgress' => 'none',
+                'signals' => [],
+                'limitations' => ['No OCR or multimodal inspection ran. No text was extracted or sent to a model.'],
+            ],
             'limitations' => ['The current PHP profile provides limited container checks for JPEG, PNG, GIF and WebP, bounded EXIF TIFF directory inspection for JPEG, PNG and WebP, indicator-only signatures in selected format-defined auxiliary regions, and a static SVG allowlist sanitizer when ext-dom is available. A separate PNG sanitizer decodes only static non-interlaced 8-bit RGBA inputs up to one million pixels; it drops ancillary chunks and color profiles, so visual appearance may change. No general raster decoder, OCR, steganography, or process isolation is included. Binary signatures do not prove an embedded file or replace malware scanning. A valid result is not proof of safe decoding or rendering.'],
             'inputBytes' => strlen($bytes),
         ];

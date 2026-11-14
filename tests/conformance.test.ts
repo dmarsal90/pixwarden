@@ -30,6 +30,10 @@ describe("shared Pixwarden v1 corpus", () => {
     expect(result.validity).toBe(vector.expected.validity);
     expect(result.verdict).toBe(vector.expected.verdict);
     expect(result.coverage).toBe(vector.expected.coverage);
+    expect(result.steganography.status).toBe("unsupported");
+    expect(result.aiInspection.status).toBe("not_requested");
+    expect(result.controls.steganography?.status).toBe("unsupported");
+    expect(result.controls.aiInspection?.status).toBe("skipped");
     expect([...new Set(result.findings.map((finding) => finding.id))].sort()).toEqual([...vector.expected.findingIds].sort());
     if (vector.expected.binaryStatus !== undefined) {
       expect(result.binaryInspection?.status).toBe(vector.expected.binaryStatus);
