@@ -2,10 +2,10 @@ import { randomUUID } from "node:crypto";
 import { Worker } from "node:worker_threads";
 import { inspectBinaryIndicators, inspectStructure } from "./inspectors.js";
 import { sanitizeSvg } from "./svg-guard.js";
-import { PixwardenError, type CapabilityReport, type ControlResult, type Finding, type ImageFormat, type ResourceLimits, type ScanHints, type ScanIsolationOptions, type ScanOptions, type ScanResult, type Verdict } from "./types.js";
+import { PixwardenError, type BinaryInspectionResult, type CapabilityReport, type ControlResult, type Finding, type ImageFormat, type ResourceLimits, type ScanHints, type ScanIsolationOptions, type ScanOptions, type ScanResult, type Verdict } from "./types.js";
 
 export { PixwardenError } from "./types.js";
-export type { CapabilityReport, ControlResult, Evidence, Finding, ImageFormat, ResourceLimits, ScanHints, ScanIsolationOptions, ScanOptions, ScanResult, Verdict } from "./types.js";
+export type { BinaryInspectionResult, CapabilityReport, ControlResult, Evidence, Finding, ImageFormat, ResourceLimits, ScanHints, ScanIsolationOptions, ScanOptions, ScanResult, Verdict } from "./types.js";
 export type { SvgSanitizationResult } from "./svg-guard.js";
 export { sanitizeSvg } from "./svg-guard.js";
 
@@ -229,6 +229,7 @@ function inspectSnapshot(snapshot: Uint8Array, options: ScanOptions, limits: Res
   const binaryEnabled = options.binaryInspection ?? true;
   const metadataEnabled = options.metadata ?? true;
   const structural = structuralEnabled ? inspectStructure(snapshot, limits) : undefined;
+  const binaryInspection = binaryEnabled ? inspectBinaryIndicators(snapshot) : undefined;
   const format: ImageFormat = structural?.format ?? "unknown";
   const findings: Finding[] = [...(structural?.findings ?? [])];
   const hintInspection = inspectHints(format, options.hints);
@@ -242,7 +243,7 @@ function inspectSnapshot(snapshot: Uint8Array, options: ScanOptions, limits: Res
       ? makeControl("skipped", "Metadata inspection was disabled by the caller.")
       : ["jpeg", "png", "gif", "webp"].includes(format) ? makeControl("unsupported", "Metadata segment locations and aggregate byte counts are bounded, but metadata tags and values are not parsed.") : makeControl("unsupported", "Metadata inspection is not implemented for this format."),
     binary: binaryEnabled
-      ? ["jpeg", "png", "gif", "webp"].includes(format)
+      ? binaryInspection?.status !== "unsupported"
         ? makeControl("passed", "Read-only signature indicators were scanned in format-defined metadata/extension regions and container trailers; this is not malware scanning.")
         : makeControl("unsupported", "No bounded binary inspection regions are defined for this format.")
       : makeControl("skipped", "Binary signature inspection was disabled by the caller."),
@@ -251,7 +252,7 @@ function inspectSnapshot(snapshot: Uint8Array, options: ScanOptions, limits: Res
       ? makeControl("skipped", "The SVG sanitizer is available separately and was not invoked by scanImage.")
       : makeControl("unsupported", "No raster sanitizer is implemented; the original input is unchanged.")
   };
-  if (binaryEnabled) findings.push(...inspectBinaryIndicators(snapshot));
+  if (binaryInspection) findings.push(...binaryInspection.findings);
   for (const [name, maximum, observed] of [
     ["width", limits.maxWidth, structural?.width],
     ["height", limits.maxHeight, structural?.height],
@@ -297,6 +298,7 @@ function inspectSnapshot(snapshot: Uint8Array, options: ScanOptions, limits: Res
     verdict: evaluation.verdict,
     controls: Object.freeze(controls),
     findings: Object.freeze(findings),
+    ...(binaryInspection === undefined ? {} : { binaryInspection }),
     capabilities: capabilityReport,
     limitations: Object.freeze(limitations),
     inputBytes: snapshot.byteLength

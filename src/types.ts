@@ -54,6 +54,14 @@ export interface Finding {
   readonly evidence: readonly Evidence[];
 }
 
+export interface BinaryInspectionResult {
+  readonly status: "passed" | "findings" | "unsupported" | "error";
+  readonly bytesScanned: number;
+  readonly findings: readonly Finding[];
+  readonly trailingData: boolean;
+  readonly recursiveInspection: false;
+}
+
 export interface ControlResult {
   readonly status: ControlStatus;
   readonly summary: string;
@@ -91,6 +99,7 @@ export interface ScanResult {
   readonly verdict: Verdict;
   readonly controls: Readonly<Record<string, ControlResult>>;
   readonly findings: readonly Finding[];
+  readonly binaryInspection?: BinaryInspectionResult;
   readonly capabilities: CapabilityReport;
   readonly limitations: readonly string[];
   readonly inputBytes: number;
