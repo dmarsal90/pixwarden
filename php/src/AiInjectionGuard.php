@@ -20,7 +20,7 @@ final class AiInjectionGuard
     public function inspect(string $bytes, string $format, int $maximum, AiInspectionOptions $options): array
     {
         $limitations = [
-            'Rules inspect PNG tEXt, zTXt, iTXt and ASCII EXIF UserComment values; compressed output is capped by the metadata budget. Visible pixels, OCR output and other formats are not inspected.',
+            'Rules inspect PNG tEXt, zTXt, iTXt and ASCII or TIFF-byte-order UTF-16 EXIF UserComment values; compressed output is capped by the metadata budget. Visible pixels, OCR output and other formats are not inspected.',
             'Text matching is advisory and can miss paraphrased, encoded, multilingual, or visually embedded instructions; it cannot determine downstream model behavior.',
         ];
         if (!$options->enabled) {
@@ -114,7 +114,7 @@ final class AiInjectionGuard
     private function inspectWebpExif(string $bytes, int $maximum, AiInspectionOptions $options): array
     {
         $limitations = [
-            'Rules inspect ASCII EXIF UserComment values in WebP EXIF chunks only; visible pixels, XMP text, OCR output and other metadata are not inspected.',
+            'Rules inspect ASCII and TIFF-byte-order UTF-16 EXIF UserComment values in WebP EXIF chunks only; visible pixels, XMP text, OCR output and other metadata are not inspected.',
             'Text matching is advisory and can miss paraphrased, encoded, multilingual, or visually embedded instructions; it cannot determine downstream model behavior.',
         ];
         $riff = unpack('Vlength', substr($bytes, 4, 4));
@@ -179,7 +179,7 @@ final class AiInjectionGuard
     private function inspectJpegTextMetadata(string $bytes, int $maximum, AiInspectionOptions $options): array
     {
         $limitations = [
-            'Rules inspect JPEG COM comment segments and ASCII-encoded EXIF UserComment values only; visible pixels, XMP text, OCR output and other formats are not inspected.',
+            'Rules inspect JPEG COM comment segments and ASCII or TIFF-byte-order UTF-16 EXIF UserComment values only; visible pixels, XMP text, OCR output and other formats are not inspected.',
             'Text matching is advisory and can miss paraphrased, encoded, multilingual, or visually embedded instructions; it cannot determine downstream model behavior.',
         ];
         $signals = [];
@@ -348,15 +348,74 @@ final class AiInjectionGuard
                 return ['text' => null, 'offset' => null, 'length' => null, 'partial' => true];
             }
             $valueStart = $tiff + $relative;
-            if (substr($bytes, $valueStart, 8) !== "ASCII\0\0\0") {
-                return ['text' => null, 'offset' => null, 'length' => null, 'partial' => true];
+            $valueOffset = $valueStart + 8;
+            $valueLength = $byteCount - 8;
+            $marker = substr($bytes, $valueStart, 8);
+            if ($marker === "ASCII\0\0\0") {
+                return ['text' => substr($bytes, $valueOffset, $valueLength), 'offset' => $valueOffset, 'length' => $valueLength, 'partial' => false];
             }
-            return [
-                'text' => substr($bytes, $valueStart + 8, $byteCount - 8),
-                'offset' => $valueStart + 8, 'length' => $byteCount - 8, 'partial' => false,
-            ];
+            if ($marker === "UNICODE\0") {
+                $text = $this->decodeExifUtf16(substr($bytes, $valueOffset, $valueLength), $little);
+                return $text === null
+                    ? ['text' => null, 'offset' => null, 'length' => null, 'partial' => true]
+                    : ['text' => $text, 'offset' => $valueOffset, 'length' => $valueLength, 'partial' => false];
+            }
+            return ['text' => null, 'offset' => null, 'length' => null, 'partial' => true];
         }
         return ['text' => null, 'offset' => null, 'length' => null, 'partial' => false];
+    }
+
+    /** Decode strict UTF-16 using the containing TIFF byte order; malformed code units return null. */
+    private function decodeExifUtf16(string $bytes, bool $little): ?string
+    {
+        $length = strlen($bytes);
+        if ($length % 2 !== 0) {
+            return null;
+        }
+        $text = '';
+        for ($offset = 0; $offset < $length; $offset += 2) {
+            $current = unpack($little ? 'vvalue' : 'nvalue', substr($bytes, $offset, 2));
+            if ($current === false || !isset($current['value'])) {
+                return null;
+            }
+            $unit = $current['value'];
+            if ($unit === 0 && $offset >= $length - 2) {
+                break;
+            }
+            if ($unit >= 0xD800 && $unit <= 0xDBFF) {
+                if ($offset + 4 > $length) {
+                    return null;
+                }
+                $following = unpack($little ? 'vvalue' : 'nvalue', substr($bytes, $offset + 2, 2));
+                if ($following === false || !isset($following['value'])) {
+                    return null;
+                }
+                $low = $following['value'];
+                if ($low < 0xDC00 || $low > 0xDFFF) {
+                    return null;
+                }
+                $unit = 0x10000 + (($unit - 0xD800) << 10) + ($low - 0xDC00);
+                $offset += 2;
+            } elseif ($unit >= 0xDC00 && $unit <= 0xDFFF) {
+                return null;
+            }
+            $text .= $this->encodeUtf8CodePoint($unit);
+        }
+        return $text;
+    }
+
+    private function encodeUtf8CodePoint(int $codePoint): string
+    {
+        if ($codePoint <= 0x7F) {
+            return chr($codePoint);
+        }
+        if ($codePoint <= 0x7FF) {
+            return chr(0xC0 | ($codePoint >> 6)) . chr(0x80 | ($codePoint & 0x3F));
+        }
+        if ($codePoint <= 0xFFFF) {
+            return chr(0xE0 | ($codePoint >> 12)) . chr(0x80 | (($codePoint >> 6) & 0x3F)) . chr(0x80 | ($codePoint & 0x3F));
+        }
+        return chr(0xF0 | ($codePoint >> 18)) . chr(0x80 | (($codePoint >> 12) & 0x3F)) . chr(0x80 | (($codePoint >> 6) & 0x3F)) . chr(0x80 | ($codePoint & 0x3F));
     }
 
     /** @return array<string, mixed>|null */
