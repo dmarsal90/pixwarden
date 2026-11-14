@@ -138,6 +138,10 @@ function inspectGif(data: Uint8Array, limits: ResourceLimits): StructuralInspect
   const width = data[6]! | (data[7]! << 8);
   const height = data[8]! | (data[9]! << 8);
   const findings: Finding[] = [];
+  const reject = (id: string, title: string, description: string, offset: number): StructuralInspection => {
+    const result = invalid("gif", id, title, description, offset);
+    return { ...result, findings: [...findings, ...result.findings] };
+  };
   if (exceedsDimensions(width, height, limits)) findings.push(finding("DEC-007", "high", "resource", "GIF dimensions exceed policy", "Declared dimensions exceed configured image limits.", 6, 4));
   const packed = data[10]!;
   let offset = 13 + ((packed & 0x80) ? 3 * (1 << ((packed & 7) + 1)) : 0);
@@ -160,70 +164,70 @@ function inspectGif(data: Uint8Array, limits: ResourceLimits): StructuralInspect
     const marker = data[offset++]!;
     if (marker === 0x3b) {
       if (offset < data.length) findings.push(finding("IMG-008", "medium", "structural", "Data follows GIF trailer", "Bytes remain after the GIF trailer.", offset, data.length - offset));
-      if (frames === 0) return invalid("gif", "IMG-006", "GIF contains no image frames", "At least one image descriptor is required before the trailer.", markerOffset);
+      if (frames === 0) return reject("IMG-006", "GIF contains no image frames", "At least one image descriptor is required before the trailer.", markerOffset);
       return { format: "gif", validity: "valid", findings, metadataBytes, width, height, frameCount: frames };
     }
     if (marker === 0x2c) {
-      if (data.length - offset < 9) return invalid("gif", "IMG-003", "Truncated GIF image descriptor", "Image descriptor is incomplete.", markerOffset);
+      if (data.length - offset < 9) return reject("IMG-003", "Truncated GIF image descriptor", "Image descriptor is incomplete.", markerOffset);
       const left = data[offset]! | (data[offset + 1]! << 8);
       const top = data[offset + 2]! | (data[offset + 3]! << 8);
       const frameWidth = data[offset + 4]! | (data[offset + 5]! << 8);
       const frameHeight = data[offset + 6]! | (data[offset + 7]! << 8);
-      if (left + frameWidth > width || top + frameHeight > height) return { format: "gif", validity: "invalid", findings: [...findings, finding("IMG-006", "high", "structural", "GIF frame lies outside the logical screen", "Frame rectangle exceeds the logical screen dimensions.", offset)], metadataBytes, width, height };
+      if (left + frameWidth > width || top + frameHeight > height) return reject("IMG-006", "GIF frame lies outside the logical screen", "Frame rectangle exceeds the logical screen dimensions.", offset);
       if (exceedsDimensions(frameWidth, frameHeight, limits)) findings.push(finding("DEC-007", "high", "resource", "GIF frame dimensions exceed policy", "Frame dimensions exceed configured image limits.", offset + 4, 4));
       const imagePacked = data[offset + 8]!;
       offset += 9;
       const localColorTableBytes = imagePacked & 0x80 ? 3 * (1 << ((imagePacked & 7) + 1)) : 0;
-      if (localColorTableBytes > data.length - offset) return invalid("gif", "IMG-003", "Truncated GIF local color table", "Local color table exceeds the input boundary.", offset);
+      if (localColorTableBytes > data.length - offset) return reject("IMG-003", "Truncated GIF local color table", "Local color table exceeds the input boundary.", offset);
       if ((imagePacked & 0x18) !== 0) {
-        return invalid("gif", "IMG-006", "GIF image descriptor reserved bits are set", "Reserved image descriptor bits must be zero.", markerOffset + 9);
+        return reject("IMG-006", "GIF image descriptor reserved bits are set", "Reserved image descriptor bits must be zero.", markerOffset + 9);
       }
       offset += localColorTableBytes;
-      if (offset >= data.length) return invalid("gif", "IMG-003", "Truncated GIF image data", "Missing LZW minimum code size.", offset);
+      if (offset >= data.length) return reject("IMG-003", "Truncated GIF image data", "Missing LZW minimum code size.", offset);
       const minimumCodeSize = data[offset]!;
       if (minimumCodeSize < 2 || minimumCodeSize > 8) {
-        return invalid("gif", "IMG-006", "Invalid GIF LZW minimum code size", "GIF LZW minimum code size must be between 2 and 8.", offset);
+        return reject("IMG-006", "Invalid GIF LZW minimum code size", "GIF LZW minimum code size must be between 2 and 8.", offset);
       }
       offset++;
       const blocks = readSubBlocks(offset);
-      if (!blocks) return invalid("gif", "IMG-003", "Truncated GIF data sub-block", "Image data sub-block exceeds input or lacks a terminator.", offset);
+      if (!blocks) return reject("IMG-003", "Truncated GIF data sub-block", "Image data sub-block exceeds input or lacks a terminator.", offset);
       offset = blocks.end;
       frames++;
       if (frames > limits.maxFrames) findings.push(finding("DEC-008", "high", "resource", "GIF frame limit exceeded", "Frame count exceeds configured limit.", markerOffset));
       continue;
     }
     if (marker === 0x21) {
-      if (offset >= data.length) return invalid("gif", "IMG-003", "Truncated GIF extension", "Extension label is missing.", offset);
+      if (offset >= data.length) return reject("IMG-003", "Truncated GIF extension", "Extension label is missing.", offset);
       const label = data[offset++]!;
       if (label === 0xf9) {
-        if (offset + 6 > data.length || data[offset] !== 4 || data[offset + 5] !== 0) return invalid("gif", "IMG-006", "Invalid GIF graphic control extension", "Graphic control extension has invalid size or terminator.", offset);
+        if (offset + 6 > data.length || data[offset] !== 4 || data[offset + 5] !== 0) return reject("IMG-006", "Invalid GIF graphic control extension", "Graphic control extension has invalid size or terminator.", offset);
         if ((data[offset + 1]! & 0xe0) !== 0) {
-          return invalid("gif", "IMG-006", "GIF graphic control reserved bits are set", "Reserved Graphic Control Extension bits must be zero.", offset + 1);
+          return reject("IMG-006", "GIF graphic control reserved bits are set", "Reserved Graphic Control Extension bits must be zero.", offset + 1);
         }
         offset += 6;
       } else {
         const fixedBlockSize = label === 0x01 ? 12 : label === 0xff ? 11 : null;
         if (fixedBlockSize !== null && offset < data.length && data[offset] !== fixedBlockSize) {
-          return invalid("gif", "IMG-006", "Invalid GIF extension header size", "Plain Text and Application Extension headers require their specified fixed size.", offset);
+          return reject("IMG-006", "Invalid GIF extension header size", "Plain Text and Application Extension headers require their specified fixed size.", offset);
         }
         if (label === 0xff && offset + 12 <= data.length) {
           for (let index = offset + 1; index < offset + 9; index++) {
             if (data[index]! < 0x20 || data[index]! > 0x7e) {
-              return invalid("gif", "IMG-006", "Invalid GIF application identifier", "Application identifiers must contain eight printable ASCII bytes.", index);
+              return reject("IMG-006", "Invalid GIF application identifier", "Application identifiers must contain eight printable ASCII bytes.", index);
             }
           }
         }
         const blocks = readSubBlocks(offset);
-        if (!blocks) return invalid("gif", "IMG-003", "Truncated GIF extension blocks", "Extension data exceeds input or lacks a terminator.", offset);
+        if (!blocks) return reject("IMG-003", "Truncated GIF extension blocks", "Extension data exceeds input or lacks a terminator.", offset);
         metadataBytes += blocks.bytes;
         if (metadataBytes > limits.maxMetadataBytes) findings.push(finding("META-006", "medium", "metadata", "GIF extension limit exceeded", "Extension bytes exceed configured metadata limit.", markerOffset, blocks.bytes));
         offset = blocks.end;
       }
       continue;
     }
-    return invalid("gif", "IMG-001", "Unknown GIF block marker", "Unexpected block marker in GIF structure.", markerOffset);
+    return reject("IMG-001", "Unknown GIF block marker", "Unexpected block marker in GIF structure.", markerOffset);
   }
-  return invalid("gif", "IMG-003", "Missing GIF trailer", "GIF structure ended without a trailer.", data.length);
+  return reject("IMG-003", "Missing GIF trailer", "GIF structure ended without a trailer.", data.length);
 }
 
 function inspectWebp(data: Uint8Array, limits: ResourceLimits): StructuralInspection {

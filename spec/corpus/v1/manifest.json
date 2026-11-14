@@ -1,5 +1,5 @@
 {
-  "corpusVersion": "1.0.8",
+  "corpusVersion": "1.0.9",
   "source": "Synthetic, harmless fixtures authored for Pixwarden conformance tests.",
   "license": "CC0-1.0",
   "vectors": [
@@ -277,6 +277,13 @@
       "inputHex": "474946383961000001000000002c000000000100010000020100003b",
       "sha256": "58f5c579aaf31dc1a197cbe801db5058e3751cc27af4cf790126176b0bdb6c9c",
       "expected": { "format": "gif", "validity": "invalid", "verdict": "reject", "coverage": "partial", "findingIds": ["DEC-007", "IMG-006"] }
+    },
+    {
+      "id": "RES-GIF-OVERSIZED-TRUNCATED-001",
+      "description": "A truncated GIF header declares a 50000-pixel width beyond the default resource policy.",
+      "inputHex": "47494638396150c30100000000",
+      "sha256": "14710a158389d75cf7095595c905e7d52dee46aa14f17169dc95693a54d5e5bc",
+      "expected": { "format": "gif", "validity": "invalid", "verdict": "reject", "coverage": "partial", "findingIds": ["DEC-007", "IMG-003"] }
     }
   ]
 }
