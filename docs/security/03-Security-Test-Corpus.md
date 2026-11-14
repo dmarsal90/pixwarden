@@ -2,7 +2,7 @@
 
 **Document ID:** PW-CORPUS · **Version:** 0.1.2 · **Status:** Shared synthetic conformance and scheduled JS fuzzing active; broader corpus planned · **Updated:** 2026-11-14
 
-The shared `spec/corpus/v1/manifest.json` contains sixteen hash-pinned, harmless synthetic byte vectors consumed directly by JS and PHP tests. This initial corpus is a subset of the broader plan below; absent cases are planned, not tested. No operational malware or live exploit payloads are included. A separate `pixwarden-spec` repository is not yet created.
+The shared `spec/corpus/v1/manifest.json` contains seventeen hash-pinned, harmless synthetic byte vectors consumed directly by JS and PHP tests. This initial corpus is a subset of the broader plan below; absent cases are planned, not tested. No operational malware or live exploit payloads are included. A separate `pixwarden-spec` repository is not yet created.
 
 ## Manifest contract
 
@@ -10,7 +10,7 @@ The current manifest records `id`, description, hex bytes, SHA-256, and expected
 
 The JavaScript parser has a Jazzer.js coverage-guided target seeded from this hash-checked manifest. Pull requests replay the seed corpus in regression mode; a weekly scheduled run and manual dispatch fuzz for 90 seconds with a 65,536-byte maximum input and one-second per-input timeout. The target checks report/input consistency, input immutability, enum values, bounded finding counts, and evidence ranges. The job is in-process and its workflow timeout is a job guard, not an OS CPU or RSS limit. The evolving corpus and crash artifacts are retained as CI artifacts for 14 days; minimized failures must become deterministic checked-in regressions after triage. PHP currently has shared deterministic conformance tests but no coverage-guided fuzzer.
 
-Initial local run record (2026-11-14): Jazzer.js 4.0.0 on Node 22.22.2 first found a 23-byte synthetic GIF whose descriptor advertised a missing local color table; the parser emitted evidence beyond the input boundary. The parser now checks the table length before advancing, and the minimized bytes are a deterministic regression in `tests/parser-fuzz-smoke.test.ts`. A subsequent 30-second run completed 238,449 executions without another target invariant failure. This is one bounded run, not a protection metric, comprehensive audit, or proof of parser safety.
+Initial local run record (2026-11-14): Jazzer.js 4.0.0 on Node 22.22.2 first found a 23-byte synthetic GIF whose descriptor advertised a missing local color table; the JS parser emitted evidence beyond the input boundary. Both parsers now check the table length before advancing, and the minimized bytes are a shared conformance vector plus a deterministic evidence-range regression. A subsequent 30-second run completed 238,449 executions without another target invariant failure. This is one bounded run, not a protection metric, comprehensive audit, or proof of parser safety.
 
 ## Planned corpus cases
 

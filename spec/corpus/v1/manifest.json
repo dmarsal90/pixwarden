@@ -32,6 +32,13 @@
       "expected": { "format": "gif", "validity": "valid", "verdict": "allow", "coverage": "partial", "findingIds": [] }
     },
     {
+      "id": "STR-GIF-LOCAL-TABLE-TRUNCATED-001",
+      "description": "A synthetic GIF descriptor advertises a local color table that extends beyond the input boundary.",
+      "inputHex": "474946383961010001000000002c0000000001000100fa",
+      "sha256": "18b3f8ad18263263a5e33b887962aefe6272cc467f379375cfbef18a229ee49a",
+      "expected": { "format": "gif", "validity": "invalid", "verdict": "reject", "coverage": "partial", "findingIds": ["IMG-003"] }
+    },
+    {
       "id": "STR-JPEG-VALID-001",
       "description": "Minimal marker-valid JPEG frame and scan; pixel decoding is not asserted.",
       "inputHex": "ffd8ffc00008080001000101ffda000211ffd9",
