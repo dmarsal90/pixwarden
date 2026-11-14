@@ -255,8 +255,9 @@ final class Scanner
         return [null, null];
     }
 
-    private function countGifFrames(string $bytes): ?int
+    private function countGifFrames(string $bytes, ?string &$errorId = null): ?int
     {
+        $errorId = null;
         $size = strlen($bytes);
         if ($size < 13) {
             return null;
@@ -300,6 +301,7 @@ final class Scanner
                 }
                 $minimumCodeSize = ord($bytes[$cursor]);
                 if ($minimumCodeSize < 2 || $minimumCodeSize > 8) {
+                    $errorId = 'IMG-006';
                     return null;
                 }
                 $cursor++;
@@ -411,10 +413,11 @@ final class Scanner
         $pngErrorId = null;
         $webpErrorId = null;
         $jpegErrorId = null;
+        $gifErrorId = null;
         if ($format === 'png') {
             $valid = $this->validPng($bytes, $pngCrcMismatchOffset, $pngErrorId);
         } elseif ($format === 'gif') {
-            $frames = strlen($bytes) >= 14 ? $this->countGifFrames($bytes) : null;
+            $frames = strlen($bytes) >= 14 ? $this->countGifFrames($bytes, $gifErrorId) : null;
             $valid = $frames !== null && $frames > 0;
         } elseif ($format === 'jpeg') {
             $valid = $this->validJpeg($bytes, $jpegErrorId);
@@ -434,7 +437,7 @@ final class Scanner
             ]]];
         }
         return [$format, 'invalid', [[
-            'id' => $pngErrorId ?? $webpErrorId ?? $jpegErrorId ?? 'IMG-003', 'severity' => 'high', 'stage' => 'structural',
+            'id' => $pngErrorId ?? $webpErrorId ?? $jpegErrorId ?? $gifErrorId ?? 'IMG-003', 'severity' => 'high', 'stage' => 'structural',
             'title' => 'Truncated or unsupported container structure',
             'description' => 'The bounded PHP profile could not validate the required terminal/container structure.',
             'status' => 'confirmed', 'controlStatus' => 'failed',
