@@ -42,5 +42,7 @@ jobs:
         working-directory: php
       - run: composer test:no-dom
         working-directory: php
+      - run: composer test:examples
+        working-directory: php
       - run: composer audit --no-interaction
         working-directory: php
