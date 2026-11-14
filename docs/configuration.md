@@ -8,7 +8,7 @@ Default maxima are 10 MiB input, 40,000 width, 40,000 height, 40 million pixels,
 
 ## PHP options
 
-`new ScanOptions(?ResourceLimits $limits, ?ScanHints $hints)` configures the bounded byte, metadata, dimension, pixel, and frame limits and optionally compares a filename/media-type hint to the byte-derived format. `new ScanHints(filename: 'upload.png', mediaType: 'image/png')` accepts at least one short hint and rejects control characters. Hints are not retained in the report. The caller owns and configures PHP stream timeouts. PHP's current options are narrower than JS options; do not assume serialized API symmetry means identical controls.
+`new ScanOptions(?ResourceLimits $limits, ?ScanHints $hints, array $requiredControls, string $unsupportedFormat, string $incompleteAnalysis)` configures bounded limits, optional filename/media-type comparison, required report controls, and `review`/`reject` actions for unsupported or incomplete required checks. Defaults require `structural` and use `review`. Unknown/empty control lists or invalid actions fail during configuration. `new ScanHints(filename: 'upload.png', mediaType: 'image/png')` accepts at least one short hint and rejects control characters. Hints are not retained in the report. The caller owns and configures PHP stream timeouts. PHP still lacks parity for disabling individual checks and for a number of JS ingestion/isolation features.
 
 ## Decision handling
 

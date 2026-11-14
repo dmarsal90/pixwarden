@@ -1,6 +1,6 @@
 # Pixwarden Implementation Plan
 
-**Document ID:** PW-PLAN · **Version:** 0.1.8 · **Status:** Phases 2–5 in progress · **Updated:** 2026-11-14
+**Document ID:** PW-PLAN · **Version:** 0.1.9 · **Status:** Phases 2–5 in progress · **Updated:** 2026-11-14
 
 ## Phase gates and work items
 
