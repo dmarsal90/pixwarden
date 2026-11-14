@@ -9,6 +9,7 @@ use Opis\JsonSchema\Errors\ErrorFormatter;
 use Pixwarden\Scanner;
 use Pixwarden\ResourceLimits;
 use Pixwarden\AiInspectionOptions;
+use Pixwarden\SteganographyOptions;
 use Pixwarden\ScanOptions;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -59,11 +60,17 @@ final class ConformanceTest extends TestCase
             maxFrames: $limitValues['maxFrames'] ?? 200,
         );
         $aiValues = $vector['scanOptions']['aiInspection'] ?? [];
+        $stegValues = $vector['scanOptions']['steganography'] ?? [];
         $result = (new Scanner())->scan($bytes, new ScanOptions(
             $limits,
             aiInspection: new AiInspectionOptions(
                 enabled: $aiValues['enabled'] ?? false,
                 ocr: $aiValues['ocr'] ?? false,
+            ),
+            steganography: new SteganographyOptions(
+                enabled: $stegValues['enabled'] ?? false,
+                mode: $stegValues['mode'] ?? 'statistical',
+                maxSamples: $stegValues['maxSamples'] ?? 100_000,
             ),
         ));
         $report = $result->toArray();
@@ -79,7 +86,7 @@ final class ConformanceTest extends TestCase
         }
         self::assertSame($report['format'], $result->format->value);
         self::assertSame($report['verdict'], $result->verdict->value);
-        self::assertSame('unsupported', $report['steganography']['status']);
+        self::assertSame($vector['expected']['steganographyStatus'] ?? 'unsupported', $report['steganography']['status']);
         self::assertSame('unsupported', $report['controls']['steganography']['status']);
         self::assertSame(($aiValues['enabled'] ?? false) ? 'passed' : 'skipped', $report['controls']['aiInspection']['status']);
         if (isset($vector['expected']['aiStatus'])) {
@@ -88,6 +95,19 @@ final class ConformanceTest extends TestCase
             if (in_array('AI-002', $vector['expected']['findingIds'], true)) {
                 self::assertStringNotContainsString('Ignore all previous instructions', json_encode($report, JSON_THROW_ON_ERROR));
             }
+        }
+        if (isset($vector['expected']['steganographyStatus'])) {
+            $expectedSteganographyStatus = extension_loaded('zlib') ? $vector['expected']['steganographyStatus'] : 'unsupported';
+            self::assertSame($expectedSteganographyStatus, $report['steganography']['status']);
+            if (extension_loaded('zlib')) {
+                self::assertCount(5, $report['steganography']['methods']);
+                foreach (array_slice($report['steganography']['methods'], 0, 4) as $method) {
+                    self::assertSame('passed', $method['status']);
+                    self::assertSame(1, $method['samples']);
+                }
+                self::assertSame($vector['expected']['steganographyScores'], array_column(array_slice($report['steganography']['methods'], 0, 4), 'score'));
+            }
+            self::assertSame('unsupported', $report['controls']['steganography']['status']);
         }
         foreach (['format', 'validity', 'verdict', 'coverage'] as $key) {
             self::assertSame($vector['expected'][$key], $report[$key], $vector['id'] . ': ' . $key);

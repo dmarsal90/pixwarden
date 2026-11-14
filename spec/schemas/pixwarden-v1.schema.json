@@ -50,7 +50,7 @@
         "hints": { "$ref": "#/$defs/ScanHints" }, "limits": { "$ref": "#/$defs/ResourceLimits" },
         "steganography": {
           "type": "object", "additionalProperties": false, "required": ["enabled", "mode"],
-          "properties": { "enabled": { "type": "boolean" }, "mode": { "type": "string", "enum": ["statistical", "targeted"] }, "maxSamples": { "type": "integer", "minimum": 1 } }
+          "properties": { "enabled": { "type": "boolean" }, "mode": { "type": "string", "enum": ["statistical", "targeted"] }, "maxSamples": { "type": "integer", "minimum": 1, "maximum": 1000000 } }
         },
         "aiInspection": {
           "type": "object", "additionalProperties": false, "required": ["enabled", "ocr"],

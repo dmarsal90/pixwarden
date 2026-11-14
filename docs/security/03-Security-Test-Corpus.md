@@ -2,7 +2,7 @@
 
 **Document ID:** PW-CORPUS · **Version:** 0.2.3 · **Status:** Shared synthetic conformance and scheduled JS/PHP fuzzing active; broader corpus planned · **Updated:** 2026-11-14
 
-The shared `spec/corpus/v1/manifest.json` contains sixty hash-pinned, harmless synthetic byte vectors (corpus version 1.0.20) consumed directly by JS and PHP tests. Cross-runtime CI also flips each individual bit in six bounded GIF, PNG, WebP, JPEG and EXIF seeds and compares format, validity, verdict and finding IDs. This deterministic mutation campaign complements, but does not replace, the broader corpus and fuzzers. No operational malware or live exploit payloads are included. A separate `pixwarden-spec` repository is not yet created.
+The shared `spec/corpus/v1/manifest.json` contains sixty-one hash-pinned, harmless synthetic byte vectors (corpus version 1.0.21) consumed directly by JS and PHP tests. Cross-runtime CI also flips each individual bit in six bounded GIF, PNG, WebP, JPEG and EXIF seeds and compares format, validity, verdict and finding IDs. This deterministic mutation campaign complements, but does not replace, the broader corpus and fuzzers. No operational malware or live exploit payloads are included. A separate `pixwarden-spec` repository is not yet created.
 
 ## Manifest contract
 
@@ -18,7 +18,7 @@ Initial local PHP run record (2026-11-14): `nikic/php-fuzzer` 0.0.11 on PHP 8.4.
 
 ## Planned corpus cases
 
-Implemented vector IDs in v1 include `SAN-PNG-TEXT-STRIP-001`, `SAN-PNG-RGBA8-RECONSTRUCT-001`, `SAN-PNG-RGBA8-FILTERS-001`, `SAN-PNG-RGBA8-ZLIB-TRAILING-001`, `SAN-PNG-RGBA8-EXPANSION-001`, `FMT-UNKNOWN-001`, `STR-PNG-TRUNCATED-001`, `STR-PNG-VALID-001`, `STR-PNG-IHDR-COLOR-TYPE-INVALID-001`, `STR-PNG-CRC-MISMATCH-001`, `STR-PNG-INDEXED-NO-PALETTE-001`, `STR-PNG-IDAT-NONCONTIGUOUS-001`, `STR-PNG-UNKNOWN-CRITICAL-001`, `STR-PNG-CHUNK-TYPE-NONLETTER-001`, `STR-PNG-CHUNK-RESERVED-BIT-001`, `STR-GIF-VALID-001`, `STR-GIF-LOCAL-TABLE-TRUNCATED-001`, `STR-JPEG-VALID-001`, `STR-JPEG-SEGMENT-LENGTH-INVALID-001`, `STR-JPEG-SCAN-MISSING-001`, `STR-JPEG-TRAILING-DATA-001`, `STR-WEBP-VALID-001`, `STR-WEBP-EXTENDED-VALID-001`, `STR-WEBP-PADDING-NONZERO-001`, `STR-WEBP-VP8X-RESERVED-001`, `META-PNG-EXIF-GPS-TAG-001`, `META-PNG-EXIF-MALFORMED-001`, `BIN-PNG-ANCILLARY-SIGNATURE-001`, `BIN-GIF-EXTENSION-SIGNATURE-001`, `BIN-JPEG-APP-SIGNATURE-001`, `BIN-WEBP-XMP-SIGNATURE-001`, `SVG-STATIC-SAFE-001`, `SVG-ACTIVE-CONTENT-001`, `RES-PNG-WIDTH-LIMIT-001`, and `RES-GIF-FRAME-LIMIT-001`. The exact hashes and expected outcomes are maintained in the manifest.
+Implemented vector IDs in v1 include `SAN-PNG-TEXT-STRIP-001`, `SAN-PNG-RGBA8-RECONSTRUCT-001`, `SAN-PNG-RGBA8-FILTERS-001`, `SAN-PNG-RGBA8-ZLIB-TRAILING-001`, `SAN-PNG-RGBA8-EXPANSION-001`, `STEG-PNG-RGBA8-STATISTICS-001`, `FMT-UNKNOWN-001`, `STR-PNG-TRUNCATED-001`, `STR-PNG-VALID-001`, `STR-PNG-IHDR-COLOR-TYPE-INVALID-001`, `STR-PNG-CRC-MISMATCH-001`, `STR-PNG-INDEXED-NO-PALETTE-001`, `STR-PNG-IDAT-NONCONTIGUOUS-001`, `STR-PNG-UNKNOWN-CRITICAL-001`, `STR-PNG-CHUNK-TYPE-NONLETTER-001`, `STR-PNG-CHUNK-RESERVED-BIT-001`, `STR-GIF-VALID-001`, `STR-GIF-LOCAL-TABLE-TRUNCATED-001`, `STR-JPEG-VALID-001`, `STR-JPEG-SEGMENT-LENGTH-INVALID-001`, `STR-JPEG-SCAN-MISSING-001`, `STR-JPEG-TRAILING-DATA-001`, `STR-WEBP-VALID-001`, `STR-WEBP-EXTENDED-VALID-001`, `STR-WEBP-PADDING-NONZERO-001`, `STR-WEBP-VP8X-RESERVED-001`, `META-PNG-EXIF-GPS-TAG-001`, `META-PNG-EXIF-MALFORMED-001`, `BIN-PNG-ANCILLARY-SIGNATURE-001`, `BIN-GIF-EXTENSION-SIGNATURE-001`, `BIN-JPEG-APP-SIGNATURE-001`, `BIN-WEBP-XMP-SIGNATURE-001`, `SVG-STATIC-SAFE-001`, `SVG-ACTIVE-CONTENT-001`, `RES-PNG-WIDTH-LIMIT-001`, and `RES-GIF-FRAME-LIMIT-001`. The exact hashes and expected outcomes are maintained in the manifest.
 
 | Case ID | Construction / benign purpose | Expected assertion | Trace |
 |---|---|---|---|
@@ -77,3 +77,5 @@ All samples use reserved names and harmless content. Corpus generation must be d
 No test results are claimed until fixtures, harnesses and runtime implementations exist and have been executed.
 
 The corpus also includes two opt-in AI-002 PNG metadata fixtures: a harmless simulated override phrase that must produce an advisory finding without disclosing its value, and benign imperative wording that must not trigger the narrow rules. These do not test OCR or visual prompt injection.
+
+The `STEG-PNG-RGBA8-STATISTICS-001` vector verifies that optional static RGBA8 statistics are bounded, reported as inconclusive, and never mark the required steganography policy control passed.

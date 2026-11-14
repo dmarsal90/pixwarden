@@ -211,6 +211,10 @@ describe("scanImage structural core", () => {
     expect(result.verdict).toBe("review");
   });
 
+  it("rejects zero-sized steganography sampling options", async () => {
+    await expect(scanImage(validPng, { steganography: { enabled: true, mode: "statistical", maxSamples: 0 } })).rejects.toMatchObject({ code: "INVALID_OPTIONS" });
+  });
+
   it("can cancel before synchronous inspection begins", async () => {
     const controller = new AbortController();
     const pending = scanImage(validPng, { signal: controller.signal });
