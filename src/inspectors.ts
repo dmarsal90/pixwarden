@@ -1,4 +1,4 @@
-import type { Evidence, Finding, ImageFormat, ResourceLimits } from "./types.js";
+import type { BinaryInspectionResult, Evidence, Finding, ImageFormat, ResourceLimits } from "./types.js";
 import { inspectSvg } from "./svg-guard.js";
 
 export interface StructuralInspection {
@@ -308,13 +308,16 @@ export function inspectStructure(data: Uint8Array, limits: ResourceLimits): Stru
   return { format, validity: "unknown", findings: [], metadataBytes: 0 };
 }
 
-export function inspectBinaryIndicators(data: Uint8Array): Finding[] {
+export function inspectBinaryIndicators(data: Uint8Array): BinaryInspectionResult {
   const findings: Finding[] = [];
   const regions: Array<{ start: number; end: number }> = [];
+  let trailingData = false;
+  let supported = false;
   // Only inspect ancillary/container regions whose boundaries are explicit in the
   // format. Compressed image streams are deliberately excluded to avoid matches
   // caused by ordinary pixel data.
   if (isPng(data)) {
+    supported = true;
     let cursor = 8;
     while (cursor + 12 <= data.length) {
       const size = readU32BE(data, cursor);
@@ -325,9 +328,10 @@ export function inspectBinaryIndicators(data: Uint8Array): Finding[] {
       const end = payload + size;
       if (type[0] === type[0]?.toLowerCase() && type !== "IDAT") regions.push({ start: payload, end });
       cursor = end + 4;
-      if (type === "IEND") { if (cursor < data.length) regions.push({ start: cursor, end: data.length }); break; }
+      if (type === "IEND") { if (cursor < data.length) { regions.push({ start: cursor, end: data.length }); trailingData = true; } break; }
     }
   } else if (data.length >= 3 && data[0] === 0xff && data[1] === 0xd8 && data[2] === 0xff) {
+    supported = true;
     let cursor = 2;
     let inScan = false;
     while (cursor < data.length) {
@@ -346,7 +350,7 @@ export function inspectBinaryIndicators(data: Uint8Array): Finding[] {
       while (cursor < data.length && data[cursor] === 0xff) cursor++;
       if (cursor >= data.length) break;
       const marker = data[cursor++]!;
-      if (marker === 0xd9) { if (cursor < data.length) regions.push({ start: cursor, end: data.length }); break; }
+      if (marker === 0xd9) { if (cursor < data.length) { regions.push({ start: cursor, end: data.length }); trailingData = true; } break; }
       if (marker === 0xd8 || marker === 0x01 || (marker >= 0xd0 && marker <= 0xd7)) continue;
       if (cursor + 2 > data.length) break;
       const length = (data[cursor]! << 8) | data[cursor + 1]!;
@@ -358,12 +362,13 @@ export function inspectBinaryIndicators(data: Uint8Array): Finding[] {
       if (marker === 0xda) inScan = true;
     }
   } else if (eqAscii(data, 0, "GIF87a") || eqAscii(data, 0, "GIF89a")) {
+    supported = true;
     if (data.length >= 13) {
       const packed = data[10]!;
       let cursor = 13 + ((packed & 0x80) ? 3 * (1 << ((packed & 7) + 1)) : 0);
       while (cursor < data.length) {
         const marker = data[cursor++]!;
-        if (marker === 0x3b) { if (cursor < data.length) regions.push({ start: cursor, end: data.length }); break; }
+        if (marker === 0x3b) { if (cursor < data.length) { regions.push({ start: cursor, end: data.length }); trailingData = true; } break; }
         if (marker === 0x2c) {
           if (cursor + 9 > data.length) break;
           const flags = data[cursor + 8]!;
@@ -381,6 +386,7 @@ export function inspectBinaryIndicators(data: Uint8Array): Finding[] {
       }
     }
   } else if (eqAscii(data, 0, "RIFF") && eqAscii(data, 8, "WEBP") && data.length >= 12) {
+    supported = true;
     const limit = Math.min(data.length, readU32LE(data, 4) + 8);
     let cursor = 12;
     while (cursor + 8 <= limit) {
@@ -392,7 +398,7 @@ export function inspectBinaryIndicators(data: Uint8Array): Finding[] {
       if (["EXIF", "XMP ", "ICCP"].includes(kind)) regions.push({ start, end });
       cursor = end + (size & 1);
     }
-    if (limit < data.length) regions.push({ start: limit, end: data.length });
+    if (limit < data.length) { regions.push({ start: limit, end: data.length }); trailingData = true; }
   }
   const patterns: ReadonlyArray<{ readonly name: string; readonly bytes: readonly number[] }> = [
     { name: "ZIP local-file header", bytes: [0x50, 0x4b, 0x03, 0x04] },
@@ -413,5 +419,12 @@ export function inspectBinaryIndicators(data: Uint8Array): Finding[] {
       }
     }
   }
-  return findings;
+  const bytesScanned = regions.reduce((total, region) => total + region.end - region.start, 0);
+  return {
+    status: !supported ? "unsupported" : findings.length > 0 ? "findings" : "passed",
+    bytesScanned,
+    findings,
+    trailingData,
+    recursiveInspection: false
+  };
 }

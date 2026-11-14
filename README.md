@@ -28,6 +28,7 @@ const isolatedResult = await scanImageIsolated(imageBytes, {
 });
 
 console.log(result.verdict, result.findings, result.controls);
+console.log(result.binaryInspection?.bytesScanned, result.binaryInspection?.trailingData);
 console.log(isolatedResult.capabilities.hardLimits);
 ```
 

@@ -52,7 +52,9 @@ describe("shared JSON contracts", () => {
       ...pngChunk("IDAT", [0]),
       ...pngChunk("IEND", [])
     ]);
-    expect(validator("ScanResult")(await scanImage(input))).toBe(true);
+    const result = await scanImage(input);
+    expect(result.binaryInspection).toMatchObject({ status: "passed", bytesScanned: 0, recursiveInspection: false });
+    expect(validator("ScanResult")(result)).toBe(true);
   });
 
   it.each(contractExamples)("validates the %s golden example", (name, filename) => {

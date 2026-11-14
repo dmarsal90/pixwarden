@@ -65,11 +65,13 @@ describe("scanImage structural core", () => {
   it("does not treat signatures in compressed PNG image data as embedded payloads", async () => {
     const result = await scanImage(signatureInPixelsPng);
     expect(result.findings.some((item) => item.id === "BIN-009")).toBe(false);
+    expect(result.binaryInspection).toMatchObject({ status: "passed", bytesScanned: 0, trailingData: false, recursiveInspection: false });
   });
 
   it("checks PNG ancillary metadata regions for embedded format signatures", async () => {
     const result = await scanImage(signatureInAncillaryPng);
     expect(result.findings.some((item) => item.id === "BIN-009")).toBe(true);
+    expect(result.binaryInspection).toMatchObject({ status: "findings", bytesScanned: 2, trailingData: false, recursiveInspection: false });
   });
 
   it("skips JPEG entropy bytes but inspects bytes after the EOI marker", async () => {
@@ -77,6 +79,8 @@ describe("scanImage structural core", () => {
     const indicators = result.findings.filter((item) => item.id === "BIN-009");
     expect(indicators).toHaveLength(1);
     expect(indicators[0]?.evidence[0]?.offset).toBe(signatureInJpegEntropy.length - 2);
+    expect(result.binaryInspection?.trailingData).toBe(true);
+    expect(result.binaryInspection?.bytesScanned).toBeGreaterThan(0);
   });
 
   it("checks GIF extension blocks while skipping compressed frame blocks", async () => {
@@ -106,6 +110,7 @@ describe("scanImage structural core", () => {
     expect(result.verdict).toBe("review");
     expect(result.coverage).toBe("partial");
     expect(result.controls.structural?.status).toBe("unsupported");
+    expect(result.binaryInspection?.status).toBe("unsupported");
   });
 
   it("parses the RIFF length in a WebP container as little-endian", async () => {
