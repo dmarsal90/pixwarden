@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { scanImage } from "../dist/index.js";
+import { PixwardenError, sanitizeSvg, scanImage } from "../dist/index.js";
 
 const MAX_FUZZ_INPUT_BYTES = 65_536;
 const controlStatuses = new Set(["passed", "failed", "skipped", "unsupported", "error"]);
@@ -35,5 +35,26 @@ export async function fuzz(input) {
         assert.ok(evidence.offset !== undefined && evidence.offset + evidence.length <= input.byteLength);
       }
     }
+  }
+
+  if (report.format === "svg") {
+    let sanitized;
+    try {
+      sanitized = sanitizeSvg(input);
+    } catch (error) {
+      if (!(error instanceof PixwardenError) || !["MALFORMED_INPUT", "INPUT_TOO_LARGE", "LIMIT_EXCEEDED"].includes(error.code)) {
+        throw error;
+      }
+    }
+    if (sanitized) {
+      assert.equal(sanitized.inputBytes, input.byteLength);
+      assert.equal(sanitized.outputBytes, sanitized.bytes.byteLength);
+      assert.equal(sanitized.postCheckStatus, "passed");
+      const repeated = sanitizeSvg(sanitized.bytes);
+      assert.deepEqual(repeated.bytes, sanitized.bytes, "sanitized SVG must be idempotent");
+      assert.deepEqual(repeated.removedElements, {});
+      assert.equal(repeated.removedAttributes, 0);
+    }
+    assert.deepEqual(input, original, "SVG sanitization must not mutate caller-owned bytes");
   }
 }
