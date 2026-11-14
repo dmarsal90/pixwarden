@@ -4,7 +4,7 @@ Native PHP 8.2+ package (`dmarsal90/pixwarden-php`) with no Node.js runtime depe
 
 ## Status and limits
 
-The current `Scanner::scan(string $bytes)` accepts already-buffered bytes, enforces a maximum input size, and emits a JSON-compatible report. It does not decode images, parse metadata, inspect embedded payloads, handle SVG, sanitize, or claim malware/steganography/AI detection. Its container checks are intentionally narrow; `valid` means only that this PHP profile accepted its limited checks. Every report has partial coverage.
+The current `Scanner::scan(string $bytes)` accepts already-buffered bytes, enforces maximum input and EXIF metadata sizes, and emits a JSON-compatible report. It checks bounded EXIF TIFF directory structure and selected privacy-sensitive tag identifiers for JPEG, PNG, and WebP without extracting values. It does not decode images, inspect embedded payloads, handle SVG, sanitize, or claim malware/steganography/AI detection. Its container checks are intentionally narrow; `valid` means only that this PHP profile accepted its limited checks. Every report has partial coverage.
 
 ```php
 use Pixwarden\Scanner;

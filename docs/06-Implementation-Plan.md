@@ -1,6 +1,6 @@
 # Pixwarden Implementation Plan
 
-**Document ID:** PW-PLAN · **Version:** 0.1.2 · **Status:** Phases 2–4 in progress · **Updated:** 2026-11-14
+**Document ID:** PW-PLAN · **Version:** 0.1.4 · **Status:** Phases 2–5 in progress · **Updated:** 2026-11-14
 
 ## Phase gates and work items
 
@@ -49,6 +49,6 @@ Phase 2 has a strict Draft 2020-12 contract artifact in `spec/schemas/pixwarden-
 
 The first shared executable corpus is now `spec/corpus/v1/manifest.json` (CC0-1.0, six hash-pinned synthetic vectors). The JS conformance test consumes that manifest directly and checks exact structural classification fields; the expected `partial` coverage is deliberate because codec decoding and broader controls are not asserted. PHP consumption and broader malformed/metadata/SVG/false-positive vectors remain pending.
 
-The first native PHP package scaffold is in `php/` and consumes the same manifest. Its bounded PNG/GIF/JPEG/WebP container profile passes all six shared vectors on PHP 8.4 locally; PHP 8.2/8.3 CI remains pending. It enforces the input-byte cap but does not yet implement PHP metadata, binary, SVG, decode, or sanitization guards and is not at functional parity with JS. Its capability report and limitations reflect that status. Static analysis, formatting checks, fuller malformed-structure tests, schema validation of PHP reports, PSR-12 review, and independent repository packaging remain outstanding.
+The native PHP package in `php/` consumes the same manifest. Its bounded PNG/GIF/JPEG/WebP container profile and EXIF TIFF directory scan run natively; the synthetic privacy-tag and malformed-TIFF samples contain no private value or active content. Binary-region inspection, SVG, decode, sanitization, steganography, OCR, schema validation of PHP reports, and independent repository packaging remain outstanding. The PHP package is not yet at functional parity with JS; its capability report and limitations must remain explicit.
 
 The JS test suite now includes a deterministic malformed-input smoke corpus for parser crash resistance and evidence-range bounds. It is regression coverage only; sustained coverage-guided fuzzing and minimized native-decoder corpora remain planned.

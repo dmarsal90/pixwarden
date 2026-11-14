@@ -19,20 +19,28 @@ final class Scanner
         if (!is_int($maxBytes) || $maxBytes < 1 || $maxBytes > 10_485_760) {
             throw new InvalidArgumentException('maxBytes must be a positive integer no greater than the built-in maximum.');
         }
+        $maxMetadataBytes = $options['maxMetadataBytes'] ?? 1_048_576;
+        if (!is_int($maxMetadataBytes) || $maxMetadataBytes < 1 || $maxMetadataBytes > 1_048_576) {
+            throw new InvalidArgumentException('maxMetadataBytes must be a positive integer no greater than the built-in maximum.');
+        }
         if (strlen($bytes) > $maxBytes) {
             throw new InvalidArgumentException('Input exceeds the configured byte limit.');
         }
 
         [$format, $validity, $findings] = $this->inspect($bytes);
+        $metadataInspection = (new MetadataGuard())->inspect($bytes, $format, $maxMetadataBytes);
+        $findings = array_merge($findings, $metadataInspection['findings']);
         $controls = [
             'hints' => ['status' => 'skipped', 'summary' => 'No filename or media-type hints were supplied.'],
             'structural' => ['status' => $validity === 'valid' ? 'passed' : ($validity === 'invalid' ? 'failed' : 'unsupported'), 'summary' => 'A bounded byte-level profile ran; no decoder was invoked.'],
-            'metadata' => ['status' => 'unsupported', 'summary' => 'PHP metadata parsing is not implemented in this release.'],
+            'metadata' => ['status' => 'unsupported', 'summary' => 'Only bounded EXIF TIFF directory structure and selected sensitive tag identifiers are inspected; values, XMP and text metadata are not parsed.'],
             'binary' => ['status' => 'unsupported', 'summary' => 'PHP binary-region inspection is not implemented in this release.'],
             'decode' => ['status' => 'unsupported', 'summary' => 'No decoder is bundled or invoked.'],
             'sanitization' => ['status' => 'unsupported', 'summary' => 'No sanitizer is implemented; input bytes are unchanged.'],
         ];
-        $verdict = $validity === 'invalid' ? 'reject' : ($validity === 'valid' ? 'allow' : 'review');
+        $hasBlockingFinding = array_filter($findings, static fn (array $finding): bool => in_array($finding['severity'], ['high', 'critical'], true) || $finding['controlStatus'] === 'failed') !== [];
+        $hasReviewFinding = array_filter($findings, static fn (array $finding): bool => in_array($finding['status'], ['suspected', 'inconclusive'], true)) !== [];
+        $verdict = $hasBlockingFinding ? 'reject' : ($validity !== 'valid' || $hasReviewFinding ? 'review' : 'allow');
 
         $scanIdBytes = random_bytes(16);
         $scanIdBytes[6] = chr((ord($scanIdBytes[6]) & 0x0f) | 0x40);
@@ -73,7 +81,8 @@ final class Scanner
                 'optionalAdapters' => [],
                 'hardLimits' => ['inputBytes' => true, 'dimensionsBeforeDecode' => false, 'framesBeforeDecode' => false, 'memory' => false, 'cpu' => false, 'wallTime' => false],
             ],
-            'limitations' => ['PHP v0.1.0 provides only bounded signature/container checks for JPEG, PNG, GIF and WebP. No decoder, metadata inspection, binary inspection, SVG handling, sanitizer, OCR, steganography, or process isolation is included. A valid result is not proof of safe decoding or rendering.'],
+            'metadataInspection' => $metadataInspection,
+            'limitations' => ['PHP v0.2.0 provides limited container checks for JPEG, PNG, GIF and WebP plus bounded EXIF TIFF directory inspection for JPEG, PNG and WebP. Metadata values, XMP and text are not parsed; no decoder, binary-region inspection, SVG handling, sanitizer, OCR, steganography, or process isolation is included. A valid result is not proof of safe decoding or rendering.'],
             'inputBytes' => strlen($bytes),
         ];
     }
