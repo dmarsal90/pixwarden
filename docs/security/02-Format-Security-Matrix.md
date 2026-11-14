@@ -1,16 +1,16 @@
 # Format Security Matrix
 
-**Document ID:** PW-FORMAT · **Version:** 0.1.0 · **Status:** Initial profile; no decoders enabled · **Reviewed:** 2026-11-13
+**Document ID:** PW-FORMAT · **Version:** 0.1.1 · **Status:** Initial profile; no decoders enabled · **Reviewed:** 2026-11-14
 
 This is a planning matrix, not a promise of support. Exact specifications and decoder versions must be researched and pinned before implementation. File signatures are partial identifiers and must be combined with structure parsing and policy. All formats default to no automatic native decoder enablement. `Core` means initial byte-inspection priority only.
 
 | Format | Specification / signature family | Structure and metadata / active surface | Candidate libraries (not selected) | Risks and proposed inspection/sanitization | Default |
 |---|---|---|---|---|---|
-| JPEG | ISO/IEC 10918; SOI `FF D8`, marker stream, EOI | APP segments, EXIF/XMP/ICC, comments; trailing bytes | libjpeg-turbo, GD, libvips | Segment lengths/order, polyglot/tail, metadata; decode to new raster only in worker | Core inspect; decode opt-in |
-| PNG | ISO/IEC 15948; 8-byte PNG signature, chunks/CRC/IEND | Ancillary/text/ICC chunks, animation extensions | libpng, GD, libvips | Chunk order/length/CRC, trailing data, text payload; strip unknown metadata/re-encode | Core inspect; decode opt-in |
-| GIF | GIF89a/87a signatures, blocks/trailer | Comments, extensions, palettes, frame sequence | giflib, GD, libvips | Frame count, extension payload, disposal/timing; preserve/flatten explicitly | Core inspect; decode opt-in |
-| WebP | RIFF/WEBP container | VP8/VP8L/VP8X, EXIF/XMP/ICC, ANIM/ANMF | libwebp, libvips | RIFF lengths, chunks, animation and metadata; worker decode | Core inspect; decode opt-in |
-| SVG | W3C SVG XML vocabulary; XML root/namespace | Script, event attributes, CSS/URL refs, foreignObject, data URLs | hardened XML parser; sanitizer adapter | DTD/XXE, active document behavior, parser differentials; namespace allowlist serialization | Core secure inspect/sanitize |
+| JPEG | ISO/IEC 10918; SOI `FF D8`, marker stream, EOI | APP segments, EXIF/XMP/ICC, comments; trailing bytes | libjpeg-turbo, GD, libvips | JS has bounded marker/segment inspection, format-scoped binary indicators, and bounded EXIF TIFF directories; PHP has narrow SOI/SOF/EOI check and EXIF TIFF directory inspection. No pixel decode. | Inspect profile only; decode opt-in |
+| PNG | ISO/IEC 15948; 8-byte PNG signature, chunks/CRC/IEND | Ancillary/text/ICC chunks, animation extensions | libpng, GD, libvips | JS checks selected chunk structure/order/CRC and dimensions; PHP checks bounded chunk ordering/lengths but not CRC. JS binary indicators scan selected ancillary areas; both inspect bounded eXIf TIFF. No raster decode. | Inspect profile only; decode opt-in |
+| GIF | GIF89a/87a signatures, blocks/trailer | Comments, extensions, palettes, frame sequence | giflib, GD, libvips | JS performs bounded block/sub-block/frame inspection and scoped binary indicators; PHP currently checks only signature and trailer. No LZW decode. | Inspect profile only; decode opt-in |
+| WebP | RIFF/WEBP container | VP8/VP8L/VP8X, EXIF/XMP/ICC, ANIM/ANMF | libwebp, libvips | JS inspects bounded RIFF chunks/selected dimensions and metadata; PHP checks RIFF size/VP8 prefix and bounded EXIF TIFF directories. No bitstream decode. | Inspect profile only; decode opt-in |
+| SVG | W3C SVG XML vocabulary; XML root/namespace | Script, event attributes, CSS/URL refs, foreignObject, data URLs | hardened XML parser; sanitizer adapter | JS has Saxes-based namespace-aware allowlist inspection/sanitization; PHP is unsupported. Renderer differences remain. | JS static profile only; PHP unsupported |
 | BMP | Microsoft/OS2 DIB headers; `BM` commonly | Header variants, palettes, masks, possible gaps | platform codecs, libvips | Header-size variants, offsets, overflow; optional raster conversion | Unsupported by default |
 | AVIF | ISO BMFF / AV1 image item; `ftyp` brands | Item/property boxes, metadata, sequences | libavif, libheif, libvips | Box lengths, profiles, auxiliary images, native decoder exposure | Unsupported; adapter review |
 | HEIF | ISO BMFF / HEIF brands | Items, sequences, EXIF/XMP, auxiliary content | libheif, platform frameworks | Complex box/item references, codec dependencies, resource use | Unsupported; adapter review |
@@ -39,6 +39,8 @@ This is a planning matrix, not a promise of support. Exact specifications and de
 | XPS | ECMA-388 / Open Packaging Conventions ZIP-like package | XML, relationships, resources | platform document stacks | Package expansion, XML, relationships; not image parser | Reject as wrong category |
 
 ## Policy and adapter gate
+
+Current implementation note: the matrix describes an incomplete profile, not full-format support. JS covers bounded structural profiles for JPEG, PNG, GIF, WebP, plus SVG static-profile processing. PHP is independently native and currently covers limited JPEG/PNG/GIF/WebP structure plus partial EXIF TIFF directory inspection on JPEG/PNG/WebP. Neither runtime includes a raster decoder; PHP binary-region inspection and SVG handling remain unsupported. Capability reports and partial coverage are authoritative for each runtime.
 
 An adapter proposal must name exact parser/decoder, versions and transitive native libraries; upstream security policy; supported subfeatures; format corpus; fuzz target; resource enforcement; license; platform/build matrix; sanitization fidelity; and whether its capability is equal in PHP and JS. A PHP GD decoder is build-dependent (PHP docs enumerate supported types conditionally); ImageMagick requires an explicit restrictive policy. These are candidates only, not dependencies selected by this baseline.
 

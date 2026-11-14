@@ -1,6 +1,6 @@
 # Detection and Mitigation Coverage
 
-**Document ID:** PW-COVERAGE · **Version:** 0.1.0 · **Status:** Planned coverage baseline · **Updated:** 2026-11-13
+**Document ID:** PW-COVERAGE · **Version:** 0.1.1 · **Status:** Partial JS and PHP profiles implemented · **Updated:** 2026-11-14
 
 Coverage labels: `D` direct deterministic inspection; `H` heuristic/probabilistic; `M` mitigation; `I` integration/deployment control; `—` no general capability. `Planned` is not implementation. A detector does not imply mitigation, and a mitigation does not prove detection.
 
@@ -10,7 +10,7 @@ Coverage labels: `D` direct deterministic inspection; `H` heuristic/probabilisti
 | IMG-007–008, 010, 012 | D/H: signature conflicts, terminator/tail, recognized extension/MIME mismatch; limited differential checks | M: allowlisted output, fixed serving headers by caller | Arbitrary polyglot/parser differences not provable; raw hints are omitted; unsupported hint/profile is explicit | STR-003/007, BIN-002 |
 | BIN-001–010 | D/H: region-aware signatures, structural gaps, bounded entropy | M: strip/reconstruct and post-scan | Signatures evadable; entropy noisy; no recursive unpack; report inconclusive | BIN-001–006, SAN-001 |
 | SVG-001–010 | D: Saxes XML parse, namespace checks, static element/attribute allowlist, DTD rejection | M: canonical allowlist serialization and parse-again check | Renderer differences remain; CSS/style/filter/animation support is intentionally narrow; pending CI and security review | SVG-001–006 |
-| META-001–008 | D: partial bounded EXIF TIFF IFD parsing and selected GPS/owner/serial tag identifiers; aggregate metadata byte caps | M: no metadata stripping in current core | XMP, text values, proprietary fields and other metadata tags remain unparsed; metadata control stays unsupported/partial; no raw values are logged | META-001/007 partial JS; others planned |
+| META-001–008 | D: JS and PHP inspect bounded EXIF TIFF IFDs and selected GPS/owner/serial tag identifiers in supported JPEG/PNG/WebP profiles; aggregate metadata byte caps | M: no metadata stripping in current core | XMP, text values, proprietary fields and other metadata tags remain unparsed; metadata control stays unsupported/partial; no raw values are logged | Shared synthetic META-001/007 vectors |
 | STEG-001–010 | H: named format-specific statistical methods | M: optional canonicalization/re-encode/flatten | No universal detection; false positives; cross-image and robust schemes out of scope; low-confidence => inconclusive | STEG-001–006 |
 | DEC-001–010 | D: arithmetic, dimension, frame and nesting caps; worker exit state | M/I: isolate with CPU/RSS/wall-time quotas; pin/patch decoders | In-process code cannot enforce hard native limits; no worker => unsupported hard limit | DEC-001–003 |
 | AI-001–005, 007–009 | H: optional OCR, region grouping, metadata text rules | M/I: mark untrusted, strip metadata, downstream prompt/tool policy | Legitimate text overlaps; OCR misses; advisory only; no execution | AI-001–007 |
@@ -19,6 +19,8 @@ Coverage labels: `D` direct deterministic inspection; `H` heuristic/probabilisti
 | INT-006–007 | — in core; capability reports no network | I: caller-owned hardened fetch; no URL resolvers/delegates | Library does not fetch remote resources | INT-006 |
 
 ## What an “analysis passed” can mean
+
+Implementation status (2026-11-14): JS and PHP consume shared, hash-pinned synthetic vectors. JS has bounded structural inspection for JPEG/PNG/GIF/WebP, selective EXIF directory checks, format-aware binary indicators, and an SVG static-profile sanitizer. PHP currently has a narrower JPEG/PNG/GIF/WebP structural baseline and selective EXIF directory checks for JPEG/PNG/WebP. PHP binary inspection and SVG are not implemented. Neither includes raster decoding, steganography, OCR, or model analysis. This is partial feature overlap, not functional parity.
 
 An individual deterministic control may be `passed` only for its documented profile and input. A scan can be `complete` only when all controls required by the selected policy ran successfully. `Unsupported`, `skipped`, `error`, timeout or inconclusive probabilistic outcomes are visible and make coverage partial/incomplete. `policyCompliant=true` means only “the selected policy accepted the declared controls/findings,” not “safe.” The public wording must say “no findings under checks X, Y, Z” and identify omitted checks.
 

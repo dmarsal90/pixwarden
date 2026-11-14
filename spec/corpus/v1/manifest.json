@@ -44,6 +44,20 @@
       "inputHex": "524946461000000057454250565038200400000000000000",
       "sha256": "233c3d6f973b0fe182a3c078442f151c92e6de37a37cda2d8b3f9fc2bb6be9c1",
       "expected": { "format": "webp", "validity": "valid", "verdict": "allow", "coverage": "partial", "findingIds": [] }
+    },
+    {
+      "id": "META-PNG-EXIF-GPS-TAG-001",
+      "description": "Synthetic PNG carrying a bounded TIFF EXIF directory with a GPS pointer tag; no private value is present.",
+      "inputHex": "89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c489000000206558496649492a0008000000010025880400010000001a000000000000000000000000003379297300000001494441540028387de80000000049454e44ae426082",
+      "sha256": "10ab6e99937ace0b754c1d9921275498561c1d34e59cc79a35010d6aa0dd8f46",
+      "expected": { "format": "png", "validity": "valid", "verdict": "review", "coverage": "partial", "findingIds": ["META-007"] }
+    },
+    {
+      "id": "META-PNG-EXIF-MALFORMED-001",
+      "description": "Synthetic PNG with an eight-byte malformed EXIF/TIFF payload and no active or private content.",
+      "inputHex": "89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c489000000086558496661626364656667688f42c06b00000001494441540028387de80000000049454e44ae426082",
+      "sha256": "040be7b7eb348555cc7cace349b6e2d2e5ba472c9023cd22c257557913f8cb19",
+      "expected": { "format": "png", "validity": "valid", "verdict": "reject", "coverage": "partial", "findingIds": ["META-001"] }
     }
   ]
 }
