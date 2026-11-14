@@ -160,7 +160,9 @@ function inspectSnapshot(snapshot: Uint8Array, options: ScanOptions, limits: Res
       ? makeControl("skipped", "Metadata inspection was disabled by the caller.")
       : ["jpeg", "png", "gif", "webp"].includes(format) ? makeControl("unsupported", "Metadata segment locations and aggregate byte counts are bounded, but metadata tags and values are not parsed.") : makeControl("unsupported", "Metadata inspection is not implemented for this format."),
     binary: binaryEnabled
-      ? makeControl("passed", "Read-only signature indicators were scanned; this is not malware scanning and may produce false positives.")
+      ? ["jpeg", "png", "gif", "webp"].includes(format)
+        ? makeControl("passed", "Read-only signature indicators were scanned in format-defined metadata/extension regions and container trailers; this is not malware scanning.")
+        : makeControl("unsupported", "No bounded binary inspection regions are defined for this format.")
       : makeControl("skipped", "Binary signature inspection was disabled by the caller."),
     decode: makeControl("unsupported", "No image decoder is bundled or invoked."),
     sanitization: format === "svg"

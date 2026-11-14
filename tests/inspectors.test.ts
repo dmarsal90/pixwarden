@@ -19,6 +19,27 @@ const validPng = new Uint8Array([
   ...pngChunk("IDAT", [0]),
   ...pngChunk("IEND", [])
 ]);
+const signatureInPixelsPng = new Uint8Array([
+  137, 80, 78, 71, 13, 10, 26, 10,
+  ...pngChunk("IHDR", [0, 0, 0, 1, 0, 0, 0, 1, 8, 6, 0, 0, 0]),
+  ...pngChunk("IDAT", [0x4d, 0x5a, 0x50, 0x4b, 0x03, 0x04]),
+  ...pngChunk("IEND", [])
+]);
+const signatureInAncillaryPng = new Uint8Array([
+  137, 80, 78, 71, 13, 10, 26, 10,
+  ...pngChunk("IHDR", [0, 0, 0, 1, 0, 0, 0, 1, 8, 6, 0, 0, 0]),
+  ...pngChunk("tEXt", [0x4d, 0x5a]),
+  ...pngChunk("IDAT", [0]),
+  ...pngChunk("IEND", [])
+]);
+const signatureInJpegEntropy = new Uint8Array([
+  0xff, 0xd8,
+  0xff, 0xc0, 0, 8, 8, 0, 1, 0, 1, 1,
+  0xff, 0xda, 0, 2,
+  0x4d, 0x5a, 0x50, 0x4b, 3, 4,
+  0xff, 0xd9,
+  0x4d, 0x5a
+]);
 
 describe("scanImage structural core", () => {
   it("identifies and validates a structurally complete PNG without decoding it", async () => {
@@ -27,6 +48,23 @@ describe("scanImage structural core", () => {
     expect(result.validity).toBe("valid");
     expect(result.decodability).toBe("not_attempted");
     expect(result.verdict).toBe("allow");
+  });
+
+  it("does not treat signatures in compressed PNG image data as embedded payloads", async () => {
+    const result = await scanImage(signatureInPixelsPng);
+    expect(result.findings.some((item) => item.id === "BIN-009")).toBe(false);
+  });
+
+  it("checks PNG ancillary metadata regions for embedded format signatures", async () => {
+    const result = await scanImage(signatureInAncillaryPng);
+    expect(result.findings.some((item) => item.id === "BIN-009")).toBe(true);
+  });
+
+  it("skips JPEG entropy bytes but inspects bytes after the EOI marker", async () => {
+    const result = await scanImage(signatureInJpegEntropy);
+    const indicators = result.findings.filter((item) => item.id === "BIN-009");
+    expect(indicators).toHaveLength(1);
+    expect(indicators[0]?.evidence[0]?.offset).toBe(signatureInJpegEntropy.length - 2);
   });
 
   it("rejects a PNG chunk whose declared size exceeds the input", async () => {

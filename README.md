@@ -1,6 +1,6 @@
 # Pixwarden JS
 
-Pixwarden is an image security library. This initial package release provides bounded, read-only structural inspection for JPEG, PNG, GIF and WebP, a static SVG inspection/sanitization profile, and simple embedded-signature indicators. Raster formats are not decoded or sanitized.
+Pixwarden is an image security library. This initial package release provides bounded, read-only structural inspection for JPEG, PNG, GIF and WebP, a static SVG inspection/sanitization profile, and embedded-signature indicators scoped to format-defined metadata/extension regions and container trailers. Compressed raster payloads are excluded from signature scanning to reduce incidental matches. These indicators are not malware verdicts. Raster formats are not decoded or sanitized.
 
 ## Status
 
