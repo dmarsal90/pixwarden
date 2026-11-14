@@ -6,10 +6,11 @@ import { sanitizeSvg } from "./svg-guard.js";
 import { stripPngExifAndTextMetadata } from "./png-metadata-sanitizer.js";
 import { sanitizePngRgba8 } from "./png-raster-sanitizer.js";
 import { inspectPngInstructionMetadata } from "./ai-injection-guard.js";
-import { PixwardenError, type AiInspectionResult, type BinaryInspectionResult, type CapabilityReport, type ControlResult, type Finding, type ImageFormat, type MetadataInspectionResult, type ResourceLimits, type ScanHints, type ScanIsolationOptions, type ScanOptions, type ScanResult, type SteganographyResult, type Verdict } from "./types.js";
+import { inspectPngRgba8Steganography } from "./steganography-guard.js";
+import { PixwardenError, type AiInspectionResult, type BinaryInspectionResult, type CapabilityReport, type ControlResult, type Finding, type ImageFormat, type MetadataInspectionResult, type ResourceLimits, type ScanHints, type ScanIsolationOptions, type ScanOptions, type ScanResult, type SteganographyOptions, type SteganographyResult, type Verdict } from "./types.js";
 
 export { PixwardenError } from "./types.js";
-export type { AiInspectionResult, BinaryInspectionResult, CapabilityReport, ControlResult, Evidence, Finding, ImageFormat, MetadataInspectionResult, ResourceLimits, ScanHints, ScanIsolationOptions, ScanOptions, ScanResult, SteganographyResult, Verdict } from "./types.js";
+export type { AiInspectionResult, BinaryInspectionResult, CapabilityReport, ControlResult, Evidence, Finding, ImageFormat, MetadataInspectionResult, ResourceLimits, ScanHints, ScanIsolationOptions, ScanOptions, ScanResult, SteganographyOptions, SteganographyResult, Verdict } from "./types.js";
 export type { SvgSanitizationResult } from "./svg-guard.js";
 export { sanitizeSvg } from "./svg-guard.js";
 export { stripPngExifAndTextMetadata } from "./png-metadata-sanitizer.js";
@@ -119,6 +120,16 @@ function validateAiInspection(value: ScanOptions["aiInspection"]): void {
   if (value === undefined) return;
   if (value === null || typeof value !== "object" || typeof value.enabled !== "boolean" || typeof value.ocr !== "boolean") {
     throw new PixwardenError("INVALID_OPTIONS", "aiInspection must provide boolean enabled and ocr options.");
+  }
+}
+
+function validateSteganography(value: ScanOptions["steganography"]): void {
+  if (value === undefined) return;
+  if (value === null || typeof value !== "object" || typeof value.enabled !== "boolean" || !["statistical", "targeted"].includes(value.mode)) {
+    throw new PixwardenError("INVALID_OPTIONS", "steganography must provide boolean enabled and a supported mode.");
+  }
+  if (value.maxSamples !== undefined && (!Number.isSafeInteger(value.maxSamples) || value.maxSamples < 1 || value.maxSamples > 1_000_000)) {
+    throw new PixwardenError("INVALID_OPTIONS", "steganography.maxSamples must be an integer from 1 to 1000000.");
   }
 }
 
@@ -241,6 +252,7 @@ export async function scanImageIsolated(
 function inspectSnapshot(snapshot: Uint8Array, options: ScanOptions, limits: ResourceLimits, started: string): ScanResult {
   validateHints(options.hints);
   validateAiInspection(options.aiInspection);
+  validateSteganography(options.steganography);
   const structuralEnabled = options.structural ?? true;
   const binaryEnabled = options.binaryInspection ?? true;
   const metadataEnabled = options.metadata ?? true;
@@ -251,6 +263,14 @@ function inspectSnapshot(snapshot: Uint8Array, options: ScanOptions, limits: Res
   const aiInspection: AiInspectionResult = options.aiInspection?.enabled
     ? inspectPngInstructionMetadata(structural?.validity === "valid" ? snapshot : new Uint8Array(), limits.maxMetadataBytes, options.aiInspection.ocr)
     : { status: "not_requested", dataEgress: "none", signals: [], limitations: ["No OCR or multimodal inspection ran. No text was extracted or sent to a model."] };
+  const steganographyOptions: SteganographyOptions = options.steganography ?? { enabled: false, mode: "statistical" };
+  const steganographyWithinLimits = structural?.validity === "valid"
+    && structural.width !== undefined && structural.height !== undefined
+    && structural.width <= limits.maxWidth && structural.height <= limits.maxHeight
+    && structural.width <= Math.floor(limits.maxPixels / structural.height);
+  const steganography = options.steganography?.enabled
+    ? inspectPngRgba8Steganography(steganographyWithinLimits ? snapshot : new Uint8Array(), steganographyOptions)
+    : { status: "unsupported" as const, methods: [], limitations: ["Steganography analysis was not requested; pixel channels have not been evaluated."] };
   const findings: Finding[] = [...(structural?.findings ?? [])];
   findings.push(...(metadataInspection?.findings ?? []), ...aiInspection.signals);
   const hintInspection = inspectHints(format, options.hints);
@@ -276,7 +296,11 @@ function inspectSnapshot(snapshot: Uint8Array, options: ScanOptions, limits: Res
     sanitization: format === "svg"
       ? makeControl("skipped", "The SVG sanitizer is available separately and was not invoked by scanImage.")
       : makeControl("unsupported", "No raster sanitizer is invoked by scanImage; the original input is unchanged."),
-    steganography: makeControl("unsupported", "No steganography detector is implemented; hidden pixel data has not been evaluated."),
+    steganography: steganography.status === "error"
+      ? makeControl("error", "The bounded PNG statistical pass could not complete.")
+      : makeControl("unsupported", steganography.status === "inconclusive"
+        ? "Descriptive PNG RGBA8 statistics ran, but no calibrated detector is available; this control cannot pass policy."
+        : "No applicable calibrated steganography detector is available for this profile."),
     aiInspection: aiInspection.status === "not_requested"
       ? makeControl("skipped", "AI/OCR inspection was not requested.")
       : aiInspection.status === "error"
@@ -296,13 +320,13 @@ function inspectSnapshot(snapshot: Uint8Array, options: ScanOptions, limits: Res
       findings.push({ id: name === "frames" ? "DEC-008" : "DEC-007", severity: "high", stage: "resource", title: `${name} limit exceeded`, description: `Observed ${name} exceeds configured maximum.`, status: "confirmed", controlStatus: "failed", evidence: [{ kind: "statistic", summary: `${name}=${observed}; maximum=${maximum}` }] });
     }
   }
-  const required = [...(options.requiredControls ?? ["structural"]), ...(options.aiInspection?.enabled ? ["aiInspection"] : [])];
+  const required = [...(options.requiredControls ?? ["structural"]), ...(options.aiInspection?.enabled ? ["aiInspection"] : []), ...(options.steganography?.enabled ? ["steganography"] : [])];
   const availableControlNames = new Set(Object.keys(controls));
   if (required.length === 0 || required.some((id) => !availableControlNames.has(id))) {
     throw new PixwardenError("INVALID_OPTIONS", "requiredControls must contain known controls and cannot be empty.");
   }
   const evaluation = evaluateVerdict(findings, controls, required, options.unsupportedFormat ?? "review", options.incompleteAnalysis ?? "review");
-  const enabledControls = ["structural", ...(binaryEnabled ? ["binary"] : []), ...(metadataEnabled ? ["metadata"] : []), ...(options.hints ? ["hints"] : [])];
+  const enabledControls = ["structural", ...(binaryEnabled ? ["binary"] : []), ...(metadataEnabled ? ["metadata"] : []), ...(options.hints ? ["hints"] : []), ...(options.steganography?.enabled ? ["steganography"] : [])];
   const coverage = enabledControls.some((id) => controls[id]?.status === "error")
     ? "incomplete"
     : enabledControls.some((id) => ["unsupported", "skipped"].includes(controls[id]?.status ?? "unsupported"))
@@ -312,7 +336,7 @@ function inspectSnapshot(snapshot: Uint8Array, options: ScanOptions, limits: Res
   const limitations = [
     "Structural validity is limited to the implemented byte-level profile; it is not proof of safe rendering or decoding.",
     "Metadata inspection validates bounded EXIF TIFF directory structure and reports selected sensitive tag identifiers only; it does not parse metadata values, XMP, or free text, and its control remains incomplete.",
-    "A separate restricted PNG RGBA8 decoder/reconstructor exists; scanImage does not invoke it. There is no general raster decoder, OCR, steganography detector, or model analysis. The SVG sanitizer is also a separate operation and is not invoked by scanImage.",
+    "A separate restricted PNG RGBA8 decoder/reconstructor exists; scanImage does not invoke it unless the optional steganography statistics are enabled. That pass reports descriptive PNG RGBA8 LSB/transparent-pixel statistics only; it is uncalibrated and cannot detect steganography. There is no general raster decoder, OCR, or model analysis. The SVG sanitizer is also a separate operation and is not invoked by scanImage.",
     "scanImage parsing has no hard CPU, memory, or wall-clock enforcement. scanImageIsolated can enforce a worker wall-clock timeout and V8 old-generation heap ceiling, but not total RSS or OS CPU quotas; use a container or child process for hostile decoders.",
     "Binary signatures are indicators only; they neither prove a complete embedded file nor replace antivirus analysis."
   ];
@@ -334,7 +358,7 @@ function inspectSnapshot(snapshot: Uint8Array, options: ScanOptions, limits: Res
     findings: Object.freeze(findings),
     ...(binaryInspection === undefined ? {} : { binaryInspection }),
     ...(metadataInspection === undefined ? {} : { metadataInspection }),
-    steganography: Object.freeze({ status: "unsupported", methods: Object.freeze([]), limitations: Object.freeze(["No steganography analysis ran; pixel channels, palettes and transform coefficients were not evaluated."]) }) satisfies SteganographyResult,
+    steganography: Object.freeze({ ...steganography, methods: Object.freeze(steganography.methods), limitations: Object.freeze(steganography.limitations) }) satisfies SteganographyResult,
     aiInspection: Object.freeze({ ...aiInspection, signals: Object.freeze(aiInspection.signals), limitations: Object.freeze(aiInspection.limitations) }),
     capabilities: capabilityReport,
     limitations: Object.freeze(limitations),

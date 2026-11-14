@@ -68,9 +68,20 @@ final class Scanner
         $findings = array_merge($findings, $metadataInspection['findings']);
         $aiInspection = (new AiInjectionGuard())->inspect($bytes, $validity === 'valid' ? $format : 'unknown', $maxMetadataBytes, $options->aiInspection);
         $findings = array_merge($findings, $aiInspection['signals']);
+        $resourceFindings = $this->resourceFindings($bytes, $format, $resourceLimits);
+        $resourceLimitExceeded = array_filter(
+            $resourceFindings,
+            static fn (array $finding): bool => in_array($finding['id'], ['DEC-007', 'DEC-008'], true),
+        ) !== [];
+        $steganography = (new PngRgba8SteganographyAnalyzer())->inspect(
+            $resourceLimitExceeded ? '' : $bytes,
+            $resourceLimitExceeded ? 'unknown' : $format,
+            $resourceLimitExceeded ? 'invalid' : $validity,
+            $options->steganography,
+        );
         $binaryInspection = (new BinaryGuard())->inspect($bytes, $format);
         $findings = array_merge($findings, $binaryInspection['findings']);
-        $findings = array_merge($findings, $this->resourceFindings($bytes, $format, $resourceLimits));
+        $findings = array_merge($findings, $resourceFindings);
         $hintInspection = $this->inspectHints($format, $options->hints);
         $findings = array_merge($findings, $hintInspection['findings']);
         $svgAvailable = class_exists(\DOMDocument::class);
@@ -90,7 +101,11 @@ final class Scanner
                     ? ['status' => 'skipped', 'summary' => 'The SVG sanitizer is available separately and was not invoked by scan().']
                     : ['status' => 'unsupported', 'summary' => 'PHP ext-dom is unavailable, so SVG inspection and sanitization cannot run.'])
                 : ['status' => 'unsupported', 'summary' => 'No sanitizer is invoked by scan(); input bytes are unchanged. A restricted PNG raster transform is available separately.'],
-            'steganography' => ['status' => 'unsupported', 'summary' => 'No steganography detector is implemented; hidden pixel data has not been evaluated.'],
+            'steganography' => $steganography['status'] === 'error'
+                ? ['status' => 'error', 'summary' => 'The bounded PNG statistical pass could not complete.']
+                : ['status' => 'unsupported', 'summary' => $steganography['status'] === 'inconclusive'
+                    ? 'Descriptive PNG RGBA8 statistics ran, but no calibrated detector is available; this control cannot pass policy.'
+                    : 'No applicable calibrated steganography detector is available for this profile.'],
             'aiInspection' => $aiInspection['status'] === 'not_requested'
                 ? ['status' => 'skipped', 'summary' => 'AI/OCR inspection was not requested.']
                 : ($aiInspection['status'] === 'error'
@@ -147,13 +162,9 @@ final class Scanner
             ],
             'metadataInspection' => $metadataInspection,
             'binaryInspection' => $binaryInspection,
-            'steganography' => [
-                'status' => 'unsupported',
-                'methods' => [],
-                'limitations' => ['No steganography analysis ran; pixel channels, palettes and transform coefficients were not evaluated.'],
-            ],
+            'steganography' => $steganography,
             'aiInspection' => $aiInspection,
-            'limitations' => ['The current PHP profile provides limited container checks for JPEG, PNG, GIF and WebP, bounded EXIF TIFF directory inspection for JPEG, PNG and WebP, indicator-only signatures in selected format-defined auxiliary regions, and a static SVG allowlist sanitizer when ext-dom is available. A separate PNG sanitizer decodes only static non-interlaced 8-bit RGBA inputs up to one million pixels; it drops ancillary chunks and color profiles, so visual appearance may change. No general raster decoder, OCR, steganography, or process isolation is included. Binary signatures do not prove an embedded file or replace malware scanning. A valid result is not proof of safe decoding or rendering.'],
+            'limitations' => ['The current PHP profile provides limited container checks for JPEG, PNG, GIF and WebP, bounded EXIF TIFF directory inspection for JPEG, PNG and WebP, indicator-only signatures in selected format-defined auxiliary regions, and a static SVG allowlist sanitizer when ext-dom is available. A separate PNG sanitizer decodes only static non-interlaced 8-bit RGBA inputs up to one million pixels; it drops ancillary chunks and color profiles, so visual appearance may change. Optional PNG RGBA8 steganography statistics are descriptive and uncalibrated, not a detector. No general raster decoder, OCR, or process isolation is included. Binary signatures do not prove an embedded file or replace malware scanning. A valid result is not proof of safe decoding or rendering.'],
             'inputBytes' => strlen($bytes),
         ];
     }

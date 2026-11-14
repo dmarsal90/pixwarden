@@ -17,12 +17,20 @@ export interface ScanOptions {
   readonly binaryInspection?: boolean;
   readonly metadata?: boolean;
   readonly aiInspection?: { readonly enabled: boolean; readonly ocr: boolean };
+  readonly steganography?: SteganographyOptions;
   readonly signal?: AbortSignal;
   readonly hints?: ScanHints;
   readonly limits?: Partial<ResourceLimits>;
   readonly requiredControls?: readonly string[];
   readonly unsupportedFormat?: "review" | "reject";
   readonly incompleteAnalysis?: "review" | "reject";
+}
+
+export interface SteganographyOptions {
+  readonly enabled: boolean;
+  readonly mode: "statistical" | "targeted";
+  /** Maximum sampled PNG pixels; defaults to 100,000 and cannot exceed 1,000,000. */
+  readonly maxSamples?: number;
 }
 
 export interface ScanIsolationOptions {

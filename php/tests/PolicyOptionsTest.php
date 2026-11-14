@@ -8,6 +8,7 @@ use Pixwarden\InvalidScanOptionsException;
 use Pixwarden\ScanOptions;
 use Pixwarden\Scanner;
 use Pixwarden\AiInspectionOptions;
+use Pixwarden\SteganographyOptions;
 use PHPUnit\Framework\TestCase;
 
 final class PolicyOptionsTest extends TestCase
@@ -52,5 +53,11 @@ final class PolicyOptionsTest extends TestCase
         self::assertSame('partial', $result->toArray()['aiInspection']['status']);
         self::assertSame('unsupported', $result->controls['aiInspection']['status']);
         self::assertSame('review', $result->verdict->value);
+    }
+
+    public function testSteganographySampleLimitMustBePositiveAndBounded(): void
+    {
+        $this->expectException(InvalidScanOptionsException::class);
+        new SteganographyOptions(enabled: true, maxSamples: 0);
     }
 }

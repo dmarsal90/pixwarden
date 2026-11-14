@@ -1,5 +1,5 @@
 {
-  "corpusVersion": "1.0.20",
+  "corpusVersion": "1.0.21",
   "source": "Synthetic, harmless fixtures authored for Pixwarden conformance tests.",
   "license": "CC0-1.0",
   "vectors": [
@@ -542,6 +542,33 @@
         "coverage": "partial",
         "findingIds": [],
         "aiStatus": "completed"
+      }
+    },
+    {
+      "id": "STEG-PNG-RGBA8-STATISTICS-001",
+      "description": "One-pixel static RGBA8 PNG requests bounded descriptive LSB and transparent-pixel statistics; report remains inconclusive and policy review is required.",
+      "inputHex": "89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000002269545874436f6d6d656e740000000000707269766174652073796e74686574696320746578749ffc01930000000d49444154789c63105432fe0f000214016604e0de7f0000000049454e44ae426082",
+      "sha256": "dd400d2843a71c70ecd911c0ca23cfc57350aa2f75f983df944f5ae534227f45",
+      "scanOptions": {
+        "steganography": {
+          "enabled": true,
+          "mode": "statistical",
+          "maxSamples": 100
+        }
+      },
+      "expected": {
+        "format": "png",
+        "validity": "valid",
+        "verdict": "review",
+        "coverage": "partial",
+        "findingIds": [],
+        "steganographyStatus": "inconclusive",
+        "steganographyScores": [
+          1,
+          1,
+          1,
+          1
+        ]
       }
     }
   ]

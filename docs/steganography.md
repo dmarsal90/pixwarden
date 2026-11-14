@@ -1,8 +1,8 @@
 # Steganography
 
-**Status: not implemented.** Neither package currently estimates LSB, alpha-channel, palette, frame, coefficient, or statistical steganography. Reports expose `steganography.status: unsupported` with an empty method list and explicit limitations. No steganography adapter is bundled.
+**Status: descriptive PNG statistics only; no calibrated detector.** Both packages can optionally report per-channel LSB balance and nonzero RGB bytes under fully transparent pixels for static non-interlaced RGBA8 PNGs up to one million pixels. The result remains `inconclusive`, and the steganography control remains `unsupported`, so requiring it cannot produce `allow`. Other profiles return `unsupported`. These statistics do not establish hidden data and do not remove it.
 
-The security matrix lists candidate research and future methods only. A future detector must name its applicable formats and method, publish corpus version and benign controls, report precision/recall and false-positive/negative rates on separate evaluation data, and use suspected/inconclusive status when evidence is probabilistic. No universal detection claim is acceptable.
+The security matrix lists candidate research and future methods beyond this narrow descriptive profile. A future detector must name its applicable formats and method, publish corpus version and benign controls, report precision/recall and false-positive/negative rates on separate evaluation data, and use suspected/inconclusive status when evidence is probabilistic. No universal detection claim is acceptable.
 
 Metadata stripping does not remove pixel-level hidden data. PNG metadata transformation must not be presented as steganography mitigation.
 

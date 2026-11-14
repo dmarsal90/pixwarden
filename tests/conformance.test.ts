@@ -7,7 +7,7 @@ interface ConformanceVector {
   readonly id: string;
   readonly inputHex: string;
   readonly sha256: string;
-  readonly scanOptions?: { readonly limits?: { readonly maxWidth?: number; readonly maxHeight?: number; readonly maxPixels?: number; readonly maxFrames?: number }; readonly aiInspection?: { readonly enabled: boolean; readonly ocr: boolean } };
+  readonly scanOptions?: { readonly limits?: { readonly maxWidth?: number; readonly maxHeight?: number; readonly maxPixels?: number; readonly maxFrames?: number }; readonly aiInspection?: { readonly enabled: boolean; readonly ocr: boolean }; readonly steganography?: { readonly enabled: boolean; readonly mode: "statistical" | "targeted"; readonly maxSamples?: number } };
   readonly expected: {
     readonly format: string;
     readonly validity: string;
@@ -17,6 +17,8 @@ interface ConformanceVector {
     readonly binaryStatus?: string;
     readonly binaryBytesScanned?: number;
     readonly aiStatus?: string;
+    readonly steganographyStatus?: string;
+    readonly steganographyScores?: readonly number[];
   };
 }
 
@@ -31,7 +33,7 @@ describe("shared Pixwarden v1 corpus", () => {
     expect(result.validity).toBe(vector.expected.validity);
     expect(result.verdict).toBe(vector.expected.verdict);
     expect(result.coverage).toBe(vector.expected.coverage);
-    expect(result.steganography.status).toBe("unsupported");
+    expect(result.steganography.status).toBe(vector.expected.steganographyStatus ?? "unsupported");
     expect(result.controls.steganography?.status).toBe("unsupported");
     expect(result.controls.aiInspection?.status).toBe(vector.scanOptions?.aiInspection?.enabled ? "passed" : "skipped");
     expect([...new Set(result.findings.map((finding) => finding.id))].sort()).toEqual([...vector.expected.findingIds].sort());
@@ -45,6 +47,13 @@ describe("shared Pixwarden v1 corpus", () => {
       if (vector.expected.findingIds.includes("AI-002")) {
         expect(JSON.stringify(result)).not.toContain("Ignore all previous instructions");
       }
+    }
+    if (vector.expected.steganographyStatus !== undefined) {
+      expect(result.steganography.status).toBe(vector.expected.steganographyStatus);
+      expect(result.steganography.methods).toHaveLength(5);
+      expect(result.steganography.methods.slice(0, 4).every((method) => method.status === "passed" && method.samples === 1)).toBe(true);
+      expect(result.steganography.methods.slice(0, 4).map((method) => method.score)).toEqual(vector.expected.steganographyScores);
+      expect(result.controls.steganography?.status).toBe("unsupported");
     }
   });
 });

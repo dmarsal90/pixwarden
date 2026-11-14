@@ -21,7 +21,7 @@ Required: `requestVersion` (const `1`), `input` (exactly one of inline base64 by
 
 ### ScanOptions
 
-Fields: booleans `structural`, `metadata`, `binaryInspection`, `sanitize`; optional JS convenience field `hints` (`ScanHints` below; serialized as `ScanRequest.hints`); object `steganography` `{enabled:boolean,mode:"statistical"|"targeted",maxSamples?:integer}`; `aiInspection` `{enabled:boolean,ocr:boolean,adapterId?:string}`; `limits` (`ResourceLimits`); `policyId` string; `requiredControls` array of control IDs. AI inspection is opt-in; the current `enabled:true, ocr:false` profile runs only local narrow rules on uncompressed PNG tEXt/iTXt metadata. `ocr:true` remains unsupported and fails the required AI control. No remote adapter is currently registered. Defaults are explicit in versioned policy, not hidden in schema. Unknown adapter IDs fail configuration validation.
+Fields: booleans `structural`, `metadata`, `binaryInspection`, `sanitize`; optional JS convenience field `hints` (`ScanHints` below; serialized as `ScanRequest.hints`); object `steganography` `{enabled:boolean,mode:"statistical"|"targeted",maxSamples?:integer}` (maximum sampled PNG pixels; range 1..1,000,000); `aiInspection` `{enabled:boolean,ocr:boolean,adapterId?:string}`; `limits` (`ResourceLimits`); `policyId` string; `requiredControls` array of control IDs. AI inspection is opt-in; the current `enabled:true, ocr:false` profile runs only local narrow rules on uncompressed PNG tEXt/iTXt metadata. `ocr:true` remains unsupported and fails the required AI control. No remote adapter is currently registered. Defaults are explicit in versioned policy, not hidden in schema. Unknown adapter IDs fail configuration validation.
 
 ### ScanHints
 
@@ -55,7 +55,7 @@ Required `status` (`partial | unsupported | error`), `metadataBytes`, `entriesIn
 
 ### SteganographyResult
 
-Required `status` (`passed | anomalous | inconclusive | unsupported | error`), `methods` array of `{id, applicable, status, samples?, score?}`, `limitations` array. `score` is algorithm-specific and cannot be compared across methods.
+Required `status` (`passed | anomalous | inconclusive | unsupported | error`), `methods` array of `{id, applicable, status, samples?, score?}`, `limitations` array. The implemented PNG RGBA8 statistics use `PNG_RGBA8_LSB_{R,G,B,A}_BALANCE_V1` and `PNG_RGBA8_TRANSPARENT_RGB_V1`; overall status remains `inconclusive` and the policy control remains unsupported because the scores are not calibrated detectors. `score` is algorithm-specific and cannot be compared across methods.
 
 ### AiInspectionResult
 
