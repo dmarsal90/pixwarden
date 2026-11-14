@@ -1,5 +1,5 @@
 {
-  "corpusVersion": "1.0.36",
+  "corpusVersion": "1.0.37",
   "source": "Synthetic, harmless fixtures authored for Pixwarden conformance tests.",
   "license": "CC0-1.0",
   "vectors": [
@@ -673,9 +673,9 @@
     }
     ,{
       "id": "AI-JPEG-EXIF-USERCOMMENT-ENCODING-UNSUPPORTED-001",
-      "description": "Synthetic EXIF UserComment uses a non-ASCII encoding marker; the opt-in rule must report incomplete rather than pass its control.",
-      "inputHex": "ffd8ffe1005c45786966000049492a0008000000010069870400010000001a00000000000000010086920700280000002c00000000000000554e49434f44450049676e6f726520616c6c2070726576696f757320696e737472756374696f6e73ffc00008080001000101ffda00020000ffd9",
-      "sha256": "3ac1687452364819a5c168ad21ca5f15d899e5bd03d43e2f04e0ebfd82119eb6",
+      "description": "Synthetic EXIF UserComment uses an unsupported JIS encoding marker; the opt-in rule must report incomplete rather than pass its control.",
+      "inputHex": "ffd8ffe1005c45786966000049492a0008000000010069870400010000001a00000000000000010086920700280000002c000000000000004a4953000000000049676e6f726520616c6c2070726576696f757320696e737472756374696f6e73ffc00008080001000101ffda00020000ffd9",
+      "sha256": "49517a78a59a71ce16d22dfc768d687d9e93251194e99c8f81192294aa5bfec7",
       "scanOptions": { "aiInspection": { "enabled": true, "ocr": false } },
       "expected": { "format": "jpeg", "validity": "valid", "verdict": "review", "coverage": "partial", "findingIds": [], "aiStatus": "partial" }
     }
@@ -743,5 +743,8 @@
       "scanOptions": { "limits": { "maxMetadataBytes": 10 }, "aiInspection": { "enabled": true, "ocr": false } },
       "expected": { "format": "webp", "validity": "valid", "verdict": "reject", "coverage": "partial", "findingIds": ["META-006"], "aiStatus": "partial" }
     }
+    ,{"id":"AI-JPEG-EXIF-USERCOMMENT-UTF16LE-OVERRIDE-001","description":"Synthetic JPEG EXIF UserComment uses UTF-16 little-endian in a little-endian TIFF directory; bounded inspection must redact an override signal.","inputHex":"ffd8ffe1007e45786966000049492a0008000000010069870400010000001a000000000000000100869207004a0000002c00000000000000554e49434f444500490067006e006f0072006500200061006c006c002000700072006500760069006f0075007300200069006e0073007400720075006300740069006f006e0073000000ffc00008080001000101ffda00020000ffd9","sha256":"74491b2f49f976ff7a75e8c7b05c590624ef0af9d01c174dc9bb896ab4a489ca","scanOptions":{"aiInspection":{"enabled":true,"ocr":false}},"expected":{"format":"jpeg","validity":"valid","verdict":"review","coverage":"partial","findingIds":["AI-002"],"aiStatus":"completed"}},
+    {"id":"AI-JPEG-EXIF-USERCOMMENT-UTF16BE-OVERRIDE-001","description":"Synthetic JPEG EXIF UserComment uses UTF-16 big-endian in a big-endian TIFF directory; bounded inspection must redact an override signal.","inputHex":"ffd8ffe1007e4578696600004d4d002a00000008000187690004000000010000001a000000000001928600070000004a0000002c00000000554e49434f44450000490067006e006f0072006500200061006c006c002000700072006500760069006f0075007300200069006e0073007400720075006300740069006f006e00730000ffc00008080001000101ffda00020000ffd9","sha256":"6432031c67e71a762c434717ed793837949875edd1fcf51334c9e71217d3a74e","scanOptions":{"aiInspection":{"enabled":true,"ocr":false}},"expected":{"format":"jpeg","validity":"valid","verdict":"review","coverage":"partial","findingIds":["AI-002"],"aiStatus":"completed"}},
+    {"id":"AI-JPEG-EXIF-USERCOMMENT-UTF16LE-BENIGN-001","description":"Synthetic JPEG EXIF UserComment uses UTF-16 little-endian in a little-endian TIFF directory; bounded inspection must allow benign descriptive text.","inputHex":"ffd8ffe1007645786966000049492a0008000000010069870400010000001a00000000000000010086920700420000002c00000000000000554e49434f444500540068006500200070006f007200740072006100690074002000730068006f007700730020006d006f0075006e007400610069006e0073000000ffc00008080001000101ffda00020000ffd9","sha256":"db807756559f4a2f493c52dfd19deef14569b4df02352f13f2961219aab38ed1","scanOptions":{"aiInspection":{"enabled":true,"ocr":false}},"expected":{"format":"jpeg","validity":"valid","verdict":"allow","coverage":"partial","findingIds":[],"aiStatus":"completed"}}
   ]
 }

@@ -2,14 +2,14 @@
 
 ## Current capability
 
-An opt-in, local rule set inspects PNG `tEXt`, `zTXt`, `iTXt` and `eXIf` chunks, JPEG `COM` comment segments, and ASCII EXIF `UserComment` values in JPEG, PNG and WebP reached through a bounded EXIF IFD pointer for a small set of explicit English and Spanish instruction-override phrases. JPEG inspection is limited to comment segments and EXIF values before scan data. XMP is not parsed; a non-ASCII EXIF `UserComment` encoding makes the result incomplete. Compressed fields are expanded only up to the remaining metadata budget; a malformed field, an unavailable decompressor, or a field that exceeds the bound makes the result partial. In PHP, `ext-zlib` is required to inspect compressed fields. The analyzer emits an advisory `AI-002` suspected signal and does not include matched text in reports. Use `ScanOptions.aiInspection: { enabled: true, ocr: false }` in JS or `AiInspectionOptions(enabled: true, ocr: false)` in PHP. No network or model call occurs.
+An opt-in, local rule set inspects PNG `tEXt`, `zTXt`, `iTXt` and `eXIf` chunks, JPEG `COM` comment segments, and ASCII or UTF-16 EXIF `UserComment` values in JPEG, PNG and WebP reached through a bounded EXIF IFD pointer for a small set of explicit English and Spanish instruction-override phrases. UTF-16 is decoded using the containing TIFF byte order. The Exif specification is ambiguous about this byte order; files written with a different convention may be missed or treated as malformed. JPEG inspection is limited to comment segments and EXIF values before scan data. XMP is not parsed. Unknown encodings, odd UTF-16 byte counts and invalid surrogate sequences make the result incomplete. Compressed fields are expanded only up to the remaining metadata budget; a malformed field, an unavailable decompressor, or a field that exceeds the bound makes the result partial. In PHP, `ext-zlib` is required to inspect compressed fields. The analyzer emits an advisory `AI-002` suspected signal and does not include matched text in reports. Use `ScanOptions.aiInspection: { enabled: true, ocr: false }` in JS or `AiInspectionOptions(enabled: true, ocr: false)` in PHP. No network or model call occurs.
 
 The scan report marks a complete bounded rule-set pass as `completed`, identifies `dataEgress: none`, and includes its limitations. If metadata could not be fully inspected, the status is `partial`, the AI control is unsupported, and policy cannot treat the AI check as passed. A suspicious text match results in `review` under current verdict rules; it is not proof of malicious intent. Benign metadata may contain similar language, and the rules can miss paraphrases, encodings, languages, and text stored in unsupported metadata forms.
 
 ## Unsupported capabilities
 
 - OCR and inspection of visible pixels.
-- Metadata formats beyond PNG text/eXIf, JPEG COM/EXIF ASCII UserComment and WebP EXIF UserComment, including XMP and non-ASCII EXIF UserComment values.
+- Metadata formats beyond PNG text/eXIf, JPEG COM/EXIF ASCII and UTF-16 UserComment and WebP EXIF UserComment, including XMP and EXIF UserComment encodings other than ASCII/UTF-16.
 - Region grouping, cross-image reasoning, VLM classification, adversarial vision testing, RAG or agent integration.
 - Universal prompt-injection prevention or claims about downstream model behavior.
 

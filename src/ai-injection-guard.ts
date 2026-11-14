@@ -26,7 +26,7 @@ function unsupported(format: string): AiInspectionResult {
 
 function inspectWebpExif(data: Uint8Array, maximum: number, ocrRequested: boolean): AiInspectionResult {
   const limitations = [
-    "Rules inspect ASCII EXIF UserComment values in WebP EXIF chunks only; visible pixels, XMP text, OCR output, and other metadata are not inspected.",
+    "Rules inspect ASCII and TIFF-byte-order UTF-16 EXIF UserComment values in WebP EXIF chunks only; visible pixels, XMP text, OCR output, and other metadata are not inspected.",
     "Text matching is advisory and can miss paraphrased, encoded, multilingual, or visually embedded instructions; it cannot determine downstream model behavior."
   ];
   if (!startsWith(data, 0, [82, 73, 70, 70]) || !startsWith(data, 8, [87, 69, 66, 80])) {
@@ -75,7 +75,7 @@ function inspectWebpExif(data: Uint8Array, maximum: number, ocrRequested: boolea
 
 function inspectJpegTextMetadata(data: Uint8Array, maximum: number, ocrRequested: boolean): AiInspectionResult {
   const limitations = [
-    "Rules inspect JPEG COM comments and ASCII EXIF UserComment values only; visible pixels, XMP text, OCR output, non-ASCII UserComment encodings, and other formats are not inspected.",
+    "Rules inspect JPEG COM comments and ASCII or TIFF-byte-order UTF-16 EXIF UserComment values only; visible pixels, XMP text, OCR output, other UserComment encodings, and other formats are not inspected.",
     "Text matching is advisory and can miss paraphrased, encoded, multilingual, or visually embedded instructions; it cannot determine downstream model behavior."
   ];
   const findings: Finding[] = [];
@@ -164,14 +164,25 @@ function inspectAsciiUserCommentTiff(data: Uint8Array, tiff: number, app1End: nu
     const relative = read32(entry + 8);
     if (relative < 8 || relative > app1End - tiff || byteCount > app1End - (tiff + relative)) return { partial: true };
     const valueStart = tiff + relative;
-    if (!startsWith(data, valueStart, [65, 83, 67, 73, 73, 0, 0, 0])) return { partial: true };
     const valueLength = byteCount - 8;
-    return {
-      text: new TextDecoder("latin1").decode(data.subarray(valueStart + 8, valueStart + byteCount)),
-      offset: valueStart + 8,
+    const valueOffset = valueStart + 8;
+    if (startsWith(data, valueStart, [65, 83, 67, 73, 73, 0, 0, 0])) return {
+      text: new TextDecoder("latin1").decode(data.subarray(valueOffset, valueStart + byteCount)),
+      offset: valueOffset,
       length: valueLength,
       partial: false
     };
+    if (startsWith(data, valueStart, [85, 78, 73, 67, 79, 68, 69, 0])) {
+      if (valueLength % 2 !== 0) return { partial: true };
+      try {
+        // Exif leaves UTF-16 byte order ambiguous; follow the containing TIFF order.
+        const text = new TextDecoder(little ? "utf-16le" : "utf-16be", { fatal: true }).decode(data.subarray(valueOffset, valueStart + byteCount)).replace(/\0+$/u, "");
+        return { text, offset: valueOffset, length: valueLength, partial: false };
+      } catch {
+        return { partial: true };
+      }
+    }
+    return { partial: true };
   }
   return { partial: false };
 }
@@ -180,10 +191,10 @@ function startsWith(data: Uint8Array, offset: number, bytes: readonly number[]):
   return offset >= 0 && offset + bytes.length <= data.length && bytes.every((byte, index) => data[offset + index] === byte);
 }
 
-/** Advisory, bounded prompt-risk rules for PNG text and ASCII EXIF metadata. */
+/** Advisory, bounded prompt-risk rules for PNG text and supported EXIF UserComment encodings. */
 export function inspectPngInstructionMetadata(data: Uint8Array, maxMetadataBytes: number, ocrRequested: boolean): AiInspectionResult {
   const limitations = [
-    "This rule set inspects PNG tEXt, zTXt, iTXt and ASCII EXIF UserComment values, with compressed output capped by the metadata budget; it does not inspect visible pixels, OCR output, or other formats.",
+    "This rule set inspects PNG tEXt, zTXt, iTXt and ASCII or TIFF-byte-order UTF-16 EXIF UserComment values, with compressed output capped by the metadata budget; it does not inspect visible pixels, OCR output, or other formats.",
     "Text matching is advisory and can miss paraphrased, encoded, multilingual, or visually embedded instructions; it cannot determine downstream model behavior."
   ];
   if (!signature.every((byte, index) => data[index] === byte)) {
