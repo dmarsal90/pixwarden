@@ -10,3 +10,5 @@
 - Add shared inert synthetic ancillary-region signature vectors.
 - Add optional ext-dom static SVG inspection and allowlist sanitization with post-check.
 - Add safe and active-content SVG vectors to shared conformance.
+- Enforce configurable byte, metadata-byte, dimension, pixel, and GIF/WebP frame caps before any decoding (no decoder is bundled).
+- Add shared width and frame cap vectors.

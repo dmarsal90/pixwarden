@@ -100,6 +100,22 @@
       "inputHex": "3c73766720786d6c6e733d22687474703a2f2f7777772e77332e6f72672f323030302f737667223e3c7363726970743e616c6572742831293c2f7363726970743e3c72656374206f6e6c6f61643d2278222077696474683d2231222f3e3c2f7376673e",
       "sha256": "72e03dd4170d51a56a960801f37d2c007798282a010e2acab27d56eaee20386f",
       "expected": { "format": "svg", "validity": "valid", "verdict": "reject", "coverage": "partial", "findingIds": ["SVG-001", "SVG-002"] }
+    },
+    {
+      "id": "RES-PNG-WIDTH-LIMIT-001",
+      "description": "Two-pixel synthetic PNG scanned under a one-pixel width policy.",
+      "inputHex": "89504e470d0a1a0a0000000d4948445200000002000000010806000000f4227f8a00000001494441540028387de80000000049454e44ae426082",
+      "sha256": "ffdf6d834bdb01485fd94f582cd89c95438225ec2b839d84243f30eff282055d",
+      "scanOptions": { "limits": { "maxWidth": 1 } },
+      "expected": { "format": "png", "validity": "valid", "verdict": "reject", "coverage": "partial", "findingIds": ["DEC-007"] }
+    },
+    {
+      "id": "RES-GIF-FRAME-LIMIT-001",
+      "description": "Two-frame synthetic GIF scanned under a one-frame policy.",
+      "inputHex": "474946383961010001000000002c000000000100010000020100002c000000000100010000020100003b",
+      "sha256": "5bb74586e9600d22e64a7405b4ee748ccab7ecfe8146b66160a527f49c567432",
+      "scanOptions": { "limits": { "maxFrames": 1 } },
+      "expected": { "format": "gif", "validity": "valid", "verdict": "reject", "coverage": "partial", "findingIds": ["DEC-008"] }
     }
   ]
 }

@@ -30,7 +30,7 @@ final class ConformanceTest extends TestCase
         $bytes = hex2bin($vector['inputHex']);
         self::assertNotFalse($bytes);
         self::assertSame($vector['sha256'], hash('sha256', $bytes));
-        $result = (new Scanner())->scan($bytes);
+        $result = (new Scanner())->scan($bytes, $vector['scanOptions'] ?? []);
         foreach (['format', 'validity', 'verdict', 'coverage'] as $key) {
             self::assertSame($vector['expected'][$key], $result[$key], $vector['id'] . ': ' . $key);
         }

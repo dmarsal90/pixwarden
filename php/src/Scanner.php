@@ -15,23 +15,31 @@ final class Scanner
      */
     public function scan(string $bytes, array $options = []): array
     {
-        $maxBytes = $options['maxBytes'] ?? 10_485_760;
-        if (!is_int($maxBytes) || $maxBytes < 1 || $maxBytes > 10_485_760) {
-            throw new InvalidArgumentException('maxBytes must be a positive integer no greater than the built-in maximum.');
+        $limits = $options['limits'] ?? [];
+        if (!is_array($limits)) {
+            throw new InvalidArgumentException('limits must be an associative array.');
         }
-        $maxMetadataBytes = $options['maxMetadataBytes'] ?? 1_048_576;
-        if (!is_int($maxMetadataBytes) || $maxMetadataBytes < 1 || $maxMetadataBytes > 1_048_576) {
-            throw new InvalidArgumentException('maxMetadataBytes must be a positive integer no greater than the built-in maximum.');
+        $defaults = ['maxBytes' => 10_485_760, 'maxMetadataBytes' => 1_048_576, 'maxWidth' => 40_000, 'maxHeight' => 40_000, 'maxPixels' => 40_000_000, 'maxFrames' => 200];
+        $resourceLimits = [];
+        foreach ($defaults as $name => $maximum) {
+            $value = $limits[$name] ?? $options[$name] ?? $maximum;
+            if (!is_int($value) || $value < 1 || $value > $maximum) {
+                throw new InvalidArgumentException($name . ' must be a positive integer no greater than the built-in maximum.');
+            }
+            $resourceLimits[$name] = $value;
         }
+        $maxBytes = $resourceLimits['maxBytes'];
+        $maxMetadataBytes = $resourceLimits['maxMetadataBytes'];
         if (strlen($bytes) > $maxBytes) {
             throw new InvalidArgumentException('Input exceeds the configured byte limit.');
         }
 
-        [$format, $validity, $findings] = $this->inspect($bytes);
+        [$format, $validity, $findings] = $this->inspect($bytes, $maxBytes);
         $metadataInspection = (new MetadataGuard())->inspect($bytes, $format, $maxMetadataBytes);
         $findings = array_merge($findings, $metadataInspection['findings']);
         $binaryInspection = (new BinaryGuard())->inspect($bytes, $format);
         $findings = array_merge($findings, $binaryInspection['findings']);
+        $findings = array_merge($findings, $this->resourceFindings($bytes, $format, $resourceLimits));
         $svgAvailable = class_exists(\DOMDocument::class);
         $controls = [
             'hints' => ['status' => 'skipped', 'summary' => 'No filename or media-type hints were supplied.'],
@@ -93,7 +101,7 @@ final class Scanner
                 'networkAccess' => false,
                 'formats' => $formatCapabilities,
                 'optionalAdapters' => [],
-                'hardLimits' => ['inputBytes' => true, 'dimensionsBeforeDecode' => false, 'framesBeforeDecode' => false, 'memory' => false, 'cpu' => false, 'wallTime' => false],
+                'hardLimits' => ['inputBytes' => true, 'dimensionsBeforeDecode' => true, 'framesBeforeDecode' => true, 'memory' => false, 'cpu' => false, 'wallTime' => false],
             ],
             'metadataInspection' => $metadataInspection,
             'binaryInspection' => $binaryInspection,
@@ -111,8 +119,229 @@ final class Scanner
         return (new SvgGuard())->sanitize($bytes);
     }
 
+    /**
+     * @param array<string, int> $limits
+     * @return list<array<string, mixed>>
+     */
+    private function resourceFindings(string $bytes, string $format, array $limits): array
+    {
+        $metrics = $this->measure($bytes, $format);
+        $findings = [];
+        $width = $metrics['width'];
+        $height = $metrics['height'];
+        if ($width !== null && $height !== null && ($width < 1 || $height < 1 || $width > $limits['maxWidth'] || $height > $limits['maxHeight'] || $width > intdiv($limits['maxPixels'], max(1, $height)))) {
+            $findings[] = [
+                'id' => 'DEC-007', 'severity' => 'high', 'stage' => 'resource',
+                'title' => 'Image dimensions exceed policy',
+                'description' => 'Declared dimensions exceed configured image limits.',
+                'status' => 'confirmed', 'controlStatus' => 'failed',
+                'evidence' => [['kind' => 'statistic', 'summary' => 'width=' . $width . '; height=' . $height . '; configured width, height, or pixel maximum exceeded.']],
+            ];
+        }
+        if ($metrics['frames'] !== null && $metrics['frames'] > $limits['maxFrames']) {
+            $findings[] = [
+                'id' => 'DEC-008', 'severity' => 'high', 'stage' => 'resource',
+                'title' => 'Image frame limit exceeded',
+                'description' => 'Frame count exceeds configured image limits.',
+                'status' => 'confirmed', 'controlStatus' => 'failed',
+                'evidence' => [[
+                    'kind' => 'statistic',
+                    'summary' => 'frames=' . $metrics['frames'] . '; maximum=' . $limits['maxFrames'],
+                ]],
+            ];
+        }
+        return $findings;
+    }
+
+    /** @return array{width: ?int, height: ?int, frames: ?int} */
+    private function measure(string $bytes, string $format): array
+    {
+        $width = null;
+        $height = null;
+        $frames = null;
+        $size = strlen($bytes);
+        if ($format === 'png' && $size >= 24 && substr($bytes, 12, 4) === 'IHDR') {
+            $width = $this->u32be($bytes, 16);
+            $height = $this->u32be($bytes, 20);
+        } elseif ($format === 'gif' && $size >= 13) {
+            $width = $this->u16le($bytes, 6);
+            $height = $this->u16le($bytes, 8);
+            $frames = $this->countGifFrames($bytes);
+        } elseif ($format === 'jpeg') {
+            [$width, $height] = $this->jpegDimensions($bytes);
+        } elseif ($format === 'webp' && $size >= 30) {
+            [$width, $height, $frames] = $this->webpMetrics($bytes);
+        }
+        return ['width' => $width, 'height' => $height, 'frames' => $frames];
+    }
+
+    private function u16le(string $bytes, int $offset): int
+    {
+        return ord($bytes[$offset]) + ord($bytes[$offset + 1]) * 256;
+    }
+
+    private function u16be(string $bytes, int $offset): int
+    {
+        return ord($bytes[$offset]) * 256 + ord($bytes[$offset + 1]);
+    }
+
+    private function u32be(string $bytes, int $offset): int
+    {
+        return ord($bytes[$offset]) * 0x1000000 + ord($bytes[$offset + 1]) * 0x10000 + ord($bytes[$offset + 2]) * 0x100 + ord($bytes[$offset + 3]);
+    }
+
+    /** @return array{?int, ?int} */
+    private function jpegDimensions(string $bytes): array
+    {
+        $size = strlen($bytes);
+        $cursor = 2;
+        $sof = [0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf];
+        while ($cursor + 4 <= $size && ord($bytes[$cursor]) === 0xff) {
+            while ($cursor < $size && ord($bytes[$cursor]) === 0xff) {
+                $cursor++;
+            }
+            if ($cursor >= $size) {
+                break;
+            }
+            $marker = ord($bytes[$cursor++]);
+            if ($marker === 0xda || $marker === 0xd9) {
+                break;
+            }
+            if ($marker === 0xd8 || $marker === 0x01 || ($marker >= 0xd0 && $marker <= 0xd7)) {
+                continue;
+            }
+            if ($cursor + 2 > $size) {
+                break;
+            }
+            $length = $this->u16be($bytes, $cursor);
+            if ($length < 2 || $length > $size - $cursor) {
+                break;
+            }
+            if (in_array($marker, $sof, true) && $length >= 7) {
+                $payload = $cursor + 2;
+                return [$this->u16be($bytes, $payload + 3), $this->u16be($bytes, $payload + 1)];
+            }
+            $cursor += $length;
+        }
+        return [null, null];
+    }
+
+    private function countGifFrames(string $bytes): ?int
+    {
+        $size = strlen($bytes);
+        $packed = ord($bytes[10]);
+        $cursor = 13 + (($packed & 0x80) !== 0 ? 3 * (1 << (($packed & 7) + 1)) : 0);
+        if ($cursor > $size) {
+            return null;
+        }
+        $frames = 0;
+        while ($cursor < $size) {
+            $marker = ord($bytes[$cursor++]);
+            if ($marker === 0x3b) {
+                return $frames;
+            }
+            if ($marker === 0x2c) {
+                if ($cursor + 9 > $size) {
+                    return null;
+                }
+                $imagePacked = ord($bytes[$cursor + 8]);
+                $cursor += 9;
+                if (($imagePacked & 0x80) !== 0) {
+                    $cursor += 3 * (1 << (($imagePacked & 7) + 1));
+                }
+                if ($cursor >= $size) {
+                    return null;
+                }
+                $cursor++;
+                $next = $this->skipGifSubBlocks($bytes, $cursor);
+                if ($next === null) {
+                    return null;
+                }
+                $cursor = $next;
+                $frames++;
+            } elseif ($marker === 0x21) {
+                if ($cursor >= $size) {
+                    return null;
+                }
+                $label = ord($bytes[$cursor++]);
+                if ($label === 0xf9) {
+                    if ($cursor + 6 > $size) {
+                        return null;
+                    }
+                    $cursor += 6;
+                } else {
+                    $next = $this->skipGifSubBlocks($bytes, $cursor);
+                    if ($next === null) {
+                        return null;
+                    }
+                    $cursor = $next;
+                }
+            } else {
+                return null;
+            }
+        }
+        return null;
+    }
+
+    private function skipGifSubBlocks(string $bytes, int $cursor): ?int
+    {
+        $size = strlen($bytes);
+        while ($cursor < $size) {
+            $length = ord($bytes[$cursor++]);
+            if ($length === 0) {
+                return $cursor;
+            }
+            if ($length > $size - $cursor) {
+                return null;
+            }
+            $cursor += $length;
+        }
+        return null;
+    }
+
+    /** @return array{?int, ?int, ?int} */
+    private function webpMetrics(string $bytes): array
+    {
+        $size = strlen($bytes);
+        $riff = unpack('Vlength', substr($bytes, 4, 4));
+        if ($riff === false) {
+            return [null, null, null];
+        }
+        $limit = min($size, $riff['length'] + 8);
+        $cursor = 12;
+        $width = null;
+        $height = null;
+        $frames = 0;
+        while ($cursor + 8 <= $limit) {
+            $kind = substr($bytes, $cursor, 4);
+            $unpackedLength = unpack('Vlength', substr($bytes, $cursor + 4, 4));
+            if ($unpackedLength === false) {
+                break;
+            }
+            $length = $unpackedLength['length'];
+            $payload = $cursor + 8;
+            $end = $payload + $length;
+            if ($end > $limit) {
+                break;
+            }
+            if ($kind === 'VP8X' && $length === 10) {
+                $width = 1 + $this->u24le($bytes, $payload + 4);
+                $height = 1 + $this->u24le($bytes, $payload + 7);
+            } elseif ($kind === 'ANMF') {
+                $frames++;
+            }
+            $cursor = $end + ($length & 1);
+        }
+        return [$width, $height, $frames];
+    }
+
+    private function u24le(string $bytes, int $offset): int
+    {
+        return ord($bytes[$offset]) + ord($bytes[$offset + 1]) * 256 + ord($bytes[$offset + 2]) * 65_536;
+    }
+
     /** @return array{string,string,list<array<string,mixed>>} */
-    private function inspect(string $bytes): array
+    private function inspect(string $bytes, int $maxBytes): array
     {
         $format = match (true) {
             str_starts_with($bytes, "\x89PNG\r\n\x1a\n") => 'png',
@@ -122,7 +351,7 @@ final class Scanner
             default => 'unknown',
         };
         if ($format === 'unknown' && SvgGuard::looksLikeSvg($bytes)) {
-            $svg = (new SvgGuard())->inspect($bytes, 2_097_152);
+            $svg = (new SvgGuard())->inspect($bytes, $maxBytes);
             return ['svg', $svg['validity'], $svg['findings']];
         }
         if ($format === 'unknown') {

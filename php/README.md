@@ -4,7 +4,7 @@ Native PHP 8.2+ package (`dmarsal90/pixwarden-php`) with no Node.js runtime depe
 
 ## Status and limits
 
-The current `Scanner::scan(string $bytes)` accepts already-buffered bytes, enforces maximum input and EXIF metadata sizes, and emits a JSON-compatible report. It checks bounded EXIF TIFF directory structure and selected privacy-sensitive tag identifiers for JPEG, PNG, and WebP without extracting values. Binary signature indicators scan only format-defined metadata, extension, and trailer regions for JPEG, PNG, GIF, and WebP; they do not scan pixel bitstreams or prove complete embedded files. When PHP `ext-dom` is available, SVG uses a bounded DOM parser and a static allowlist sanitizer exposed separately as `Scanner::sanitizeSvg()`. Raster decoding/sanitization, steganography, OCR, and AI inspection are not implemented. Its container checks are intentionally narrow; `valid` means only that this PHP profile accepted its limited checks. Every report has partial coverage.
+The current `Scanner::scan(string $bytes)` accepts already-buffered bytes, enforces configured byte, metadata, dimension, pixel, and selected frame limits, and emits a JSON-compatible report. It checks bounded EXIF TIFF directory structure and selected privacy-sensitive tag identifiers for JPEG, PNG, and WebP without extracting values. Binary signature indicators scan only format-defined metadata, extension, and trailer regions for JPEG, PNG, GIF, and WebP; they do not scan pixel bitstreams or prove complete embedded files. When PHP `ext-dom` is available, SVG uses a bounded DOM parser and a static allowlist sanitizer exposed separately as `Scanner::sanitizeSvg()`. Raster decoding/sanitization, steganography, OCR, and AI inspection are not implemented. Its container checks are intentionally narrow; `valid` means only that this PHP profile accepted its limited checks. Every report has partial coverage.
 
 ```php
 use Pixwarden\Scanner;
@@ -13,6 +13,10 @@ $result = (new Scanner())->scan($imageBytes);
 if ($result['verdict'] === 'allow' && $result['coverage'] === 'complete') {
     // This initial package never returns complete coverage.
 }
+
+$bounded = (new Scanner())->scan($imageBytes, [
+    'limits' => ['maxBytes' => 10_485_760, 'maxWidth' => 40_000, 'maxPixels' => 40_000_000, 'maxFrames' => 200],
+]);
 ```
 
 `sanitizeSvg()` returns a JSON-compatible result array containing the sanitized bytes and post-check status. It is available only when PHP `ext-dom` is installed.

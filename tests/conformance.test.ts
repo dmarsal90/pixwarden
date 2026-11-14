@@ -7,6 +7,7 @@ interface ConformanceVector {
   readonly id: string;
   readonly inputHex: string;
   readonly sha256: string;
+  readonly scanOptions?: { readonly limits?: { readonly maxWidth?: number; readonly maxHeight?: number; readonly maxPixels?: number; readonly maxFrames?: number } };
   readonly expected: {
     readonly format: string;
     readonly validity: string;
@@ -24,7 +25,7 @@ describe("shared Pixwarden v1 corpus", () => {
   it.each(manifest.vectors)("conforms to $id", async (vector) => {
     const input = Buffer.from(vector.inputHex, "hex");
     expect(createHash("sha256").update(input).digest("hex")).toBe(vector.sha256);
-    const result = await scanImage(input);
+    const result = await scanImage(input, vector.scanOptions);
     expect(result.format).toBe(vector.expected.format);
     expect(result.validity).toBe(vector.expected.validity);
     expect(result.verdict).toBe(vector.expected.verdict);
