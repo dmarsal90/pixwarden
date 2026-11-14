@@ -10,4 +10,6 @@ enum ErrorCode: string
     case ResourceLimitExceeded = 'resource_limit_exceeded';
     case SvgRejected = 'svg_rejected';
     case CapabilityUnavailable = 'capability_unavailable';
+    case InvalidInput = 'invalid_input';
+    case StreamReadFailed = 'stream_read_failed';
 }

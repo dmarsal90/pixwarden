@@ -12,6 +12,47 @@ final class Scanner
         return ScanResult::fromReport($this->scanReport($bytes, $options ?? new ScanOptions()));
     }
 
+    /**
+     * Read a caller-owned stream from its current position without buffering beyond the byte limit.
+     * The stream remains open and is not rewound. Configure timeouts on blocking streams yourself.
+     *
+     * @param resource|false|null $stream
+     */
+    public function scanStream(mixed $stream, ?ScanOptions $options = null): ScanResult
+    {
+        if (!is_resource($stream) || get_resource_type($stream) !== 'stream') {
+            throw new InvalidInputException('scanStream expects an open PHP stream resource.');
+        }
+
+        $limits = ($options ?? new ScanOptions())->limits;
+        $maximum = $limits->maxBytes;
+        $bytes = '';
+        while (true) {
+            $remainingWithOverflowByte = $maximum - strlen($bytes) + 1;
+            $chunkSize = $remainingWithOverflowByte > 65_536 ? 65_536 : max(1, $remainingWithOverflowByte);
+            $chunk = fread($stream, $chunkSize);
+            if ($chunk === false) {
+                throw new StreamReadException('The input stream could not be read.');
+            }
+            if ($chunk === '') {
+                $metadata = stream_get_meta_data($stream);
+                if ($metadata['timed_out']) {
+                    throw new StreamReadException('Reading the input stream timed out.');
+                }
+                if (feof($stream)) {
+                    break;
+                }
+                throw new StreamReadException('The input stream returned no bytes before end-of-file.');
+            }
+            $bytes .= $chunk;
+            if (strlen($bytes) > $maximum) {
+                throw new ResourceLimitExceededException('Input exceeds the configured byte limit.');
+            }
+        }
+
+        return $this->scan($bytes, $options);
+    }
+
     /** @return array<string, mixed> */
     private function scanReport(string $bytes, ScanOptions $options): array
     {
