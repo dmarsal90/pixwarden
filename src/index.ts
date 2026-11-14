@@ -5,6 +5,7 @@ import { inspectMetadata } from "./metadata-guard.js";
 import { sanitizeSvg } from "./svg-guard.js";
 import { stripPngExifAndTextMetadata } from "./png-metadata-sanitizer.js";
 import { sanitizePngRgba8 } from "./png-raster-sanitizer.js";
+import { inspectPngInstructionMetadata } from "./ai-injection-guard.js";
 import { PixwardenError, type AiInspectionResult, type BinaryInspectionResult, type CapabilityReport, type ControlResult, type Finding, type ImageFormat, type MetadataInspectionResult, type ResourceLimits, type ScanHints, type ScanIsolationOptions, type ScanOptions, type ScanResult, type SteganographyResult, type Verdict } from "./types.js";
 
 export { PixwardenError } from "./types.js";
@@ -111,6 +112,13 @@ function validateHints(hints: ScanHints | undefined): void {
   }
   if (hints.mediaType !== undefined && (typeof hints.mediaType !== "string" || hints.mediaType.length > 127 || /[\u0000-\u001f\u007f]/.test(hints.mediaType))) {
     throw new PixwardenError("INVALID_OPTIONS", "Media-type hint must be a short string without control characters.");
+  }
+}
+
+function validateAiInspection(value: ScanOptions["aiInspection"]): void {
+  if (value === undefined) return;
+  if (value === null || typeof value !== "object" || typeof value.enabled !== "boolean" || typeof value.ocr !== "boolean") {
+    throw new PixwardenError("INVALID_OPTIONS", "aiInspection must provide boolean enabled and ocr options.");
   }
 }
 
@@ -232,6 +240,7 @@ export async function scanImageIsolated(
 
 function inspectSnapshot(snapshot: Uint8Array, options: ScanOptions, limits: ResourceLimits, started: string): ScanResult {
   validateHints(options.hints);
+  validateAiInspection(options.aiInspection);
   const structuralEnabled = options.structural ?? true;
   const binaryEnabled = options.binaryInspection ?? true;
   const metadataEnabled = options.metadata ?? true;
@@ -239,8 +248,11 @@ function inspectSnapshot(snapshot: Uint8Array, options: ScanOptions, limits: Res
   const format: ImageFormat = structural?.format ?? "unknown";
   const binaryInspection = binaryEnabled ? inspectBinaryIndicators(snapshot) : undefined;
   const metadataInspection = metadataEnabled ? inspectMetadata(snapshot, format, limits.maxMetadataBytes) : undefined;
+  const aiInspection: AiInspectionResult = options.aiInspection?.enabled
+    ? inspectPngInstructionMetadata(structural?.validity === "valid" ? snapshot : new Uint8Array(), limits.maxMetadataBytes, options.aiInspection.ocr)
+    : { status: "not_requested", dataEgress: "none", signals: [], limitations: ["No OCR or multimodal inspection ran. No text was extracted or sent to a model."] };
   const findings: Finding[] = [...(structural?.findings ?? [])];
-  findings.push(...(metadataInspection?.findings ?? []));
+  findings.push(...(metadataInspection?.findings ?? []), ...aiInspection.signals);
   const hintInspection = inspectHints(format, options.hints);
   findings.push(...hintInspection.findings);
   const controls: Record<string, ControlResult> = {
@@ -265,7 +277,13 @@ function inspectSnapshot(snapshot: Uint8Array, options: ScanOptions, limits: Res
       ? makeControl("skipped", "The SVG sanitizer is available separately and was not invoked by scanImage.")
       : makeControl("unsupported", "No raster sanitizer is invoked by scanImage; the original input is unchanged."),
     steganography: makeControl("unsupported", "No steganography detector is implemented; hidden pixel data has not been evaluated."),
-    aiInspection: makeControl("skipped", "AI/OCR inspection was not requested and no built-in OCR or multimodal adapter is available.")
+    aiInspection: aiInspection.status === "not_requested"
+      ? makeControl("skipped", "AI/OCR inspection was not requested.")
+      : aiInspection.status === "error"
+        ? makeControl("error", "AI metadata inspection could not safely complete.")
+      : aiInspection.status === "unsupported" || options.aiInspection?.ocr
+        ? makeControl("unsupported", "Only a bounded PNG metadata text rule set is available; requested OCR or format analysis is unsupported.")
+        : makeControl("passed", "Bounded PNG uncompressed text metadata rules ran locally; this is advisory and does not inspect pixels.")
   };
   if (binaryInspection) findings.push(...binaryInspection.findings);
   for (const [name, maximum, observed] of [
@@ -278,7 +296,7 @@ function inspectSnapshot(snapshot: Uint8Array, options: ScanOptions, limits: Res
       findings.push({ id: name === "frames" ? "DEC-008" : "DEC-007", severity: "high", stage: "resource", title: `${name} limit exceeded`, description: `Observed ${name} exceeds configured maximum.`, status: "confirmed", controlStatus: "failed", evidence: [{ kind: "statistic", summary: `${name}=${observed}; maximum=${maximum}` }] });
     }
   }
-  const required = options.requiredControls ?? ["structural"];
+  const required = [...(options.requiredControls ?? ["structural"]), ...(options.aiInspection?.enabled ? ["aiInspection"] : [])];
   const availableControlNames = new Set(Object.keys(controls));
   if (required.length === 0 || required.some((id) => !availableControlNames.has(id))) {
     throw new PixwardenError("INVALID_OPTIONS", "requiredControls must contain known controls and cannot be empty.");
@@ -317,7 +335,7 @@ function inspectSnapshot(snapshot: Uint8Array, options: ScanOptions, limits: Res
     ...(binaryInspection === undefined ? {} : { binaryInspection }),
     ...(metadataInspection === undefined ? {} : { metadataInspection }),
     steganography: Object.freeze({ status: "unsupported", methods: Object.freeze([]), limitations: Object.freeze(["No steganography analysis ran; pixel channels, palettes and transform coefficients were not evaluated."]) }) satisfies SteganographyResult,
-    aiInspection: Object.freeze({ status: "not_requested", dataEgress: "none", signals: Object.freeze([]), limitations: Object.freeze(["No OCR or multimodal inspection ran. No text was extracted or sent to a model."]) }) satisfies AiInspectionResult,
+    aiInspection: Object.freeze({ ...aiInspection, signals: Object.freeze(aiInspection.signals), limitations: Object.freeze(aiInspection.limitations) }),
     capabilities: capabilityReport,
     limitations: Object.freeze(limitations),
     inputBytes: snapshot.byteLength

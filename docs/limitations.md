@@ -2,7 +2,7 @@
 
 - Structural profiles cover selected invariants; they are not complete format validators.
 - Raster reconstruction exists only for static non-interlaced 8-bit RGBA PNGs up to one million pixels; it has no OS CPU/RSS quota and drops color profiles, which may change appearance. No general raster decoding/re-encoding is provided.
-- No OCR, AI injection detection, or steganography analysis is implemented. Reports explicitly return `aiInspection.status: "not_requested"` and `steganography.status: "unsupported"`; requiring the steganography control cannot result in `allow`.
+- The optional AI text rule inspects only a narrow set of uncompressed PNG metadata phrases. It does not provide OCR, pixel inspection, general prompt-injection detection, or steganography analysis. Reports return `aiInspection.status: "not_requested"` by default; steganography remains `unsupported`, and requiring it cannot result in `allow`.
 - Binary signatures cover selected regions, are indicator-only, and are not malware scanning.
 - JS and PHP feature parity is incomplete; PHP SVG needs `ext-dom` and metadata/binary profiles differ.
 - In-process checks do not enforce OS CPU/RSS quotas. JS worker limits do not equal OS isolation; PHP stream timeouts are caller-managed.

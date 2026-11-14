@@ -16,6 +16,7 @@ export interface ScanOptions {
   readonly structural?: boolean;
   readonly binaryInspection?: boolean;
   readonly metadata?: boolean;
+  readonly aiInspection?: { readonly enabled: boolean; readonly ocr: boolean };
   readonly signal?: AbortSignal;
   readonly hints?: ScanHints;
   readonly limits?: Partial<ResourceLimits>;
@@ -46,7 +47,7 @@ export interface Evidence {
 export interface Finding {
   readonly id: string;
   readonly severity: Severity;
-  readonly stage: "identify" | "structural" | "metadata" | "active_content" | "binary" | "resource" | "policy";
+  readonly stage: "identify" | "structural" | "metadata" | "active_content" | "binary" | "ai" | "resource" | "policy";
   readonly title: string;
   readonly description: string;
   readonly status: "confirmed" | "suspected" | "inconclusive";

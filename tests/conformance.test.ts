@@ -7,7 +7,7 @@ interface ConformanceVector {
   readonly id: string;
   readonly inputHex: string;
   readonly sha256: string;
-  readonly scanOptions?: { readonly limits?: { readonly maxWidth?: number; readonly maxHeight?: number; readonly maxPixels?: number; readonly maxFrames?: number } };
+  readonly scanOptions?: { readonly limits?: { readonly maxWidth?: number; readonly maxHeight?: number; readonly maxPixels?: number; readonly maxFrames?: number }; readonly aiInspection?: { readonly enabled: boolean; readonly ocr: boolean } };
   readonly expected: {
     readonly format: string;
     readonly validity: string;
@@ -16,6 +16,7 @@ interface ConformanceVector {
     readonly findingIds: readonly string[];
     readonly binaryStatus?: string;
     readonly binaryBytesScanned?: number;
+    readonly aiStatus?: string;
   };
 }
 
@@ -31,13 +32,19 @@ describe("shared Pixwarden v1 corpus", () => {
     expect(result.verdict).toBe(vector.expected.verdict);
     expect(result.coverage).toBe(vector.expected.coverage);
     expect(result.steganography.status).toBe("unsupported");
-    expect(result.aiInspection.status).toBe("not_requested");
     expect(result.controls.steganography?.status).toBe("unsupported");
-    expect(result.controls.aiInspection?.status).toBe("skipped");
+    expect(result.controls.aiInspection?.status).toBe(vector.scanOptions?.aiInspection?.enabled ? "passed" : "skipped");
     expect([...new Set(result.findings.map((finding) => finding.id))].sort()).toEqual([...vector.expected.findingIds].sort());
     if (vector.expected.binaryStatus !== undefined) {
       expect(result.binaryInspection?.status).toBe(vector.expected.binaryStatus);
       expect(result.binaryInspection?.bytesScanned).toBe(vector.expected.binaryBytesScanned);
+    }
+    if (vector.expected.aiStatus !== undefined) {
+      expect(result.aiInspection.status).toBe(vector.expected.aiStatus);
+      expect(result.aiInspection.dataEgress).toBe("none");
+      if (vector.expected.findingIds.includes("AI-002")) {
+        expect(JSON.stringify(result)).not.toContain("Ignore all previous instructions");
+      }
     }
   });
 });
