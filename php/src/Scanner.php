@@ -448,6 +448,7 @@ final class Scanner
         }
         $pngCrcMismatchOffset = null;
         $pngTrailingDataOffset = null;
+        $webpTrailingDataOffset = null;
         $pngErrorId = null;
         $webpErrorId = null;
         $jpegErrorId = null;
@@ -460,7 +461,7 @@ final class Scanner
         } elseif ($format === 'jpeg') {
             $valid = $this->validJpeg($bytes, $jpegErrorId);
         } else {
-            $valid = $this->validWebp($bytes, $webpErrorId);
+            $valid = $this->validWebp($bytes, $webpTrailingDataOffset, $webpErrorId);
         }
         if ($valid) {
             return [$format, 'valid', []];
@@ -483,6 +484,15 @@ final class Scanner
                 'evidence' => [['kind' => 'range', 'summary' => 'Bytes remain after the PNG end chunk.', 'offset' => $pngTrailingDataOffset, 'length' => strlen($bytes) - $pngTrailingDataOffset]],
             ]]];
         }
+        if ($webpTrailingDataOffset !== null) {
+            return [$format, 'invalid', [[
+                'id' => 'IMG-008', 'severity' => 'medium', 'stage' => 'structural',
+                'title' => 'Data follows WebP RIFF container',
+                'description' => 'Bytes remain after the declared RIFF container.',
+                'status' => 'confirmed', 'controlStatus' => 'failed',
+                'evidence' => [['kind' => 'range', 'summary' => 'Bytes remain after the declared RIFF container.', 'offset' => $webpTrailingDataOffset, 'length' => strlen($bytes) - $webpTrailingDataOffset]],
+            ]]];
+        }
         return [$format, 'invalid', [[
             'id' => $pngErrorId ?? $webpErrorId ?? $jpegErrorId ?? $gifErrorId ?? 'IMG-003', 'severity' => 'high', 'stage' => 'structural',
             'title' => 'Truncated or unsupported container structure',
@@ -492,8 +502,9 @@ final class Scanner
         ]]];
     }
 
-    private function validWebp(string $bytes, ?string &$errorId = null): bool
+    private function validWebp(string $bytes, ?int &$trailingDataOffset = null, ?string &$errorId = null): bool
     {
+        $trailingDataOffset = null;
         $errorId = null;
         $size = strlen($bytes);
         if ($size < 20 || substr($bytes, 0, 4) !== 'RIFF' || substr($bytes, 8, 4) !== 'WEBP') {
@@ -501,8 +512,18 @@ final class Scanner
             return false;
         }
         $riffLength = unpack('Vlength', substr($bytes, 4, 4));
-        if ($riffLength === false || !is_int($riffLength['length']) || $riffLength['length'] !== $size - 8) {
+        if ($riffLength === false || !is_int($riffLength['length'])) {
             $errorId = 'IMG-004';
+            return false;
+        }
+        $declaredEnd = $riffLength['length'] + 8;
+        if ($declaredEnd < 12 || $declaredEnd > $size) {
+            $errorId = 'IMG-004';
+            return false;
+        }
+        if ($declaredEnd < $size) {
+            $trailingDataOffset = $declaredEnd;
+            $errorId = 'IMG-008';
             return false;
         }
 
