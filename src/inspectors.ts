@@ -163,7 +163,10 @@ function inspectGif(data: Uint8Array, limits: ResourceLimits): StructuralInspect
     const markerOffset = offset;
     const marker = data[offset++]!;
     if (marker === 0x3b) {
-      if (offset < data.length) findings.push(finding("IMG-008", "medium", "structural", "Data follows GIF trailer", "Bytes remain after the GIF trailer.", offset, data.length - offset));
+      if (offset < data.length) {
+        findings.push(finding("IMG-008", "medium", "structural", "Data follows GIF trailer", "Bytes remain after the GIF trailer.", offset, data.length - offset));
+        return { format: "gif", validity: "invalid", findings, metadataBytes, width, height };
+      }
       if (frames === 0) return reject("IMG-006", "GIF contains no image frames", "At least one image descriptor is required before the trailer.", markerOffset);
       return { format: "gif", validity: "valid", findings, metadataBytes, width, height, frameCount: frames };
     }

@@ -278,6 +278,7 @@ final class Scanner
             $marker = ord($bytes[$cursor++]);
             if ($marker === 0x3b) {
                 if ($cursor !== $size) {
+                    $errorId = 'IMG-008';
                     return null;
                 }
                 if ($frames === 0) {
