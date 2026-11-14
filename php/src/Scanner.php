@@ -353,9 +353,12 @@ final class Scanner
         return [null, null];
     }
 
-    private function countGifFrames(string $bytes, ?string &$errorId = null): ?int
+    /** @param array{offset: int, length: int}|null $metadataExceeded */
+    private function countGifFrames(string $bytes, ?string &$errorId = null, int $maximumMetadataBytes = PHP_INT_MAX, ?array &$metadataExceeded = null): ?int
     {
         $errorId = null;
+        $metadataExceeded = null;
+        $metadataBytes = 0;
         $size = strlen($bytes);
         if ($size < 13) {
             return null;
@@ -373,6 +376,7 @@ final class Scanner
         }
         $frames = 0;
         while ($cursor < $size) {
+            $markerOffset = $cursor;
             $marker = ord($bytes[$cursor++]);
             if ($marker === 0x3b) {
                 if ($cursor !== $size) {
@@ -456,9 +460,15 @@ final class Scanner
                             }
                         }
                     }
+                    $blocksStart = $cursor;
                     $next = $this->skipGifSubBlocks($bytes, $cursor);
                     if ($next === null) {
                         return null;
+                    }
+                    $blockBytes = $this->gifSubBlockPayloadBytes($bytes, $blocksStart, $next);
+                    $metadataBytes += $blockBytes;
+                    if ($metadataBytes > $maximumMetadataBytes && $metadataExceeded === null) {
+                        $metadataExceeded = ['offset' => $markerOffset, 'length' => $blockBytes];
                     }
                     $cursor = $next;
                 }
@@ -468,6 +478,20 @@ final class Scanner
             }
         }
         return null;
+    }
+
+    private function gifSubBlockPayloadBytes(string $bytes, int $start, int $end): int
+    {
+        $payloadBytes = 0;
+        while ($start < $end) {
+            $length = ord($bytes[$start++]);
+            if ($length === 0) {
+                break;
+            }
+            $payloadBytes += $length;
+            $start += $length;
+        }
+        return $payloadBytes;
     }
 
     private function skipGifSubBlocks(string $bytes, int $cursor): ?int
@@ -552,10 +576,11 @@ final class Scanner
         $jpegErrorId = null;
         $jpegMetadataExceededOffset = null;
         $gifErrorId = null;
+        $gifMetadataExceededOffset = null;
         if ($format === 'png') {
             $valid = $this->validPng($bytes, $pngCrcMismatchOffset, $pngTrailingDataOffset, $pngErrorId);
         } elseif ($format === 'gif') {
-            $frames = strlen($bytes) >= 14 ? $this->countGifFrames($bytes, $gifErrorId) : null;
+            $frames = strlen($bytes) >= 14 ? $this->countGifFrames($bytes, $gifErrorId, $maxMetadataBytes, $gifMetadataExceededOffset) : null;
             $valid = $frames !== null && $frames > 0;
         } elseif ($format === 'jpeg') {
             $valid = $this->validJpeg($bytes, $jpegErrorId, $maxMetadataBytes, $jpegMetadataExceededOffset);
@@ -563,13 +588,15 @@ final class Scanner
             $valid = $this->validWebp($bytes, $webpTrailingDataOffset, $webpErrorId);
         }
         if ($valid) {
-            if ($jpegMetadataExceededOffset !== null) {
+            $metadataExceeded = $format === 'gif' ? $gifMetadataExceededOffset : ($format === 'jpeg' ? $jpegMetadataExceededOffset : null);
+            if ($metadataExceeded !== null) {
+                $isGif = $format === 'gif';
                 return [$format, 'valid', [[
                     'id' => 'META-006', 'severity' => 'medium', 'stage' => 'metadata',
-                    'title' => 'JPEG metadata limit exceeded',
-                    'description' => 'Metadata segment bytes exceed configured limit.',
+                    'title' => $isGif ? 'GIF extension limit exceeded' : 'JPEG metadata limit exceeded',
+                    'description' => $isGif ? 'Extension bytes exceed configured metadata limit.' : 'Metadata segment bytes exceed configured limit.',
                     'status' => 'confirmed', 'controlStatus' => 'failed',
-                    'evidence' => [['kind' => 'range', 'summary' => 'JPEG metadata segment exceeds configured byte budget.', 'offset' => $jpegMetadataExceededOffset['offset'], 'length' => $jpegMetadataExceededOffset['length']]],
+                    'evidence' => [['kind' => 'range', 'summary' => $isGif ? 'GIF extension data exceeds configured metadata byte budget.' : 'JPEG metadata segment exceeds configured byte budget.', 'offset' => $metadataExceeded['offset'], 'length' => $metadataExceeded['length']]],
                 ]]];
             }
             return [$format, 'valid', []];

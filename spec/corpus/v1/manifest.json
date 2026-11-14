@@ -1,5 +1,5 @@
 {
-  "corpusVersion": "1.0.24",
+  "corpusVersion": "1.0.25",
   "source": "Synthetic, harmless fixtures authored for Pixwarden conformance tests.",
   "license": "CC0-1.0",
   "vectors": [
@@ -630,6 +630,14 @@
       "sha256": "4301df8d3671b1feb9c78e2eebd9a4c0e37e622dd476fd181a9364abdfe3f1aa",
       "scanOptions": { "limits": { "maxMetadataBytes": 10 }, "aiInspection": { "enabled": true, "ocr": false } },
       "expected": { "format": "jpeg", "validity": "valid", "verdict": "reject", "coverage": "partial", "findingIds": ["META-006"], "aiStatus": "partial" }
+    }
+    ,{
+      "id": "RES-GIF-METADATA-BUDGET-001",
+      "description": "Synthetic GIF comment extension exceeds the configured metadata budget; PHP and JS both emit META-006.",
+      "inputHex": "4749463839610100010000000021fe0454455354002c000000000100010000020100003b",
+      "sha256": "cc07808508f56b709bd6dfe78c7055154ea17b272359be092a3a3040407ed89b",
+      "scanOptions": { "limits": { "maxMetadataBytes": 2 } },
+      "expected": { "format": "gif", "validity": "valid", "verdict": "reject", "coverage": "partial", "findingIds": ["META-006"] }
     }
   ]
 }
