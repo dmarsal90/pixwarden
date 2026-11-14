@@ -1,5 +1,5 @@
 {
-  "corpusVersion": "1.0.11",
+  "corpusVersion": "1.0.12",
   "source": "Synthetic, harmless fixtures authored for Pixwarden conformance tests.",
   "license": "CC0-1.0",
   "vectors": [
@@ -298,6 +298,27 @@
       "inputHex": "474946383961010001000000002c000000000100010000020100003b00",
       "sha256": "eb43fb75410e02934df89133751784b5b3083b1a18babfbbaa21223033f5058b",
       "expected": { "format": "gif", "validity": "invalid", "verdict": "reject", "coverage": "partial", "findingIds": ["IMG-008"] }
+    },
+    {
+      "id": "STR-GIF-UNKNOWN-BLOCK-001",
+      "description": "A GIF image stream contains an unknown block introducer before the image descriptor.",
+      "inputHex": "474946383961010001000000002d000000000100010000020100003b",
+      "sha256": "972473ffbfd152897569eb30fe667325c92154a4552f77008cdb3f74d397cf94",
+      "expected": { "format": "gif", "validity": "invalid", "verdict": "reject", "coverage": "partial", "findingIds": ["IMG-001"] }
+    },
+    {
+      "id": "STR-GIF-FRAME-OUTSIDE-SCREEN-001",
+      "description": "A GIF image descriptor positions its frame outside the one-pixel logical screen.",
+      "inputHex": "474946383961010001000000002c010000000100010000020100003b",
+      "sha256": "f4de340ffbf499fdabda14add7a0c2f664e00d18872522d5ae590be5ede84274",
+      "expected": { "format": "gif", "validity": "invalid", "verdict": "reject", "coverage": "partial", "findingIds": ["IMG-006"] }
+    },
+    {
+      "id": "STR-GIF-ZERO-FRAME-DIMENSION-001",
+      "description": "A GIF image descriptor declares zero frame width while the logical screen is nonzero.",
+      "inputHex": "474946383961010001000000002c000000000000010000020100003b",
+      "sha256": "564002ef0a64f230ef2090206ae832158cd0dead7e748c84dd117d1db745cbdb",
+      "expected": { "format": "gif", "validity": "invalid", "verdict": "reject", "coverage": "partial", "findingIds": ["IMG-006"] }
     }
   ]
 }

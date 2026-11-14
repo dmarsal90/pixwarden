@@ -176,6 +176,7 @@ function inspectGif(data: Uint8Array, limits: ResourceLimits): StructuralInspect
       const top = data[offset + 2]! | (data[offset + 3]! << 8);
       const frameWidth = data[offset + 4]! | (data[offset + 5]! << 8);
       const frameHeight = data[offset + 6]! | (data[offset + 7]! << 8);
+      if (frameWidth < 1 || frameHeight < 1) return reject("IMG-006", "GIF frame dimensions are zero", "GIF image descriptor width and height must be nonzero.", offset + 4);
       if (left + frameWidth > width || top + frameHeight > height) return reject("IMG-006", "GIF frame lies outside the logical screen", "Frame rectangle exceeds the logical screen dimensions.", offset);
       if (exceedsDimensions(frameWidth, frameHeight, limits)) findings.push(finding("DEC-007", "high", "resource", "GIF frame dimensions exceed policy", "Frame dimensions exceed configured image limits.", offset + 4, 4));
       const imagePacked = data[offset + 8]!;

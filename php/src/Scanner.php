@@ -296,6 +296,7 @@ final class Scanner
                 $frameWidth = $this->u16le($bytes, $cursor + 4);
                 $frameHeight = $this->u16le($bytes, $cursor + 6);
                 if ($frameWidth < 1 || $frameHeight < 1 || $left + $frameWidth > $screenWidth || $top + $frameHeight > $screenHeight) {
+                    $errorId = 'IMG-006';
                     return null;
                 }
                 $imagePacked = ord($bytes[$cursor + 8]);
@@ -364,6 +365,7 @@ final class Scanner
                     $cursor = $next;
                 }
             } else {
+                $errorId = 'IMG-001';
                 return null;
             }
         }
