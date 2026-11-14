@@ -108,7 +108,8 @@ final class SvgGuard
 
         $source = preg_replace('/^\xEF\xBB\xBF/', '', $bytes) ?? $bytes;
         $sourceWithoutDeclaration = preg_replace('/^\s*<\?xml\s+[^?]*\?>/i', '', $source, 1) ?? $source;
-        if (stripos($sourceWithoutDeclaration, '<!DOCTYPE') !== false || stripos($sourceWithoutDeclaration, '<!ENTITY') !== false) {
+        $markupForDeclarationCheck = preg_replace('/<!--.*?-->|<!\[CDATA\[.*?\]\]>/s', '', $sourceWithoutDeclaration) ?? $sourceWithoutDeclaration;
+        if (stripos($markupForDeclarationCheck, '<!DOCTYPE') !== false || stripos($markupForDeclarationCheck, '<!ENTITY') !== false) {
             throw new SvgRejectedException('SVG document types and entities are not accepted.');
         }
         if (str_contains($sourceWithoutDeclaration, '<?')) {

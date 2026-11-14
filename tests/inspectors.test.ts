@@ -260,6 +260,14 @@ describe("scanImage structural core", () => {
     expect(caught).toMatchObject({ code: "MALFORMED_INPUT" });
   });
 
+  it("allows DTD-like words in comments and CDATA while escaping the text", () => {
+    const svg = new TextEncoder().encode('<svg xmlns="http://www.w3.org/2000/svg"><!-- <!DOCTYPE placeholder> --><text><![CDATA[<!ENTITY inert>]]></text></svg>');
+    const result = sanitizeSvg(svg);
+
+    expect(new TextDecoder().decode(result.bytes)).toBe('<svg xmlns="http://www.w3.org/2000/svg"><text>&lt;!ENTITY inert&gt;</text></svg>');
+    expect(result.postCheckStatus).toBe("passed");
+  });
+
   it("compares optional filename and MIME hints against byte-derived format without retaining them", async () => {
     const result = await scanImage(validPng, { hints: { filename: "/private/uploads/photo.jpg", mediaType: "image/jpeg" } });
     expect(result.findings.filter((finding) => finding.id === "IMG-010")).toHaveLength(1);
