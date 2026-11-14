@@ -339,6 +339,15 @@ final class Scanner
                         $errorId = 'IMG-006';
                         return null;
                     }
+                    if ($label === 0xff && $cursor + 12 <= $size) {
+                        for ($index = $cursor + 1; $index < $cursor + 9; $index++) {
+                            $identifierByte = ord($bytes[$index]);
+                            if ($identifierByte < 0x20 || $identifierByte > 0x7e) {
+                                $errorId = 'IMG-006';
+                                return null;
+                            }
+                        }
+                    }
                     $next = $this->skipGifSubBlocks($bytes, $cursor);
                     if ($next === null) {
                         return null;
