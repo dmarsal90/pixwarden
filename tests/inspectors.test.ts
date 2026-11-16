@@ -103,6 +103,17 @@ describe("scanImage structural core", () => {
     expect(result.verdict).toBe("allow");
   });
 
+  it("keeps coverage partial when requested AI inspection is incomplete", async () => {
+    const result = await scanImage(validPng, {
+      binaryInspection: false,
+      metadata: false,
+      aiInspection: { enabled: true, ocr: true }
+    });
+    expect(result.aiInspection.status).toBe("partial");
+    expect(result.controls.aiInspection?.status).toBe("unsupported");
+    expect(result.coverage).toBe("partial");
+  });
+
   it("does not treat signatures in compressed PNG image data as embedded payloads", async () => {
     const result = await scanImage(signatureInPixelsPng);
     expect(result.findings.some((item) => item.id === "BIN-009")).toBe(false);

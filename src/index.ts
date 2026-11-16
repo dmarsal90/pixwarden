@@ -339,7 +339,14 @@ function inspectSnapshot(snapshot: Uint8Array, options: ScanOptions, limits: Res
     throw new PixwardenError("INVALID_OPTIONS", "requiredControls must contain known controls and cannot be empty.");
   }
   const evaluation = evaluateVerdict(findings, controls, required, options.unsupportedFormat ?? "review", options.incompleteAnalysis ?? "review");
-  const enabledControls = ["structural", ...(binaryEnabled ? ["binary"] : []), ...(metadataEnabled ? ["metadata"] : []), ...(options.hints ? ["hints"] : []), ...(options.steganography?.enabled ? ["steganography"] : [])];
+  const enabledControls = [
+    ...(structuralEnabled ? ["structural"] : []),
+    ...(binaryEnabled ? ["binary"] : []),
+    ...(metadataEnabled ? ["metadata"] : []),
+    ...(options.hints ? ["hints"] : []),
+    ...(options.aiInspection?.enabled ? ["aiInspection"] : []),
+    ...(options.steganography?.enabled ? ["steganography"] : [])
+  ];
   const coverage = enabledControls.some((id) => controls[id]?.status === "error")
     ? "incomplete"
     : enabledControls.some((id) => ["unsupported", "skipped"].includes(controls[id]?.status ?? "unsupported"))
