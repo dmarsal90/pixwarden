@@ -32,7 +32,7 @@ const php = spawnSync("php", [fileURLToPath(new URL("./differential-mutation-wor
   input: `${mutations.map(({ hex }) => hex).join("\n")}\n`,
   encoding: "utf8",
   maxBuffer: 16 * 1024 * 1024,
-  timeout: 60_000
+  timeout: Number(process.env.PIXWARDEN_DIFFERENTIAL_TIMEOUT_MS ?? 300_000)
 });
 if (php.error) throw php.error;
 if (php.status !== 0) throw new Error(`PHP differential worker failed: ${php.stderr}`);

@@ -1,4 +1,5 @@
 import type { BinaryInspectionResult, Evidence, Finding, ImageFormat, ResourceLimits } from "./types.js";
+import { crc32 } from "./crc32.js";
 import { inspectSvg } from "./svg-guard.js";
 
 export interface StructuralInspection {
@@ -49,15 +50,6 @@ function exceedsDimensions(width: number, height: number, limits: ResourceLimits
   return width <= 0 || height <= 0 || width > limits.maxWidth || height > limits.maxHeight || width > Math.floor(limits.maxPixels / height);
 }
 
-function pngCrc(data: Uint8Array, start: number, end: number): number {
-  let crc = 0xffff_ffff;
-  for (let i = start; i < end; i++) {
-    crc ^= data[i]!;
-    for (let bit = 0; bit < 8; bit++) crc = (crc >>> 1) ^ ((crc & 1) ? 0xedb8_8320 : 0);
-  }
-  return (crc ^ 0xffff_ffff) >>> 0;
-}
-
 function inspectPng(data: Uint8Array, limits: ResourceLimits): StructuralInspection {
   const findings: Finding[] = [];
   let offset = 8;
@@ -94,7 +86,7 @@ function inspectPng(data: Uint8Array, limits: ResourceLimits): StructuralInspect
     }
     const crcOffset = payloadOffset + size;
     const expectedCrc = readU32BE(data, crcOffset);
-    if (pngCrc(data, typeOffset, crcOffset) !== expectedCrc) return reject("IMG-002", "PNG chunk CRC mismatch", `The ${type} chunk checksum does not match its contents.`, crcOffset);
+    if (crc32(data, typeOffset, crcOffset) !== expectedCrc) return reject("IMG-002", "PNG chunk CRC mismatch", `The ${type} chunk checksum does not match its contents.`, crcOffset);
     if (chunks === 0 && type !== "IHDR") return reject("IMG-005", "PNG header chunk is not first", "IHDR must be the first PNG chunk.", offset);
     if (type[0] === type[0]?.toUpperCase() && !new Set(["IHDR", "PLTE", "IDAT", "IEND"]).has(type)) return reject("IMG-006", "Unknown critical PNG chunk", "An unrecognized critical chunk prevents reliable validation.", offset);
     if (type === "IHDR") {

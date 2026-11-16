@@ -1,5 +1,5 @@
 {
-  "corpusVersion": "1.0.38",
+  "corpusVersion": "1.0.39",
   "source": "Synthetic, harmless fixtures authored for Pixwarden conformance tests.",
   "license": "CC0-1.0",
   "vectors": [
@@ -872,6 +872,19 @@
         "coverage": "partial",
         "findingIds": [],
         "aiStatus": "partial"
+      }
+    },
+    {
+      "id": "META-WEBP-SHORT-EXIF-CHUNK-001",
+      "description": "A one-byte WebP EXIF chunk followed by bytes resembling the Exif prefix must keep metadata evidence inside the chunk.",
+      "inputHex": "524946465400000057454250565038200400000000000000455849460100000045786966000049492aecececececececececececececececececececec0008000000010069870400010000001a00000000000000002e2e2f2e2e2f6a617a5f7a657200869207000a0000002c00000000000900000000000000450000d8",
+      "sha256": "84a0cbbac067c60c20bccd982e8ee7a4a2be17770db45397fc38fb38b7990f60",
+      "expected": {
+        "format": "webp",
+        "validity": "invalid",
+        "verdict": "reject",
+        "coverage": "partial",
+        "findingIds": ["IMG-008", "META-001"]
       }
     }
   ]

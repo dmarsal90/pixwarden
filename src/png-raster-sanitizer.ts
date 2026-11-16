@@ -1,5 +1,6 @@
 import { deflateSync, inflateSync } from "node:zlib";
 import { inspectStructure } from "./inspectors.js";
+import { crc32 } from "./crc32.js";
 import { PixwardenError, type ResourceLimits } from "./types.js";
 
 const limits: ResourceLimits = Object.freeze({
@@ -139,15 +140,6 @@ function pngChunk(type: string, payload: Buffer): Buffer {
   const header = Buffer.alloc(4); header.writeUInt32BE(payload.byteLength);
   const checksum = Buffer.alloc(4); checksum.writeUInt32BE(crc32(typeAndPayload));
   return Buffer.concat([header, typeAndPayload, checksum]);
-}
-
-function crc32(bytes: Uint8Array): number {
-  let crc = 0xffff_ffff;
-  for (const byte of bytes) {
-    crc ^= byte;
-    for (let bit = 0; bit < 8; bit++) crc = (crc >>> 1) ^ ((crc & 1) ? 0xedb8_8320 : 0);
-  }
-  return (crc ^ 0xffff_ffff) >>> 0;
 }
 
 function readU32BE(bytes: Uint8Array, offset: number): number {

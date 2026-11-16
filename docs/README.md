@@ -9,6 +9,8 @@ The normative architecture, requirements, schema, and implementation plan are ma
 - [Binary inspection](binary-inspection.md) · [Steganography](steganography.md) · [AI injection](ai-injection.md)
 - [Sanitization](sanitization.md) · [Security policies](security-policies.md) · [Integrations](integrations.md)
 - [API reference](api-reference.md) · [Limitations](limitations.md) · [Troubleshooting](troubleshooting.md)
+- [JavaScript performance baseline](performance-js.md)
+- [JavaScript security audit record](security/js-audit-2026-11.md)
 
 ## Normative project documents
 
