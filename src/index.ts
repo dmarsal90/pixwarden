@@ -51,6 +51,15 @@ const capabilityReport: CapabilityReport = Object.freeze({
 });
 
 function mergeLimits(input: Partial<ResourceLimits> | undefined): ResourceLimits {
+  if (input !== undefined && (input === null || typeof input !== "object" || Array.isArray(input))) {
+    throw new PixwardenError("INVALID_OPTIONS", "Limits must be an object.");
+  }
+  if (input !== undefined) {
+    const allowed = new Set(Object.keys(defaultLimits));
+    for (const key of Object.keys(input)) {
+      if (!allowed.has(key)) throw new PixwardenError("INVALID_OPTIONS", `Unknown resource limit: ${key}.`);
+    }
+  }
   const merged = { ...defaultLimits, ...input };
   for (const [key, value] of Object.entries(merged)) {
     if (!Number.isSafeInteger(value) || value <= 0) throw new PixwardenError("INVALID_OPTIONS", `Limit ${key} must be a positive safe integer.`);
@@ -106,7 +115,10 @@ function inspectHints(format: ImageFormat, hints: ScanHints | undefined): { cont
 
 function validateHints(hints: ScanHints | undefined): void {
   if (hints === undefined) return;
-  if (hints === null || typeof hints !== "object") throw new PixwardenError("INVALID_OPTIONS", "Hints must be an object.");
+  if (hints === null || typeof hints !== "object" || Array.isArray(hints)) throw new PixwardenError("INVALID_OPTIONS", "Hints must be an object.");
+  for (const key of Object.keys(hints)) {
+    if (key !== "filename" && key !== "mediaType") throw new PixwardenError("INVALID_OPTIONS", `Unknown hint option: ${key}.`);
+  }
   if (hints.filename === undefined && hints.mediaType === undefined) throw new PixwardenError("INVALID_OPTIONS", "At least one filename or media-type hint is required.");
   if (hints.filename !== undefined && (typeof hints.filename !== "string" || hints.filename.length > 255 || /[\u0000-\u001f\u007f]/.test(hints.filename))) {
     throw new PixwardenError("INVALID_OPTIONS", "Filename hint must be a short string without control characters.");
@@ -121,6 +133,15 @@ function validateAiInspection(value: ScanOptions["aiInspection"]): void {
   if (value === null || typeof value !== "object" || typeof value.enabled !== "boolean" || typeof value.ocr !== "boolean") {
     throw new PixwardenError("INVALID_OPTIONS", "aiInspection must provide boolean enabled and ocr options.");
   }
+  for (const key of Object.keys(value)) {
+    if (!["enabled", "ocr", "adapterId"].includes(key)) throw new PixwardenError("INVALID_OPTIONS", `Unknown aiInspection option: ${key}.`);
+  }
+  if (value.adapterId !== undefined) {
+    if (typeof value.adapterId !== "string" || value.adapterId.length < 1 || value.adapterId.length > 128) {
+      throw new PixwardenError("INVALID_OPTIONS", "aiInspection.adapterId must be a non-empty string of at most 128 characters.");
+    }
+    throw new PixwardenError("INVALID_OPTIONS", `AI inspection adapter "${value.adapterId}" is not registered.`);
+  }
 }
 
 function validateSteganography(value: ScanOptions["steganography"]): void {
@@ -128,8 +149,67 @@ function validateSteganography(value: ScanOptions["steganography"]): void {
   if (value === null || typeof value !== "object" || typeof value.enabled !== "boolean" || !["statistical", "targeted"].includes(value.mode)) {
     throw new PixwardenError("INVALID_OPTIONS", "steganography must provide boolean enabled and a supported mode.");
   }
+  for (const key of Object.keys(value)) {
+    if (!["enabled", "mode", "maxSamples"].includes(key)) throw new PixwardenError("INVALID_OPTIONS", `Unknown steganography option: ${key}.`);
+  }
   if (value.maxSamples !== undefined && (!Number.isSafeInteger(value.maxSamples) || value.maxSamples < 1 || value.maxSamples > 1_000_000)) {
     throw new PixwardenError("INVALID_OPTIONS", "steganography.maxSamples must be an integer from 1 to 1000000.");
+  }
+}
+
+const scanOptionNames = new Set([
+  "structural", "binaryInspection", "metadata", "aiInspection", "steganography", "signal", "hints", "limits",
+  "requiredControls", "unsupportedFormat", "incompleteAnalysis"
+]);
+const knownControls = new Set(["hints", "structural", "metadata", "binary", "decode", "sanitization", "steganography", "aiInspection"]);
+
+function validateScanOptions(options: ScanOptions): void {
+  if (options === null || typeof options !== "object" || Array.isArray(options)) {
+    throw new PixwardenError("INVALID_OPTIONS", "Scan options must be an object.");
+  }
+  for (const key of Object.keys(options)) {
+    if (!scanOptionNames.has(key)) throw new PixwardenError("INVALID_OPTIONS", `Unknown scan option: ${key}.`);
+  }
+  for (const key of ["structural", "binaryInspection", "metadata"] as const) {
+    if (options[key] !== undefined && typeof options[key] !== "boolean") {
+      throw new PixwardenError("INVALID_OPTIONS", `${key} must be a boolean.`);
+    }
+  }
+  validateHints(options.hints);
+  validateAiInspection(options.aiInspection);
+  validateSteganography(options.steganography);
+  mergeLimits(options.limits);
+  if (options.requiredControls !== undefined) {
+    if (!Array.isArray(options.requiredControls) || options.requiredControls.length === 0) {
+      throw new PixwardenError("INVALID_OPTIONS", "requiredControls must be a non-empty array of known control names.");
+    }
+    const seen = new Set<string>();
+    for (const control of options.requiredControls) {
+      if (typeof control !== "string" || !knownControls.has(control) || seen.has(control)) {
+        throw new PixwardenError("INVALID_OPTIONS", "requiredControls must contain unique known control names.");
+      }
+      seen.add(control);
+    }
+  }
+  if (options.unsupportedFormat !== undefined && !["review", "reject"].includes(options.unsupportedFormat)) {
+    throw new PixwardenError("INVALID_OPTIONS", "unsupportedFormat must be review or reject.");
+  }
+  if (options.incompleteAnalysis !== undefined && !["review", "reject"].includes(options.incompleteAnalysis)) {
+    throw new PixwardenError("INVALID_OPTIONS", "incompleteAnalysis must be review or reject.");
+  }
+  if (options.signal !== undefined && (options.signal === null || typeof options.signal !== "object"
+    || typeof options.signal.aborted !== "boolean" || typeof options.signal.addEventListener !== "function"
+    || typeof options.signal.removeEventListener !== "function")) {
+    throw new PixwardenError("INVALID_OPTIONS", "signal must be an AbortSignal.");
+  }
+}
+
+function validateIsolationOptions(isolation: ScanIsolationOptions): void {
+  if (isolation === null || typeof isolation !== "object" || Array.isArray(isolation)) {
+    throw new PixwardenError("INVALID_OPTIONS", "Isolation options must be an object.");
+  }
+  for (const key of Object.keys(isolation)) {
+    if (!["timeoutMs", "maxOldGenerationSizeMb"].includes(key)) throw new PixwardenError("INVALID_OPTIONS", `Unknown isolation option: ${key}.`);
   }
 }
 
@@ -162,6 +242,7 @@ function evaluateVerdict(
 export async function scanImage(input: Uint8Array, options: ScanOptions = {}): Promise<ScanResult> {
   const started = new Date().toISOString();
   if (!(input instanceof Uint8Array)) throw new PixwardenError("INVALID_OPTIONS", "Input must be a Uint8Array or Node.js Buffer.");
+  validateScanOptions(options);
   const limits = mergeLimits(options.limits);
   if (input.byteLength > limits.maxBytes) throw new PixwardenError("INPUT_TOO_LARGE", "Input exceeds the configured byte limit.");
   await new Promise<void>((resolve) => setImmediate(resolve));
@@ -181,6 +262,8 @@ export async function scanImageIsolated(
   isolation: ScanIsolationOptions = {}
 ): Promise<ScanResult> {
   if (!(input instanceof Uint8Array)) throw new PixwardenError("INVALID_OPTIONS", "Input must be a Uint8Array or Node.js Buffer.");
+  validateScanOptions(options);
+  validateIsolationOptions(isolation);
   const limits = mergeLimits(options.limits);
   if (input.byteLength > limits.maxBytes) throw new PixwardenError("INPUT_TOO_LARGE", "Input exceeds the configured byte limit.");
   const timeoutMs = isolation.timeoutMs ?? 10_000;
@@ -339,10 +422,18 @@ function inspectSnapshot(snapshot: Uint8Array, options: ScanOptions, limits: Res
     throw new PixwardenError("INVALID_OPTIONS", "requiredControls must contain known controls and cannot be empty.");
   }
   const evaluation = evaluateVerdict(findings, controls, required, options.unsupportedFormat ?? "review", options.incompleteAnalysis ?? "review");
-  const enabledControls = ["structural", ...(binaryEnabled ? ["binary"] : []), ...(metadataEnabled ? ["metadata"] : []), ...(options.hints ? ["hints"] : []), ...(options.steganography?.enabled ? ["steganography"] : [])];
-  const coverage = enabledControls.some((id) => controls[id]?.status === "error")
+  const enabledControls = [
+    ...(structuralEnabled ? ["structural"] : []),
+    ...(binaryEnabled ? ["binary"] : []),
+    ...(metadataEnabled ? ["metadata"] : []),
+    ...(options.hints ? ["hints"] : []),
+    ...(options.aiInspection?.enabled ? ["aiInspection"] : []),
+    ...(options.steganography?.enabled ? ["steganography"] : [])
+  ];
+  const coverageControls = [...new Set([...enabledControls, ...required])];
+  const coverage = coverageControls.some((id) => controls[id]?.status === "error")
     ? "incomplete"
-    : enabledControls.some((id) => ["unsupported", "skipped"].includes(controls[id]?.status ?? "unsupported"))
+    : coverageControls.some((id) => ["unsupported", "skipped"].includes(controls[id]?.status ?? "unsupported"))
       ? "partial"
       : "complete";
   const completed = new Date().toISOString();
@@ -390,6 +481,7 @@ export async function scanImageStream(source: AsyncIterable<Uint8Array>, options
   if (source === null || typeof source !== "object" || typeof source[Symbol.asyncIterator] !== "function") {
     throw new PixwardenError("INVALID_OPTIONS", "Input source must be an AsyncIterable of Uint8Array chunks.");
   }
+  validateScanOptions(options);
   const limits = mergeLimits(options.limits);
   validateHints(options.hints);
   if (options.signal?.aborted) throw new PixwardenError("CANCELLED", "Stream scan was cancelled before reading input.");

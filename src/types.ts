@@ -16,7 +16,7 @@ export interface ScanOptions {
   readonly structural?: boolean;
   readonly binaryInspection?: boolean;
   readonly metadata?: boolean;
-  readonly aiInspection?: { readonly enabled: boolean; readonly ocr: boolean };
+  readonly aiInspection?: { readonly enabled: boolean; readonly ocr: boolean; readonly adapterId?: string };
   readonly steganography?: SteganographyOptions;
   readonly signal?: AbortSignal;
   readonly hints?: ScanHints;

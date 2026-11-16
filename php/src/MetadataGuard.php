@@ -99,7 +99,7 @@ final class MetadataGuard
                     break;
                 }
                 if ($kind === 'EXIF') {
-                    $ranges[] = [substr($bytes, $start, 6) === "Exif\0\0" ? $start + 6 : $start, $end];
+                    $ranges[] = [$length >= 6 && substr($bytes, $start, 6) === "Exif\0\0" ? $start + 6 : $start, $end];
                 }
                 $cursor = $end + ($length & 1);
             }

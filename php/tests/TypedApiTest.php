@@ -42,4 +42,20 @@ final class TypedApiTest extends TestCase
         $this->expectExceptionMessage('Input exceeds the configured byte limit.');
         (new Scanner())->scan('1234', new ScanOptions(new ResourceLimits(maxBytes: 3)));
     }
+
+    public function testShortWebpExifChunkProducesBoundedEvidence(): void
+    {
+        $bytes = hex2bin('524946465400000057454250565038200400000000000000455849460100000045786966000049492aecececececececececececececececececececec0008000000010069870400010000001a00000000000000002e2e2f2e2e2f6a617a5f7a657200869207000a0000002c00000000000900000000000000450000d8');
+        self::assertNotFalse($bytes);
+        $report = (new Scanner())->scan($bytes)->toArray();
+        foreach ($report['findings'] as $finding) {
+            foreach ($finding['evidence'] as $evidence) {
+                if (isset($evidence['length'])) {
+                    self::assertGreaterThanOrEqual(0, $evidence['length']);
+                    self::assertArrayHasKey('offset', $evidence);
+                    self::assertLessThanOrEqual(strlen($bytes), $evidence['offset'] + $evidence['length']);
+                }
+            }
+        }
+    }
 }

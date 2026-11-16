@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
-import { sanitizeSvg, stripPngExifAndTextMetadata, scanImage, scanImageStream } from "../src/index.js";
+import { sanitizeSvg, stripPngExifAndTextMetadata, scanImage, scanImageIsolated, scanImageStream } from "../src/index.js";
 
 function pngChunk(type: string, payload: number[]): number[] {
   const bytes = [...type].map((char) => char.charCodeAt(0)).concat(payload);
@@ -103,6 +103,23 @@ describe("scanImage structural core", () => {
     expect(result.verdict).toBe("allow");
   });
 
+  it("keeps coverage partial when requested AI inspection is incomplete", async () => {
+    const result = await scanImage(validPng, {
+      binaryInspection: false,
+      metadata: false,
+      aiInspection: { enabled: true, ocr: true }
+    });
+    expect(result.aiInspection.status).toBe("partial");
+    expect(result.controls.aiInspection?.status).toBe("unsupported");
+    expect(result.coverage).toBe("partial");
+  });
+
+  it("rejects an unregistered AI inspection adapter instead of ignoring it", async () => {
+    await expect(scanImage(validPng, {
+      aiInspection: { enabled: true, ocr: true, adapterId: "tesseract-local" }
+    })).rejects.toMatchObject({ code: "INVALID_OPTIONS" });
+  });
+
   it("does not treat signatures in compressed PNG image data as embedded payloads", async () => {
     const result = await scanImage(signatureInPixelsPng);
     expect(result.findings.some((item) => item.id === "BIN-009")).toBe(false);
@@ -136,6 +153,21 @@ describe("scanImage structural core", () => {
     const indicators = result.findings.filter((item) => item.id === "BIN-009");
     expect(indicators).toHaveLength(1);
     expect(indicators[0]?.evidence[0]?.offset).toBe(20);
+  });
+
+  it("keeps a short WebP EXIF chunk range within its chunk boundary", async () => {
+    const malformed = Buffer.from("524946465400000057454250565038200400000000000000455849460100000045786966000049492aecececececececececececececececececececec0008000000010069870400010000001a00000000000000002e2e2f2e2e2f6a617a5f7a657200869207000a0000002c00000000000900000000000000450000d8", "hex");
+    const result = await scanImage(malformed);
+    expect(result.findings.some((finding) => finding.evidence.some((evidence) => evidence.length !== undefined && evidence.length < 0))).toBe(false);
+    for (const finding of result.findings) {
+      for (const evidence of finding.evidence) {
+        if (evidence.length !== undefined) {
+          expect(evidence.offset).toBeDefined();
+          expect(evidence.length).toBeGreaterThanOrEqual(0);
+          expect(evidence.offset! + evidence.length).toBeLessThanOrEqual(malformed.length);
+        }
+      }
+    }
   });
 
   it("reports GPS tag presence without extracting EXIF values", async () => {
@@ -185,10 +217,42 @@ describe("scanImage structural core", () => {
     await expect(scanImage(new Uint8Array(9), { limits: { maxBytes: 8 } })).rejects.toMatchObject({ code: "INPUT_TOO_LARGE" });
   });
 
+  it("rejects unknown, mistyped, and invalid policy options before scanning", async () => {
+    await expect(scanImage(validPng, { metadata: "false" as never })).rejects.toMatchObject({ code: "INVALID_OPTIONS" });
+    await expect(scanImage(validPng, { limits: { maxBytes: 1024, maxPayloads: 3 } as never })).rejects.toMatchObject({ code: "INVALID_OPTIONS" });
+    await expect(scanImage(validPng, { incompleteAnalysis: "allow" as never })).rejects.toMatchObject({ code: "INVALID_OPTIONS" });
+    await expect(scanImage(validPng, { surprise: true } as never)).rejects.toMatchObject({ code: "INVALID_OPTIONS" });
+    await expect(scanImage(validPng, { hints: { filename: "photo.png", trusted: true } as never })).rejects.toMatchObject({ code: "INVALID_OPTIONS" });
+    await expect(scanImage(validPng, { hints: [] as never })).rejects.toMatchObject({ code: "INVALID_OPTIONS" });
+  });
+
+  it("validates stream options before pulling from the source", async () => {
+    let read = false;
+    const source = (async function* () { read = true; yield validPng; })();
+    await expect(scanImageStream(source, { requiredControls: ["structural", "structural"] })).rejects.toMatchObject({ code: "INVALID_OPTIONS" });
+    expect(read).toBe(false);
+  });
+
+  it("rejects unknown worker options before starting a worker", async () => {
+    await expect(scanImageIsolated(validPng, {}, { timeoutMs: 100, heap: 64 } as never)).rejects.toMatchObject({ code: "INVALID_OPTIONS" });
+  });
+
   it("does not claim complete policy compliance when a required control was skipped", async () => {
     const result = await scanImage(validPng, { binaryInspection: false, requiredControls: ["structural", "binary"] });
     expect(result.policyCompliant).toBe(false);
     expect(result.verdict).toBe("review");
+  });
+
+  it("does not report complete coverage when every inspection is disabled", async () => {
+    const result = await scanImage(validPng, {
+      structural: false,
+      binaryInspection: false,
+      metadata: false,
+      requiredControls: ["structural"]
+    });
+    expect(result.controls.structural?.status).toBe("skipped");
+    expect(result.coverage).toBe("partial");
+    expect(result.policyCompliant).toBe(false);
   });
 
   it("returns review when a requested metadata control is not implemented", async () => {

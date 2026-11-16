@@ -26,6 +26,7 @@
     "pretest": "npm run build",
     "test": "vitest run",
     "test:differential": "node scripts/differential-mutation-smoke.mjs",
+    "benchmark": "npm run build && node scripts/benchmark-js.mjs",
     "check:package": "node scripts/check-npm-package.mjs"
   },
   "devDependencies": {

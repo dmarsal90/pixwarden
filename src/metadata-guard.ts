@@ -58,7 +58,7 @@ function exifRanges(data: Uint8Array, format: ImageFormat): PayloadRange[] {
       const start = cursor + 8;
       const end = start + length;
       if (end > containerEnd) break;
-      if (kind === "EXIF") ranges.push({ start: ascii(data, start, "Exif\0\0") ? start + 6 : start, end });
+      if (kind === "EXIF") ranges.push({ start: length >= 6 && ascii(data, start, "Exif\0\0") ? start + 6 : start, end });
       cursor = end + (length & 1);
     }
   }
