@@ -2,7 +2,7 @@
 
 Read the [documentation index](docs/README.md) for getting started, API details, format support, security policies, and explicit limitations.
 
-This repository contains the `pixwarden-js` implementation. The native PHP package lives in its own repository, `pixwarden-php`. Shared contracts and versioned synthetic conformance fixtures live under [`spec/`](spec/); each runtime repository vendors a copy and must pass the same v1 corpus. Cross-runtime differential checks are manual (see [the implementation plan](docs/06-Implementation-Plan.md)).
+This repository contains the `pixwarden-js` implementation. The native PHP package lives in its own repository, `pixwarden-php`. Shared contracts and versioned synthetic conformance fixtures live under [`spec/`](spec/); each runtime repository vendors a copy and must pass the same v1 corpus. Each repository is self-contained and is verified only against its own vendored copy; there is no cross-repository CI dependency, so cross-runtime differential checks are manual and not part of either release.
 
 Pixwarden is an image security library. This initial package release provides bounded, read-only structural inspection for JPEG, PNG, GIF and WebP, selective EXIF TIFF directory checks, a static SVG inspection/sanitization profile, and embedded-signature indicators scoped to format-defined metadata/extension regions and container trailers. Compressed raster payloads are excluded from signature scanning to reduce incidental matches. These indicators are not malware verdicts. A separate sanitizer reconstructs only static non-interlaced 8-bit RGBA PNGs up to one million pixels; it is not invoked by scans and is not a general raster decoder.
 

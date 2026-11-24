@@ -9,7 +9,7 @@
 |---|---|
 | `npm test` | 158 tests passed after the WebP evidence-bound fix, CRC table change, adapter validation, strict configuration validation, and required-control coverage fix |
 | `npm run typecheck` | Passed |
-| `npm run test:differential` | 2,184 single-bit mutations across six seeds matched between JS and PHP |
+| `npm run test:differential` | 2,184 single-bit mutations across six seeds matched between JS and PHP (historical: run before the PHP package moved to its own repository; that harness was removed because each repository must be self-contained) |
 | Jazzer.js, shared corpus v1.0.39 | 79,286 executions in 11 seconds; no failure after regression fix |
 | `npm audit --audit-level=high` | Zero vulnerabilities reported |
 | `npm run check:package` | Passed; 59 files, 68,348 bytes in the dry-run archive |

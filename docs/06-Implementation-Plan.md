@@ -35,7 +35,7 @@ The JS repository includes `npm run benchmark`, a repeatable microbenchmark over
 
 ## Definition of Done
 
-For each phase: changes match requirements and threat IDs; docs and capability matrix updated; no skipped check is described as passed; PHP/JS parity checked; tests actually run with results recorded; dependency/license changes reviewed; errors and residual risks documented. Phase 1 is documentation only, so it does not imply code, schemas or tests exist.
+For each phase: changes match requirements and threat IDs; docs and capability matrix updated; no skipped check is described as passed; shared-corpus conformance passes in each runtime repository; tests actually run with results recorded; dependency/license changes reviewed; errors and residual risks documented. Phase 1 is documentation only, so it does not imply code, schemas or tests exist.
 
 ## Risks and sequencing
 
@@ -63,6 +63,6 @@ In `pixwarden-php`, CI builds the Composer archive and rejects vendor, test, fuz
 
 JS CI runs `npm pack --dry-run --json` and verifies that the npm archive has the declared package identity, public entry points, license/security/readme files, and no tests, docs, fuzzing or sibling PHP files.
 
-The JS package also has runnable Express and Fastify raw-upload examples with a 10 MiB body cap. They keep framework packages out of core dependencies and leave authentication, rate limiting, quarantine and storage decisions to the host application. The differential mutation smoke test allows up to five minutes for the PHP worker; constrained local environments may still need more time, while CI has a separate job deadline.
+The JS package also has runnable Express and Fastify raw-upload examples with a 10 MiB body cap. They keep framework packages out of core dependencies and leave authentication, rate limiting, quarantine and storage decisions to the host application.
 
 NestJS and Next.js route examples are also available under `examples/js/`; see [integration instructions](integrations.md). The JavaScript security and performance evidence is recorded in [the JS audit record](security/js-audit-2026-11.md) and [the benchmark baseline](performance-js.md). OCR/VLM, calibrated steganalysis, general decoder support and OS CPU/RSS quotas remain unavailable because the repository has no suitable isolated adapter or held-out evaluation corpus for them.

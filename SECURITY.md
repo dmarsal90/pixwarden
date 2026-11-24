@@ -4,7 +4,7 @@ Pixwarden is under active development. Do not rely on it as the only security co
 
 ## Reporting
 
-Report suspected vulnerabilities privately to the repository maintainers. Include the affected commit/package version, runtime/platform, minimal harmless reproducer, expected and observed behavior, and any constraints. Do not include live malware or personal image data. A public disclosure timeline will be coordinated after a fix is available.
+Report suspected vulnerabilities privately through this repository's GitHub Security tab ("Report a vulnerability"). Include the affected commit/package version, runtime/platform, minimal harmless reproducer, expected and observed behavior, and any constraints. Do not include live malware or personal image data. A public disclosure timeline will be coordinated after a fix is available.
 
 ## Scope and limitations
 
