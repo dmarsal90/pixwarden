@@ -4,4 +4,4 @@ Reports distinguish `validity`, `decodability`, `coverage`, `verdict`, controls,
 
 For public uploads, a conservative caller policy should quarantine results requiring review, reject malformed structures, fail closed when required controls are unsupported, and serve only a separately approved artifact with fixed content type and non-executable storage. Pixwarden does not provide a persisted policy engine or enforce your business decision.
 
-The JS `requiredControls`, `unsupportedFormat`, and `incompleteAnalysis` options let callers tighten scan decisions. PHP currently exposes limits but not matching policy options. This is a documented parity gap. Do not use JS-specific configuration as if PHP accepted it.
+The JS `requiredControls`, `unsupportedFormat`, and `incompleteAnalysis` options let callers tighten scan decisions. The PHP runtime has its own option set; see the `pixwarden-php` repository and do not assume JS options apply to it.

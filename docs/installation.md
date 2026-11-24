@@ -12,13 +12,7 @@ The package publishes ESM and CommonJS entry points with TypeScript declarations
 
 ## PHP
 
-Requirements: PHP 8.2 or newer. The optional SVG parser requires `ext-dom`.
-
-```sh
-composer require dmarsal90/pixwarden-php
-```
-
-PHP is a native implementation and does not invoke Node.js. Framework integrations are caller-side examples; no Laravel or Symfony dependency is required by the core.
+The PHP runtime is a separate package in its own repository, `pixwarden-php`.
 
 ## Release status
 

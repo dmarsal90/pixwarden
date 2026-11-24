@@ -2,11 +2,7 @@
 
 Read the [documentation index](docs/README.md) for getting started, API details, format support, security policies, and explicit limitations.
 
-This repository currently contains the `pixwarden-js` implementation and a native PHP package under [`php/`](php/). Shared contracts and versioned synthetic conformance fixtures live under [`spec/`](spec/).
-
-## PHP package status
-
-The initial Composer package in [`php/README.md`](php/README.md) is independent of Node.js and passes the shared v1 vectors. It has limited structural profiles, partial EXIF directory inspection, region-scoped signature indicators, a DOM-based static SVG sanitizer, a limited PNG metadata transform, and a restricted RGBA8 PNG raster transform; it does not yet have feature parity with JS. General raster formats, calibrated steganography detection, OCR, and enforceable process isolation remain unsupported. Optional static PNG RGBA8 statistics are descriptive only and cannot pass the steganography policy control. An opt-in local AI text rule checks a narrow set of PNG tEXt/zTXt/iTXt/eXIf, JPEG COM, and ASCII or TIFF-byte-order UTF-16 EXIF UserComment in JPEG/PNG/WebP for instruction-override phrases within the configured metadata budget; compressed text requires PHP `ext-zlib`. It does not inspect pixels or call a model. Do not interpret its `allow` verdict as a complete security assessment; its coverage remains `partial`.
+This repository contains the `pixwarden-js` implementation. The native PHP package lives in its own repository, `pixwarden-php`. Shared contracts and versioned synthetic conformance fixtures live under [`spec/`](spec/); each runtime repository vendors a copy and must pass the same v1 corpus. Cross-runtime differential checks are manual (see [the implementation plan](docs/06-Implementation-Plan.md)).
 
 Pixwarden is an image security library. This initial package release provides bounded, read-only structural inspection for JPEG, PNG, GIF and WebP, selective EXIF TIFF directory checks, a static SVG inspection/sanitization profile, and embedded-signature indicators scoped to format-defined metadata/extension regions and container trailers. Compressed raster payloads are excluded from signature scanning to reduce incidental matches. These indicators are not malware verdicts. A separate sanitizer reconstructs only static non-interlaced 8-bit RGBA PNGs up to one million pixels; it is not invoked by scans and is not a general raster decoder.
 
@@ -49,7 +45,7 @@ Input to `scanImage` and `scanImageIsolated` must be a `Uint8Array` or Node.js `
 
 See [the product requirements](docs/01-PRD.md), [technical design](docs/02-TRD.md), [format matrix](docs/security/02-Format-Security-Matrix.md), [coverage limits](docs/security/04-Detection-Mitigation-Coverage.md), and [security policy](SECURITY.md).
 
-Runnable file-ingress examples: [Node.js](examples/js/scan-file.mjs) and [PHP](php/examples/scan-file.php). Both retain/quarantine files unless the report establishes complete policy coverage; current profiles remain partial.
+Runnable file-ingress example: [Node.js](examples/js/scan-file.mjs). It retains/quarantine files unless the report establishes complete policy coverage; current profiles remain partial.
 
 ## Parser fuzzing
 

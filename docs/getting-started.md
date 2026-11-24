@@ -19,15 +19,6 @@ if (result.verdict !== "allow" || result.coverage !== "complete") {
 
 The current default profile reports partial coverage because decoder validation and several advanced controls are absent. Consequently the example's strict branch intentionally does not accept ordinary scans; define a reviewed policy in the application only after deciding which controls are mandatory.
 
-## PHP
-
-Install with Composer when the package is available. The PHP runtime has no Node.js dependency. Call `Scanner::scan()` with bytes or `scanStream()` with an open stream; caller-owned streams are not rewound or closed.
-
-```php
-$result = (new \Pixwarden\Scanner())->scan($bytes);
-if ($result->coverage !== 'complete' || $result->verdict !== \Pixwarden\Verdict::Allow) {
-    // Quarantine, reject, or route for review according to application policy.
-}
-```
+The PHP runtime lives in the separate `pixwarden-php` repository.
 
 All examples are illustrative integration patterns. Pixwarden does not authorize uploads, store files, or set response headers.
