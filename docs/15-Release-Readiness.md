@@ -12,7 +12,7 @@ The following names were checked on 2026-11-14. Registry availability is a snaps
 | Packagist `dmarsal90/pixwarden-php` | Packagist package endpoint and search | Package endpoint returned 404; no exact search result | Recheck in Packagist before first publish |
 | GitHub `dmarsal90/pixwarden-spec` | GitHub repository API | 404; repository not present | Recheck before creating the repository |
 | GitHub `dmarsal90/pixwarden-js` | GitHub repository API | 404; repository not present | Recheck before creating the repository |
-| GitHub `dmarsal90/pixwarden-php` | GitHub repository API | 404; repository not present | Recheck before creating the repository |
+| GitHub `dmarsal90/pixwarden-php` | GitHub repository API | Repository created 2026-11-24 (private) | Make public before first Packagist publish |
 
 `Pixwarden\\` is a PHP source namespace, not a centrally reserved registry identifier. Packagist has no exact `Pixwarden` package result as of this review, but Composer does not reserve PHP namespaces globally; maintainers must still check for conflicts when integrating dependencies and avoid claiming exclusive ownership of the namespace.
 
@@ -34,7 +34,7 @@ Primary texts: [OSI MIT license](https://opensource.org/license/mit), [Apache Li
 The runtime dependency surface is permissive and small:
 
 - JS production tree: `saxes@6.0.0` (ISC) and `xmlchars@2.2.0` (MIT), from the CycloneDX SBOM generated on 2026-11-14.
-- PHP runtime requirements: PHP 8.2 or newer; no Composer runtime packages are required.
+- PHP (in `pixwarden-php`) runtime requirements: PHP 8.2 or newer; no Composer runtime packages are required.
 - PHP development dependency licenses observed by `composer licenses`: MIT, BSD-3-Clause and Apache-2.0.
 - The complete npm development SBOM also contains CC-BY-4.0, BlueOak-1.0.0 and MPL-2.0 components, in addition to MIT, ISC, Apache-2.0 and BSD-3-Clause. These are development/build dependencies; `package.json` limits the npm tarball to `dist`, README, SECURITY and LICENSE. Re-audit the exact release tarball and dependency tree before publishing.
 
